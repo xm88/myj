@@ -391,14 +391,37 @@ func (a *App) addBuff(l *Live, id string, b M) {
 // viewItem 把数据库物品与模板、品质、词条合并成网页可用的物品视图。
 func (a *App) viewItem(r M) M {
 	t := a.def("items", str(r["template_id"]))
+	ex := M{}
 	var q any
 	aff := []M{}
 	if r["extra"] != nil {
-		ex := extra(r["extra"])
+		ex = extra(r["extra"])
 		q = ex["quality"]
 		aff = objects(ex["affixes"])
 	}
-	return M{"id": r["id"], "templateId": r["template_id"], "name": fallback(t["name"], str(r["template_id"])), "desc": fallback(t["desc"], ""), "kind": fallback(t["kind"], "material"), "count": r["count"], "location": r["location"], "slot": t["slot"], "weaponType": t["weaponType"], "bound": truth(t["bound"]), "sell": num(t["sell"]), "quality": q, "affixes": aff}
+	return M{"id": r["id"], "templateId": r["template_id"], "name": fallback(t["name"], str(r["template_id"])), "desc": fallback(t["desc"], ""), "kind": fallback(t["kind"], "material"), "count": r["count"], "location": r["location"], "slot": t["slot"], "weaponType": t["weaponType"], "bound": truth(t["bound"]), "sell": num(t["sell"]), "quality": q, "affixes": aff, "lines": gearLines(t, ex)}
+}
+
+// gearLines 把装备基础属性和词条整理成可对比的行。品质只乘基础值，词条按原值另列。
+func gearLines(tpl, ex M) []M {
+	lines := []M{}
+	base := obj(tpl["base"])
+	mul := qualityMul[str(ex["quality"])]
+	if mul == 0 {
+		mul = 1
+	}
+	labels := map[string]string{"atk": "攻击", "def": "防御", "hp": "生命", "mp": "法力", "speed": "速度", "critRate": "暴击", "critDmg": "暴伤"}
+	for _, k := range []string{"atk", "def", "hp", "mp", "speed", "critRate", "critDmg"} {
+		v := math.Round(num(base[k])*mul*10) / 10
+		if v == 0 {
+			continue
+		}
+		lines = append(lines, M{"stat": k, "name": labels[k], "value": v})
+	}
+	for _, aff := range objects(ex["affixes"]) {
+		lines = append(lines, M{"stat": aff["stat"], "name": aff["name"], "value": aff["value"], "affix": true})
+	}
+	return lines
 }
 
 // fmtAmount 将属性贡献显示为至多一位小数，沿用旧版界面的舍入规则。

@@ -31,6 +31,22 @@ const canCapture = computed(() => Boolean(foe.value?.alive && foe.value.capturab
 const foeLevel = computed(() => game.config?.monsters?.find((item: { id: string }) => item.id === foe.value?.templateId)?.level)
 /** 追击已结束且当前目标死亡时显示战斗结束状态。 */
 const won = computed(() => !chasing.value && !foe.value?.alive)
+/** 出手条：间隔走完就满，表示下一拍普通攻击准备好了。 */
+const readyPct = computed(() => {
+  const interval = Number(self.value?.interval) || 0
+  const swing = Number(self.value?.swing) || 0
+  if (!interval) return self.value?.targetId ? 100 : 0
+  return Math.min(100, Math.max(0, (1 - swing / interval) * 100))
+})
+/** 守势剩余时，出手条改成守势提示。 */
+const guarding = computed(() => Number(self.value?.guard) > 0)
+/** 这一场已经打出的普通攻击拍数。 */
+const beats = computed(() => Number(self.value?.beats) || 0)
+/** 战斗画面上跟着自己或目标的飘字。 */
+function hits(id: string | undefined) {
+  if (!id) return []
+  return game.floats.filter((item) => item.entityId === id)
+}
 /** 优先使用实时快照中的地图，再回退到持久化角色档案。 */
 const mapId = computed(() => game.snap?.mapId || game.profile?.mapId || 'town_starfall')
 /** 判断当前意图是否为追击攻击或契约目标。 */
@@ -52,6 +68,7 @@ watch(foe, (next) => {
       <small>{{ game.profile?.weaponName }} · Lv.{{ game.profile?.level }}</small>
       <div class="bar"><i class="hp" :style="{ width: hpPct + '%' }" /></div>
       <small>{{ self?.hp ?? 0 }} / {{ self?.maxHp ?? 0 }}</small>
+      <span v-for="hit in hits(game.profile?.id)" :key="hit.id" class="float" :class="{ crit: hit.crit, heal: hit.kind === 'heal', miss: hit.kind === 'miss', guarded: hit.guarded }">{{ hit.text }}</span>
       <div class="bar"><i class="mp" :style="{ width: mpPct + '%' }" /></div>
       <div v-if="pet" class="pet-row">
         <IconMedal :src="portrait(pet.templateId)" />
@@ -60,12 +77,20 @@ watch(foe, (next) => {
       <p v-else class="hint">还没有主战灵伴</p>
     </div>
     <div class="battle-mid">
+      <div class="cadence">
+        <div class="swing" :title="guarding ? '守势中，这一拍少挨打' : '普通攻击的出手节奏'">
+          <i :class="{ guard: guarding }" :style="{ width: readyPct + '%' }" />
+        </div>
+        <small>{{ guarding ? '守势' : (beats ? '第 ' + beats + ' 拍' : '等待出手') }}{{ game.autoFight ? ' · 连招' : '' }}</small>
+      </div>
       <div class="battle-log">
         <p v-if="chasing">正在靠近{{ foe?.name ? ' ' + foe.name : '' }}。走进攻击距离后会自动出手。</p>
         <p v-else-if="won">{{ lastName ? lastName + ' 已被击败。' : '战斗结束。' }}</p>
-        <p v-for="(line, index) in game.battleLog" :key="index">{{ line }}</p>
+        <p v-for="(line, index) in game.battleLog" :key="index" :class="{ crit: line.includes('暴击'), guarded: line.includes('守势') }">{{ line }}</p>
       </div>
       <div class="row">
+        <button class="btn" :class="{ lantern: guarding }" @click="game.guard()">守势</button>
+        <button class="btn" :class="{ lantern: game.autoFight }" @click="game.setAuto(!game.autoFight)">{{ game.autoFight ? '连招中' : '连招' }}</button>
         <button class="btn danger" @click="game.flee()">逃跑</button>
         <button class="btn" :class="{ lantern: won }" @click="game.view = 'scene'">{{ won ? '胜利，返回地图' : '返回地图' }}</button>
         <button class="btn lantern" :disabled="!canCapture || !foe" @click="foe && game.capture(foe.id)">契约</button>
@@ -78,6 +103,7 @@ watch(foe, (next) => {
         <small>{{ foeLevel ? foeLevel + '级 · ' : '' }}{{ foe.alive ? (foe.capturable ? '可以契约' : '战斗中') : '已被击败' }}</small>
         <div class="bar"><i class="hp foe" :style="{ width: foePct + '%' }" /></div>
         <small>{{ foe.hp }} / {{ foe.maxHp }}</small>
+        <span v-for="hit in hits(foe.id)" :key="hit.id" class="float foe" :class="{ crit: hit.crit, heal: hit.kind === 'heal' }">{{ hit.text }}</span>
       </template>
       <p v-else class="hint">{{ lastName ? lastName + ' 已被击败' : '这场已经结束' }}</p>
     </div>

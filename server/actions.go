@@ -9,6 +9,29 @@ import (
 	"strings"
 )
 
+// guard 进入一拍守势：这段时间少挨打，也暂缓下一次普通攻击。守势结束前不能续上。
+func (a *App) guard(id string) {
+	l := a.live[id]
+	if l == nil || truth(l.State["safe"]) {
+		return
+	}
+	s := l.State
+	t := now()
+	if num(s["guardUntil"]) > t {
+		return
+	}
+	interval := num(l.Stats["attackInterval"])
+	if interval < 650 {
+		interval = 650
+	}
+	until := t + interval
+	s["guardUntil"] = until
+	if num(s["attackAt"]) < until {
+		s["attackAt"] = until
+	}
+	push(l, M{"kind": "text", "text": "守势", "x": s["x"], "y": s["y"], "entityId": id})
+}
+
 // cast 处理武器技能、灵伴技能和闪避；先检查冷却、法力与距离，再由服务器结算效果。
 func (a *App) cast(id string, slot any) {
 	l := a.live[id]
@@ -234,6 +257,9 @@ func (a *App) socketMessage(id string, message M) {
 		}
 	case "target":
 		if !truth(s["safe"]) {
+			if str(s["targetId"]) != str(message["id"]) {
+				s["beats"] = 0
+			}
 			s["targetId"] = message["id"]
 		}
 	case "mode":
@@ -243,6 +269,8 @@ func (a *App) socketMessage(id string, message M) {
 		}
 	case "skill":
 		a.cast(id, message["slot"])
+	case "guard":
+		a.guard(id)
 	case "capture":
 		a.capture(id)
 	case "interact":

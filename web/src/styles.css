@@ -303,6 +303,69 @@ button.linkish { border: 0; background: transparent; padding: 0; }
   font-weight: 700;
 }
 .tag:hover { outline: 1px solid #2f6ea8; }
+.scene { cursor: crosshair; }
+.hud-plate, .minimap, .coords, .float, .pin { cursor: default; }
+.hud-plate {
+  position: absolute;
+  z-index: 6;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 4px 8px 4px 4px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--bar);
+  pointer-events: none;
+}
+.hud-plate img { width: 36px; height: 36px; object-fit: cover; border: 1px solid var(--line); background: #fff; }
+.hud-plate b { display: block; font-size: 12px; }
+.hud-plate small { font-weight: 600; color: var(--ink-soft); }
+.hud-plate .bar { width: 92px; margin-top: 3px; }
+.hud-pet { display: flex; flex-direction: column; align-items: center; max-width: 52px; }
+.hud-pet small { max-width: 52px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.minimap {
+  position: absolute;
+  z-index: 6;
+  top: 8px;
+  right: 8px;
+  width: 116px;
+  height: 78px;
+  background: rgba(12, 32, 28, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+}
+.minimap b {
+  position: absolute;
+  left: 4px;
+  bottom: 2px;
+  color: white;
+  font-size: 11px;
+  text-shadow: 0 1px 2px #000;
+}
+.minimap .dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: #f4f8fc;
+}
+.minimap .dot.you { width: 7px; height: 7px; margin: -3px 0 0 -3px; background: #3a7ec8; box-shadow: 0 0 0 1px white; }
+.minimap .dot.dest { background: #e7b423; }
+.minimap .dot.exit { background: #e06a5c; }
+.minimap .dot.offer, .minimap .dot.turnin { background: #e7b423; }
+.coords {
+  position: absolute;
+  z-index: 6;
+  left: 8px;
+  bottom: 8px;
+  padding: 1px 6px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
 
 .roster {
   min-height: 0;
@@ -330,6 +393,23 @@ button.linkish { border: 0; background: transparent; padding: 0; }
   font-size: 13px;
 }
 .roster h3:first-child { margin-top: 0; }
+.quest-track {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: -4px 0 8px;
+}
+.quest-track button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 4px 6px;
+  background: #fff8e8;
+  border-color: #e2c27a;
+}
+.quest-track button.ready { background: #e7f6ea; border-color: #7aaa84; }
+.quest-track b, .quest-track small { display: block; }
+.quest-track small { color: var(--ink-soft); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .who {
   display: flex;
   align-items: center;
@@ -376,6 +456,37 @@ button.linkish { border: 0; background: transparent; padding: 0; }
 .battle-mid { display: flex; flex-direction: column; }
 .battle-log { flex: 1; overflow: auto; line-height: 1.55; }
 .battle-log p { margin: 0 0 4px; }
+.battle-log p.crit { color: #a93226; font-weight: 700; }
+.battle-log p.guarded { color: #1f5688; }
+.cadence { margin-bottom: 6px; }
+.cadence small { color: var(--ink-soft); }
+.swing {
+  height: 8px;
+  background: #d5e1ec;
+  border: 1px solid #b7c8d8;
+  overflow: hidden;
+}
+.swing i { display: block; height: 100%; background: linear-gradient(90deg, #f0c84a, #e09020); }
+.swing i.guard { background: #3a7ec8; }
+.float {
+  position: absolute;
+  z-index: 9;
+  pointer-events: none;
+  font-weight: 800;
+  color: #c0392b;
+  text-shadow: 0 1px 0 #fff, 0 0 2px #fff;
+  animation: rise 1s ease-out forwards;
+}
+.fighter .float { top: 22%; left: 50%; }
+.float.foe { top: 18%; }
+.float.crit { font-size: 18px; color: #a93226; }
+.float.heal { color: #2f8f4e; }
+.float.miss { color: #5c6b7a; font-size: 12px; }
+.float.guarded { color: #1f5688; }
+@keyframes rise {
+  from { transform: translate(-50%, -40%); opacity: 1; }
+  to { transform: translate(-50%, -160%); opacity: 0; }
+}
 
 .dock { display: flex; flex-direction: column; min-width: 0; background: #eef5fb; }
 .hotbar {
@@ -402,6 +513,15 @@ button.linkish { border: 0; background: transparent; padding: 0; }
 .skill small { color: var(--bar); font-size: 10px; }
 .skill span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 .skill.drink { background: linear-gradient(180deg, #fff, #e7f6ea); border-color: #7aaa84; }
+.skill.on, .skill.guard.on { background: var(--bar); color: white; border-color: var(--bar-2); }
+.skill.on small { color: #ffe08a; }
+.phrase {
+  flex: none;
+  border: 1px solid var(--line);
+  background: white;
+  padding: 3px 6px;
+  font-weight: 700;
+}
 .skill .cd {
   position: absolute;
   inset: 0;
@@ -540,6 +660,8 @@ button.linkish { border: 0; background: transparent; padding: 0; }
 /* 业务列表在窗口内部滚动，操作区保持可见。 */
 .panel-body { flex: 1; min-height: 0; overflow: auto; padding: 10px 12px; }
 .panel > .seg { flex: none; display: flex; gap: 6px; padding: 8px 12px 0; }
+.panel > .seg.thin { padding-top: 6px; }
+.panel > .seg.thin button { font-weight: 600; }
 .seg button, .choice button {
   border: 1px solid var(--line);
   background: white;
@@ -581,6 +703,9 @@ button.item { width: 100%; text-align: left; color: inherit; }
 .q-blue { color: #2d62b0; }
 .q-purple { color: #7a45b0; }
 .q-gold { color: #a97912; }
+.up { color: #2f7d49; font-weight: 700; }
+.down { color: #c0392b; font-weight: 700; }
+.shift { color: #a97912; }
 .list { display: flex; flex-direction: column; }
 .gear, .bag-grid { display: grid; gap: 6px; }
 .gear { grid-template-columns: repeat(3, minmax(0, 1fr)); }

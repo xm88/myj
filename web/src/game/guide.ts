@@ -20,6 +20,8 @@ export interface QuestGoal {
 
 /** 角色任务记录或视图，包含任务标识与当前进度信息。 */
 export interface QuestRow {
+  /** 任务标识。点追踪时用它定位这一条，而不是总拿列表里的第一条。 */
+  id?: string
   /** 用于客户端显示的中文名称。 */
   name: string
   /** 接收交付任务的 NPC ID 或其显示名称。 */
@@ -65,6 +67,35 @@ export function describeQuest(quests: QuestRow[]) {
   if (!step) return ''
   if (!step.ready && step.goal) return `${step.quest.name} ${step.goal.current}/${step.goal.need} ${step.goal.text}`
   return `${step.quest.name} · 交给${step.quest.turnin || '委托人'}`
+}
+
+/** 任务追踪行：右侧列表一次显示手上的几条，点哪条就去哪条。 */
+export interface QuestTrack {
+  /** 任务标识，没有标识时退回名称。 */
+  id: string
+  /** 任务名称。 */
+  name: string
+  /** 主线或支线。 */
+  kind?: string
+  /** 目标已经做完，等着交付。 */
+  ready: boolean
+  /** 一行进度。 */
+  line: string
+}
+
+/** 把进行中的任务收成追踪列表。主线排在前面，最多四条，避免把侧栏塞满。 */
+export function questTracks(quests: Array<QuestRow & { kind?: string }>) {
+  const ordered = [...quests].sort((a, b) => Number(b.kind === 'main') - Number(a.kind === 'main'))
+  return ordered.slice(0, 4).map((quest): QuestTrack => {
+    const goal = quest.objectives?.find((item) => item.current < item.need)
+    return {
+      id: quest.id || quest.name,
+      name: quest.name,
+      kind: quest.kind,
+      ready: !goal,
+      line: goal ? `${goal.current}/${goal.need} ${goal.text}` : `交给${quest.turnin || '委托人'}`,
+    }
+  })
 }
 
 /** 任务引导需要的最小地图信息，包含门和怪物刷新来源。 */
@@ -144,7 +175,20 @@ export function questGuide(
   packs: PackLike[],
 ): Guide | null {
   const step = currentQuest(quests)
-  if (!step || !config) return null
+  if (!step) return null
+  return guideQuest(step.quest, config, mapId, packs)
+}
+
+/** 为指定的一条任务生成下一步。追踪列表和状态栏共用这套寻路。 */
+export function guideQuest(
+  quest: QuestRow,
+  config: { maps?: MapLike[]; npcs?: NpcLike[]; monsters?: MonsterLike[] } | null,
+  mapId: string,
+  packs: PackLike[],
+): Guide | null {
+  const open = quest.objectives?.find((item) => item.current < item.need)
+  const step = open ? { quest, goal: open, ready: false as const } : { quest, goal: null, ready: true as const }
+  if (!config) return null
   const here = config.maps?.find((map) => map.id === mapId)
   const npcs = config.npcs ?? []
 

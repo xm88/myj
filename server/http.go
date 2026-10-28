@@ -86,7 +86,7 @@ func (a *App) route(r *http.Request, b M) any {
 	s := func(k string) string { return trimmed(b, k) }
 	n := func(k string, d float64) float64 { return math.Floor(number(b[k], d)) }
 	if is("GET", "/api/health") {
-		return M{"ok": true, "version": "0.1.1", "language": "go", "devTools": a.dev, "weather": a.weather["id"], "period": a.period}
+		return M{"ok": true, "version": "0.1.2", "language": "go", "devTools": a.dev, "weather": a.weather["id"], "period": a.period}
 	}
 	if is("GET", "/api/config") {
 		return a.publicConfig()

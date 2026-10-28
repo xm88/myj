@@ -6,6 +6,7 @@ import { api } from '../api'
 import IconMedal from './IconMedal.vue'
 import WorldMap from './WorldMap.vue'
 import { itemIcon, portrait, weaponIcon } from '../game/art'
+import { npcFocus, portalFocus } from '../game/npc'
 import { useGame } from '../stores/game'
 
 /**
@@ -30,6 +31,8 @@ const durationId = ref('scout')
 const nodeId = ref('node_green_herb')
 /** 背包面板当前显示装备、背包或仓库页签。 */
 const bagTab = ref<'gear' | 'bag' | 'bank'>('bag')
+/** 背包里再按种类筛一层，方便在材料堆里找装备。 */
+const bagFilter = ref<'all' | 'equipment' | 'consumable' | 'material' | 'quest'>('all')
 /** 当前选中的物品、灵伴或配方 ID；切换面板时清空。 */
 const pickedId = ref<string | null>(null)
 /** 制造列表当前选择全部、制造或料理配方。 */
@@ -74,10 +77,14 @@ const shopNpc = computed(() => (game.config?.npcs ?? []).find((npc: any) => npc.
 const shopGoods = computed(() => {
   const items = game.config?.items ?? []
   return (shopNpc.value?.shop ?? []).map((good: { itemId: string; price: number }) => {
-    const item = items.find((row: { id: string }) => row.id === good.itemId)
-    return { ...good, name: item?.name ?? good.itemId, desc: item?.desc ?? '' }
+    const item = items.find((row: { id: string; sell?: number }) => row.id === good.itemId)
+    return { ...good, name: item?.name ?? good.itemId, desc: item?.desc ?? '', sell: item?.sell ?? 0 }
   })
 })
+/** 背包里某一模板一共有多少个。 */
+function ownedCount(templateId: string) {
+  return (game.profile?.bag ?? []).filter((item: { templateId: string }) => item.templateId === templateId).reduce((sum: number, item: { count: number }) => sum + Number(item.count || 0), 0)
+}
 
 /** 打开拍卖、社交、公会或队伍面板时按需读取列表数据。 */
 async function loadSide() {
@@ -215,6 +222,31 @@ function qualityClass(quality: string | null) {
   return quality ? `q-${quality}` : ''
 }
 
+/** 按当前筛选显示背包格子。 */
+const shownBag = computed(() => {
+  const bag = game.profile?.bag ?? []
+  if (bagFilter.value === 'all') return bag
+  if (bagFilter.value === 'quest') return bag.filter((item: { bound?: boolean; kind?: string }) => item.bound || item.kind === 'quest')
+  return bag.filter((item: { kind?: string; bound?: boolean }) => item.kind === bagFilter.value && !(bagFilter.value === 'material' && item.bound))
+})
+
+/** 把属性行收成对照用的数字。百分比和元素按原值相加。 */
+function statTotals(item: { lines?: { stat: string; value: number }[] } | null) {
+  const totals: Record<string, number> = {}
+  for (const line of item?.lines ?? []) totals[line.stat] = (totals[line.stat] ?? 0) + Number(line.value)
+  return totals
+}
+
+/** 属性在对比里怎么读。百分比单独标出来。 */
+function formatDelta(stat: string, name: string, value: number) {
+  const rounded = Math.round(value * 10) / 10
+  const head = `${rounded > 0 ? '+' : ''}${rounded}`
+  if (stat.endsWith('Pct') || stat.startsWith('elem_') || stat === 'critRate' || stat === 'critDmg') {
+    return `${name} ${rounded > 0 ? '+' : ''}${Math.round(value * 1000) / 10}%`
+  }
+  return `${name} ${head}`
+}
+
 /** 从装备、背包和仓库中解析当前选中的物品实例。 */
 const picked = computed(() => {
   const id = pickedId.value
@@ -223,8 +255,52 @@ const picked = computed(() => {
   return worn || game.profile.bag?.find((item: any) => item.id === id) || game.profile.bank?.find((item: any) => item.id === id) || null
 })
 
+/** 和同一部位身上那件比。正数是换上会多出来的。 */
+const compareRows = computed(() => {
+  const item = picked.value
+  if (!item || item.kind !== 'equipment' || item.location === 'equipped') return []
+  const worn = game.profile?.equipment?.[item.slot]
+  const next = statTotals(item)
+  const prev = statTotals(worn)
+  const labels: Record<string, string> = { atk: '攻击', def: '防御', hp: '生命', mp: '法力', speed: '速度', critRate: '暴击', critDmg: '暴伤' }
+  const names: Record<string, string> = {}
+  for (const line of [...(worn?.lines ?? []), ...(item.lines ?? [])]) names[line.stat] = labels[line.stat] || line.name
+  const stats = new Set([...Object.keys(next), ...Object.keys(prev)])
+  const rows = []
+  for (const stat of stats) {
+    const delta = Math.round(((next[stat] ?? 0) - (prev[stat] ?? 0)) * 10) / 10
+    if (!delta) continue
+    rows.push({ stat, up: delta > 0, text: formatDelta(stat, names[stat] || stat, delta) })
+  }
+  return rows
+})
+/** 选中的武器如果会换套路，给一句提醒。 */
+const weaponShift = computed(() => {
+  const item = picked.value
+  if (!item || item.slot !== 'weapon' || item.location === 'equipped' || !item.weaponType) return ''
+  if (item.weaponType === game.profile?.weaponType) return ''
+  return '换上后，技能会改成这把武器的套路'
+})
+
 /** 根据当前选中 ID 查找角色拥有的灵伴实例。 */
 const pickedPet = computed(() => game.profile?.pets?.find((pet: any) => pet.id === pickedId.value) ?? null)
+
+/** 上架时的旅税和到手金币。标价是整单，不是单价。 */
+const listTax = computed(() => {
+  const total = Math.floor(Number(price.value) || 0)
+  const rate = Number(game.config?.constants?.marketTax ?? 0.05)
+  const tax = Math.floor(total * rate)
+  return { total, tax, net: total - tax }
+})
+/** 同类在售里最低的单件价格，给标价做参照。 */
+const priceHint = computed(() => {
+  const item = picked.value
+  if (!item) return ''
+  const peers = (game.market ?? []).filter((order: { templateId: string }) => order.templateId === item.templateId)
+  if (!peers.length) return '跳市上还没有同类'
+  const unit = Math.min(...peers.map((order: { price: number; count: number }) => order.price / Math.max(1, order.count)))
+  return `同类最低大约 ${Math.round(unit)} /个`
+})
 
 /** 按当前制造或料理页签筛选可显示的配方。 */
 const recipes = computed(() => {
@@ -243,6 +319,22 @@ const pickedDuration = computed(() => game.config?.durations?.find((item: any) =
 watch(craftTab, () => {
   if (pickedId.value && !recipes.value.some((recipe: any) => recipe.id === pickedId.value)) pickedId.value = null
 })
+
+/** 去找发布任务的人。不在这张图上时，先走向能过去的门。 */
+function goNpc(id: string) {
+  const npc = (game.config?.npcs ?? []).find((item: { id: string }) => item.id === id)
+  if (!npc) return
+  const mapId = game.snap?.mapId || game.profile?.mapId || ''
+  game.panel = ''
+  if (npc.mapId === mapId) {
+    game.go(npc.x, npc.y, 'interact', npcFocus(npc.id))
+    return
+  }
+  const here = (game.config?.maps ?? []).find((item: { id: string }) => item.id === mapId)
+  const door = here?.portals?.find((portal: { to: string }) => portal.to === npc.mapId) ?? here?.portals?.find((portal: { to: string }) => portal.to === 'town_starfall')
+  if (door) game.go(door.x, door.y, 'interact', portalFocus(door.x, door.y))
+  else game.panel = 'travel'
+}
 
 /** 切换当前选中实例，再次点击同一实例时取消选中。 */
 function pick(id: string) {
@@ -263,6 +355,13 @@ function pick(id: string) {
       <button :class="{ on: bagTab === 'gear' }" @click="bagTab = 'gear'; pickedId = null">装备</button>
       <button :class="{ on: bagTab === 'bag' }" @click="bagTab = 'bag'; pickedId = null">背包 {{ game.profile.bag.length }}</button>
       <button :class="{ on: bagTab === 'bank' }" @click="bagTab = 'bank'; pickedId = null">仓库 {{ game.profile.bank.length }}</button>
+    </div>
+    <div v-if="game.panel === 'bag' && bagTab === 'bag'" class="seg thin">
+      <button :class="{ on: bagFilter === 'all' }" @click="bagFilter = 'all'">全部</button>
+      <button :class="{ on: bagFilter === 'equipment' }" @click="bagFilter = 'equipment'">装备</button>
+      <button :class="{ on: bagFilter === 'consumable' }" @click="bagFilter = 'consumable'">药品</button>
+      <button :class="{ on: bagFilter === 'material' }" @click="bagFilter = 'material'">材料</button>
+      <button :class="{ on: bagFilter === 'quest' }" @click="bagFilter = 'quest'">任务</button>
     </div>
     <div v-else-if="game.panel === 'craft'" class="seg">
       <button :class="{ on: craftTab === 'all' }" @click="craftTab = 'all'">全部</button>
@@ -300,8 +399,8 @@ function pick(id: string) {
         </div>
 
         <div v-else-if="bagTab === 'bag'" class="bag-grid">
-          <p v-if="!game.profile.bag.length" class="empty">背包是空的。去森林打史莱姆，或者采集路边的草。</p>
-          <button v-for="item in game.profile.bag" :key="item.id" class="slot" :class="{ on: pickedId === item.id }" @click="pick(item.id)">
+          <p v-if="!shownBag.length" class="empty">这一类是空的。换个筛选，或去森林打史莱姆。</p>
+          <button v-for="item in shownBag" :key="item.id" class="slot" :class="{ on: pickedId === item.id }" @click="pick(item.id)">
             <IconMedal :src="itemIcon(item.templateId)" />
             <span class="slot-name" :class="qualityClass(item.quality)">{{ item.name }}</span>
             <b v-if="item.count > 1" class="qty">{{ item.count }}</b>
@@ -412,7 +511,7 @@ function pick(id: string) {
                 <IconMedal :src="itemIcon(order.templateId)" />
                 <div>
                   <b :class="qualityClass(order.extra?.quality)">{{ order.name }} ×{{ order.count }}</b>
-                  <small>{{ order.sellerName }} · {{ order.price }} 金币</small>
+                  <small>{{ order.sellerName }} · 支付 {{ order.price }} · 约 {{ Math.round(order.price / Math.max(1, order.count)) }}/个 · 卖家到手 {{ order.price - Math.floor(order.price * (game.config?.constants?.marketTax ?? 0.05)) }}</small>
                 </div>
               </div>
               <button v-if="order.sellerId === game.profile.id" class="btn light" @click="game.act('/api/market/cancel', { id: order.id }).then(loadSide)">取回</button>
@@ -421,7 +520,7 @@ function pick(id: string) {
           </div>
         </template>
         <template v-else>
-          <p v-if="!picked" class="lede">点一件能交易的东西。成交会扣 5% 的税。</p>
+          <p v-if="!picked" class="lede">点一件能交易的东西。标价是买家支付的整单，成交扣 5% 旅税。</p>
           <div class="bag-grid">
             <button v-for="item in game.profile.bag.filter((row: any) => !row.bound)" :key="item.id" class="slot" :class="{ on: pickedId === item.id }" @click="pick(item.id)">
               <IconMedal :src="itemIcon(item.templateId)" />
@@ -473,6 +572,7 @@ function pick(id: string) {
               <span class="qbar"><i :style="{ width: Math.min(100, (goal.current / Math.max(1, goal.need)) * 100) + '%' }" /></span>
             </div>
           </div>
+          <button class="btn" @click="game.pursue(quest.id); game.panel = ''">前往</button>
         </article>
         <h3>可以去接</h3>
         <p v-if="!game.profile.available?.length" class="empty">暂时没有新的委托。先把身上的做完，或者再升一级。</p>
@@ -481,6 +581,7 @@ function pick(id: string) {
             <b>{{ quest.name }}</b>
             <small>{{ quest.kind === 'main' ? '主线' : '支线' }} · 去找 {{ quest.giver }} 对话</small>
           </div>
+          <button class="btn light" @click="goNpc(quest.giverId)">找人</button>
         </div>
       </template>
 
@@ -492,10 +593,11 @@ function pick(id: string) {
               <IconMedal :src="itemIcon(good.itemId)" />
               <div>
                 <b>{{ good.name }}</b>
-                <small>{{ good.desc }} · {{ good.price }} 金币</small>
+                <small>{{ good.desc }}</small>
+                <small>买 {{ good.price }} · 卖店 {{ good.sell || '不收' }} · 身上 {{ ownedCount(good.itemId) }}</small>
               </div>
             </div>
-            <button class="btn" @click="game.act('/api/shop/buy', { npcId: shopNpc.id, itemId: good.itemId, count: 1 })">买 1 个</button>
+            <button class="btn" :disabled="game.profile.gold < good.price" @click="game.act('/api/shop/buy', { npcId: shopNpc.id, itemId: good.itemId, count: 1 })">买 1 个</button>
           </div>
         </div>
       </template>
@@ -638,8 +740,10 @@ function pick(id: string) {
         <div>
           <b :class="qualityClass(picked.quality)">{{ picked.name }}</b>
           <small>{{ picked.desc }}</small>
-          <small v-for="affix in picked.affixes" :key="affix.id">{{ affix.name }} +{{ affix.value }}</small>
+          <small v-for="line in picked.lines ?? []" :key="line.stat + line.name">{{ formatDelta(line.stat, line.name, line.value) }}</small>
           <small v-if="picked.sell > 0">商人收购 {{ picked.sell }} 金币</small>
+          <small v-if="weaponShift" class="shift">{{ weaponShift }}</small>
+          <small v-for="row in compareRows" :key="row.stat" :class="row.up ? 'up' : 'down'">对比身上 {{ row.text }}</small>
         </div>
       </div>
       <div class="row">
@@ -697,8 +801,9 @@ function pick(id: string) {
     <div v-else-if="game.panel === 'market' && marketTab === 'sell' && picked" class="detail">
       <div class="row">
         <label class="field"><span>{{ picked.name }} · 数量</span><input v-model.number="count" type="number" min="1" :max="picked.count" /></label>
-        <label class="field"><span>单价</span><input v-model.number="price" type="number" min="1" /></label>
+        <label class="field"><span>整单价格</span><input v-model.number="price" type="number" min="1" /></label>
         <button class="btn lantern" @click="game.act('/api/market/list', { itemId: picked.id, count, price }).then(() => { pickedId = null; loadSide() })">上架</button>
+        <small>买家支付 {{ listTax.total }}，旅税 {{ listTax.tax }}，你到手 {{ listTax.net }}。{{ priceHint }}</small>
       </div>
     </div>
   </section>

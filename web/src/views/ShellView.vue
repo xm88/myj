@@ -4,7 +4,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from '../api'
 import { nearestPacks } from '../game/crowd'
-import { describeQuest, questGuide } from '../game/guide'
+import { describeQuest, questTracks } from '../game/guide'
 import { closestSpot, focusReach, nodeFocus, npcAction, npcFocus, npcHint, npcMark, portalFocus } from '../game/npc'
 import AssistantView from '../components/AssistantView.vue'
 import BattleBoard from '../components/BattleBoard.vue'
@@ -59,6 +59,8 @@ const packs = computed(() => nearestPacks(monsters.value, who.value))
 const players = computed(() => (game.snap?.entities ?? []).filter((entity: { kind: string }) => entity.kind === 'player'))
 /** 主界面显示的当前任务进度摘要。 */
 const questLine = computed(() => describeQuest(game.profile?.quests ?? []))
+/** 右侧追踪的几条任务。点一条就按那一条走。 */
+const tracked = computed(() => questTracks(game.profile?.quests ?? []))
 /** 可快捷使用的背包恢复道具，具体效果仍由服务器结算。 */
 const quickItems = computed(() => {
   const bag = (game.profile?.bag ?? []).filter((item: { kind: string }) => item.kind === 'consumable')
@@ -183,7 +185,13 @@ function call(name: string) {
 function channelTag(channel: string) {
   if (channel === 'world') return '世界'
   if (channel?.startsWith('guild')) return '工会'
+  if (channel === 'party' || channel?.startsWith('party')) return '队伍'
   return '区域'
+}
+
+/** 把金币收成读得清的数字。 */
+function goldText(value: number) {
+  return Math.floor(Number(value) || 0).toLocaleString('zh-CN')
 }
 
 /** 读取频道历史并合并到本地消息列表，按时间、名字与内容去重。 */
@@ -298,6 +306,11 @@ function onKey(ev: KeyboardEvent) {
     interactNear()
     return
   }
+  if (ev.key.toLowerCase() === 'g') {
+    ev.preventDefault()
+    game.guard()
+    return
+  }
   if (ev.key >= '1' && ev.key <= '4') {
     ev.preventDefault()
     game.send({ type: 'skill', slot: Number(ev.key) })
@@ -310,20 +323,9 @@ function onMapName() {
   if (self.value?.targetId) game.view = 'battle'
 }
 
-/** 按任务引导选择战斗、捕捉、移动或互动，无法定位时打开任务列表。 */
-function followQuest() {
-  const guide = questGuide(game.profile?.quests ?? [], game.config, mapId.value, packs.value)
-  if (!guide) {
-    game.panel = 'quest'
-    return
-  }
-  if (guide.fightId) {
-    if (guide.capture) game.capture(guide.fightId)
-    else game.fight(guide.fightId)
-    return
-  }
-  if (typeof guide.x === 'number' && typeof guide.y === 'number') game.go(guide.x, guide.y, guide.act, guide.focus)
-  else game.panel = 'quest'
+/** 按一条任务走。不传标识时跟当前主步骤。 */
+function followQuest(questId?: string) {
+  game.pursue(questId)
 }
 
 /** 优先走回星落镇的传送门，没有可用门时打开世界地图。 */
@@ -367,7 +369,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       <div class="mast-user" v-if="game.profile">
         <button class="name-link" title="角色和技能" @click="game.panel = 'info'">{{ game.profile.name }}</button>
         <span>Lv.{{ game.profile.level }}</span>
-        <span>{{ game.profile.gold }} 金币</span>
+        <span>{{ goldText(game.profile.gold) }} 金币</span>
         <button class="btn slim" @click="game.setMode('assistant')">助手</button>
         <button class="btn slim" @click="game.logout()">离开</button>
       </div>
@@ -380,7 +382,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       </button>
       <button v-if="map && map.kind !== 'town'" class="linkish home" @click="goHome">回城</button>
       <span v-if="self?.targetId && game.view === 'scene'" class="linkish" @click="game.view = 'battle'">返回战斗</span>
-      <button v-if="questLine" class="quest-chip" title="点这里去交任务，或走到下一步" @click="followQuest">{{ questLine }}</button>
+      <button v-if="questLine" class="quest-chip" title="点这里去交任务，或走到下一步" @click="followQuest()">{{ questLine }}</button>
       <button v-if="near && !game.dialog" class="near-act" title="按 E" @click="interactNear">{{ near.prompt }}</button>
       <span class="status">宠物 {{ pet ? pet.name + ' Lv.' + pet.level : '无' }}</span>
       <span class="vitals" :title="'生命 ' + (self?.hp ?? 0) + '/' + (self?.maxHp ?? 0) + '  法力 ' + (self?.mp ?? 0) + '/' + (self?.maxMp ?? 0)">
@@ -399,6 +401,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       <BattleBoard v-if="game.view === 'battle'" />
       <SceneBoard v-else />
       <aside class="roster">
+        <div v-if="tracked.length" class="quest-track">
+          <button v-for="row in tracked" :key="row.id" :class="{ ready: row.ready }" @click="followQuest(row.id)">
+            <b>{{ row.kind === 'main' ? '主' : '支' }} {{ row.name }}</b>
+            <small>{{ row.line }}</small>
+          </button>
+        </div>
         <div class="roster-tabs">
           <button :class="{ on: rosterTab === 'people' }" @click="rosterTab = 'people'">人物 {{ npcs.length + nodes.length }}</button>
           <button :class="{ on: rosterTab === 'mobs' }" @click="rosterTab = 'mobs'">怪物 {{ monsters.length }}</button>
@@ -481,9 +489,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       </div>
       <section v-if="help" class="note">
         <header><b>怎么玩</b><button @click="help = false">关闭</button></header>
-        <p>蓝色底的地名是你现在站的地方。点别的白字会走过去，红字会走进另一张地图。</p>
-        <p>和人说话、采集，走近按 E，或点名字后面的按钮。问号是可以交差，叹号是有任务。对话打开后，数字键选事项，Enter 交付或接受，Esc 离开。</p>
-        <p>技能在最下面。也可以按 1 到 4，灵伴技是 F。打到三成血以下，再点「契约」。</p>
+        <p>蓝色底的地名是你现在站的地方。点地面会走过去，点白字名字也一样，红字会走进另一张地图。右上角小地图和左下角坐标跟着你。</p>
+        <p>和人说话、采集，走近按 E，或点名字后面的按钮。问号是可以交差，叹号是有任务。右边的任务追踪点一下就会过去。对话打开后，数字键选事项，Enter 交付或接受，Esc 离开。</p>
+        <p>技能在最下面。也可以按 1 到 4，灵伴技是 F。G 是守势，这一拍少挨打也不普通攻击。连招会在靠近后自动放准备好的技能。打到三成血以下，再点「契约」。</p>
         <p>战斗时如果想先看地图，点「返回地图」。左上角的地图名，或「返回战斗」，可以回到战斗画面。打不过就点「逃跑」。</p>
         <p>点自己的名字，或下面的「角色」，可以看属性和换技能。技能栏一次放 4 个：先点栏位，再点要换上的技能。</p>
         <p>下面一排还有任务、道具、宠物、跳市和工会。聊天选区域、世界或工会。点别的旅人「交谈」，会在区域频道叫他。</p>
@@ -511,6 +519,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         <b v-if="skill.left > 0" class="cd">{{ Math.ceil(skill.left / 1000) }}</b>
       </button>
       <button class="skill" title="灵伴技" @click="game.send({ type: 'skill', slot: 'pet' })"><small>F</small><span>灵伴</span></button>
+      <button class="skill guard" :class="{ on: (self?.guard ?? 0) > 0 }" title="这一拍少挨打，也暂不出手" @click="game.guard()"><small>G</small><span>守势</span></button>
+      <button class="skill" :class="{ on: game.autoFight }" title="靠近后自动放准备好的技能" @click="game.setAuto(!game.autoFight)"><small>连</small><span>{{ game.autoFight ? '连招中' : '连招' }}</span></button>
       <button v-for="item in quickItems" :key="item.id" class="skill drink" :title="'使用 ' + item.name" @click="game.act('/api/use', { itemId: item.id })">
         <small>×{{ item.count }}</small>
         <span>{{ item.name }}</span>
@@ -534,8 +544,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         <select v-model="game.chatChannel" @change="loadChannel(game.chatChannel)">
           <option value="map">区域</option>
           <option value="world">世界</option>
+          <option value="party">队伍</option>
           <option value="guild">工会</option>
         </select>
+        <button type="button" class="phrase" @click="draft = '求组队'">求组</button>
+        <button type="button" class="phrase" @click="draft = '收材料，跳市见'">收货</button>
+        <button type="button" class="phrase" @click="draft = '这张图怎么走？'">问路</button>
         <span v-if="game.callName" class="call">对 {{ game.callName }} <button type="button" @click="game.callName = ''">×</button></span>
         <input v-model="draft" maxlength="80" placeholder="说点什么" />
         <button class="btn" type="submit">发送</button>

@@ -314,13 +314,17 @@ func (a *App) hurtPlayer(i *Instance, m M, l *Live, coeff float64) {
 		attack *= 1.08
 	}
 	amount, crit := damage(attack, coeff, num(l.Stats["def"]), 0, num(obj(l.Stats["elemRes"])[str(d["element"])]), .05, 1.5, 1, false, rand.Float64)
+	guarded := num(s["guardUntil"]) > t
+	if guarded {
+		amount = math.Max(1, math.Round(amount*0.55))
+	}
 	// 先由护盾吸收，再把剩余伤害扣到角色生命。
 	absorbed := math.Min(num(s["shield"]), amount)
 	s["shield"] = num(s["shield"]) - absorbed
 	amount -= absorbed
 	s["hp"] = num(s["hp"]) - amount
 	s["lastCombatAt"] = t
-	a.tell(i, M{"kind": "dmg", "amount": amount, "crit": crit, "x": s["x"], "y": s["y"], "entityId": s["id"]})
+	a.tell(i, M{"kind": "dmg", "amount": amount, "crit": crit, "guarded": guarded, "x": s["x"], "y": s["y"], "entityId": s["id"]})
 	// 倒地后回到本地图入口，清理战斗增益并短暂无敌，怪物清除对该角色的仇恨。
 	if num(s["hp"]) <= 0 {
 		spawn := obj(a.def("maps", str(s["mapId"]))["spawn"])
@@ -579,11 +583,17 @@ func (a *App) tick() {
 			m := i.Monsters[str(s["targetId"])]
 			if m == nil || !truth(m["alive"]) {
 				s["targetId"] = nil
+				s["beats"] = 0
 			} else if !truth(s["safe"]) && t >= num(s["attackAt"]) {
-				d := a.def("monsters", str(m["templateId"]))
-				if dist(s, m) <= num(l.Stats["range"])+num(d["radius"]) {
-					s["attackAt"] = t + num(l.Stats["attackInterval"])
-					a.hurtMonster(i, l, m, 1, "physical", false)
+				if num(s["guardUntil"]) > t {
+					s["attackAt"] = num(s["guardUntil"])
+				} else {
+					d := a.def("monsters", str(m["templateId"]))
+					if dist(s, m) <= num(l.Stats["range"])+num(d["radius"]) {
+						s["attackAt"] = t + num(l.Stats["attackInterval"])
+						s["beats"] = num(s["beats"]) + 1
+						a.hurtMonster(i, l, m, 1, "physical", false)
+					}
 				}
 			}
 		}
@@ -641,6 +651,11 @@ func (a *App) snapshot(l *Live, t float64) M {
 		self[k] = l.State[k]
 	}
 	self["maxHp"], self["maxMp"], self["expMax"] = l.Stats["maxHp"], l.Stats["maxMp"], expNext(num(l.State["level"]))
+	self["swing"] = math.Max(0, num(l.State["attackAt"])-t)
+	self["guard"] = math.Max(0, num(l.State["guardUntil"])-t)
+	self["interval"] = num(l.Stats["attackInterval"])
+	self["speed"] = num(l.Stats["speed"])
+	self["beats"] = num(l.State["beats"])
 	cd := M{}
 	for k, v := range l.CD {
 		cd[k] = math.Max(0, num(v)-t)

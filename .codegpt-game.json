@@ -1,0 +1,11 @@
+{
+  "engine": "generic",
+  "launch": {
+    "cmd": "npm",
+    "args": ["run", "dev"]
+  },
+  "log": {
+    "stdout": true
+  },
+  "sourceRoots": ["server", "web/src"]
+}

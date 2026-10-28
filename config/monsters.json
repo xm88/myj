@@ -1,0 +1,2049 @@
+[
+  {
+    "id": "slime",
+    "name": "史莱姆",
+    "level": 1,
+    "role": "normal",
+    "hp": 58,
+    "atk": 7,
+    "def": 2,
+    "exp": 21,
+    "goldMin": 3,
+    "goldMax": 7,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 120,
+    "leash": 380,
+    "element": "physical",
+    "tint": "#6cbf73",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "slime_gel",
+        "chance": 0.9,
+        "min": 1,
+        "max": 2
+      },
+      {
+        "itemId": "wpn_sword_1",
+        "chance": 0.03,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      }
+    ],
+    "petId": "slime_pet",
+    "captureBase": 0.55
+  },
+  {
+    "id": "forest_rat",
+    "name": "森林鼠",
+    "level": 2,
+    "role": "normal",
+    "hp": 74,
+    "atk": 8,
+    "def": 4,
+    "exp": 28,
+    "goldMin": 4,
+    "goldMax": 9,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "physical",
+    "tint": "#8a6a45",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "rat_tail",
+        "chance": 0.7,
+        "min": 1,
+        "max": 1
+      }
+    ]
+  },
+  {
+    "id": "shroom",
+    "name": "蘑菇怪",
+    "level": 4,
+    "role": "normal",
+    "hp": 106,
+    "atk": 11,
+    "def": 6,
+    "exp": 42,
+    "goldMin": 6,
+    "goldMax": 13,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "earth",
+    "tint": "#c45b8a",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "mushroom_cap",
+        "chance": 0.75,
+        "min": 1,
+        "max": 2
+      },
+      {
+        "itemId": "herb_green",
+        "chance": 0.3,
+        "min": 1,
+        "max": 1
+      }
+    ],
+    "petId": "shroom_spirit",
+    "captureBase": 0.42
+  },
+  {
+    "id": "boar",
+    "name": "野猪",
+    "level": 6,
+    "role": "normal",
+    "hp": 150,
+    "atk": 14,
+    "def": 9,
+    "exp": 56,
+    "goldMin": 8,
+    "goldMax": 17,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "physical",
+    "tint": "#a56b45",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "boar_hide",
+        "chance": 0.7,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "itemId": "arm_chest_1",
+        "chance": 0.05,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      }
+    ],
+    "petId": "boar_cub",
+    "captureBase": 0.4
+  },
+  {
+    "id": "wolf",
+    "name": "森林狼",
+    "level": 8,
+    "role": "normal",
+    "hp": 170,
+    "atk": 17,
+    "def": 11,
+    "exp": 70,
+    "goldMin": 10,
+    "goldMax": 21,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "physical",
+    "tint": "#6d7380",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "wolf_fang",
+        "chance": 0.65,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "itemId": "wpn_bow_1",
+        "chance": 0.04,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      }
+    ],
+    "petId": "wolf_pup",
+    "captureBase": 0.38
+  },
+  {
+    "id": "forest_cat",
+    "name": "森林猫",
+    "level": 3,
+    "role": "normal",
+    "hp": 90,
+    "atk": 10,
+    "def": 5,
+    "exp": 35,
+    "goldMin": 5,
+    "goldMax": 11,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 90,
+    "leash": 380,
+    "element": "physical",
+    "tint": "#d7a15a",
+    "radius": 16,
+    "respawnMs": 40000,
+    "drops": [
+      {
+        "itemId": "herb_green",
+        "chance": 0.4,
+        "min": 1,
+        "max": 1
+      }
+    ],
+    "petId": "forest_cat",
+    "captureBase": 0.72,
+    "captureWeather": {
+      "rain": 0.2
+    }
+  },
+  {
+    "id": "elite_boar",
+    "name": "狂暴野猪",
+    "level": 9,
+    "role": "elite",
+    "hp": 484,
+    "atk": 23,
+    "def": 14,
+    "exp": 231,
+    "goldMin": 11,
+    "goldMax": 23,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "physical",
+    "tint": "#c45a3a",
+    "radius": 16,
+    "respawnMs": 90000,
+    "drops": [
+      {
+        "itemId": "boar_hide",
+        "chance": 1,
+        "min": 2,
+        "max": 3
+      },
+      {
+        "itemId": "arm_chest_2",
+        "chance": 0.35,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      },
+      {
+        "itemId": "wpn_great_2",
+        "chance": 0.2,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "elite_wolf",
+    "name": "狼王",
+    "level": 10,
+    "role": "elite",
+    "hp": 525,
+    "atk": 25,
+    "def": 16,
+    "exp": 252,
+    "goldMin": 12,
+    "goldMax": 25,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "physical",
+    "tint": "#4d5566",
+    "radius": 16,
+    "respawnMs": 90000,
+    "drops": [
+      {
+        "itemId": "wolf_fang",
+        "chance": 1,
+        "min": 2,
+        "max": 3
+      },
+      {
+        "itemId": "wpn_bow_2",
+        "chance": 0.28,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "boss_mushroom",
+    "name": "巨型蘑菇王",
+    "level": 10,
+    "role": "boss",
+    "hp": 1454,
+    "atk": 31,
+    "def": 16,
+    "exp": 672,
+    "goldMin": 48,
+    "goldMax": 100,
+    "range": 46,
+    "interval": 1600,
+    "aggro": 150,
+    "leash": 380,
+    "element": "earth",
+    "tint": "#9b3d68",
+    "radius": 26,
+    "respawnMs": 180000,
+    "drops": [
+      {
+        "itemId": "spore_king",
+        "chance": 1,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "itemId": "mushroom_cap",
+        "chance": 1,
+        "min": 3,
+        "max": 5
+      },
+      {
+        "itemId": "wpn_staff_2",
+        "chance": 0.4,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      },
+      {
+        "itemId": "arm_head_2",
+        "chance": 0.35,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      }
+    ],
+    "heavyEvery": 4
+  },
+  {
+    "id": "gold_slime",
+    "name": "金色史莱姆",
+    "level": 6,
+    "role": "normal",
+    "hp": 138,
+    "atk": 14,
+    "def": 9,
+    "exp": 80,
+    "goldMin": 40,
+    "goldMax": 80,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "physical",
+    "tint": "#e2c14d",
+    "radius": 18,
+    "respawnMs": 0,
+    "drops": [
+      {
+        "itemId": "slime_gel",
+        "chance": 1,
+        "min": 3,
+        "max": 5
+      },
+      {
+        "itemId": "arm_ring_2",
+        "chance": 0.5,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      }
+    ],
+    "petId": "gold_slime",
+    "captureBase": 0.2
+  },
+  {
+    "id": "flower_bud",
+    "name": "花苞灵",
+    "level": 5,
+    "role": "normal",
+    "hp": 122,
+    "atk": 13,
+    "def": 7,
+    "exp": 49,
+    "goldMin": 7,
+    "goldMax": 15,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 80,
+    "leash": 380,
+    "element": "earth",
+    "tint": "#e7a0c4",
+    "radius": 16,
+    "respawnMs": 0,
+    "drops": [
+      {
+        "itemId": "herb_green",
+        "chance": 1,
+        "min": 2,
+        "max": 3
+      }
+    ],
+    "petId": "flower_spirit",
+    "captureBase": 0.34
+  },
+  {
+    "id": "fire_fox",
+    "name": "火狐",
+    "level": 7,
+    "role": "normal",
+    "hp": 154,
+    "atk": 16,
+    "def": 10,
+    "exp": 63,
+    "goldMin": 9,
+    "goldMax": 19,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "fire",
+    "tint": "#e07030",
+    "radius": 16,
+    "respawnMs": 0,
+    "drops": [
+      {
+        "itemId": "herb_green",
+        "chance": 0.5,
+        "min": 1,
+        "max": 1
+      }
+    ],
+    "petId": "fire_fox",
+    "captureBase": 0.3,
+    "captureWeather": {
+      "clear": 0.1
+    }
+  },
+  {
+    "id": "mist_fox",
+    "name": "雾狐",
+    "level": 8,
+    "role": "normal",
+    "hp": 170,
+    "atk": 17,
+    "def": 11,
+    "exp": 70,
+    "goldMin": 10,
+    "goldMax": 21,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 80,
+    "leash": 380,
+    "element": "physical",
+    "tint": "#b7c4ce",
+    "radius": 16,
+    "respawnMs": 0,
+    "drops": [
+      {
+        "itemId": "moon_dew",
+        "chance": 0.5,
+        "min": 1,
+        "max": 1
+      }
+    ],
+    "petId": "mist_fox",
+    "captureBase": 0.28,
+    "captureWeather": {
+      "fog": 0.22
+    }
+  },
+  {
+    "id": "pond_slime",
+    "name": "湖史莱姆",
+    "level": 10,
+    "role": "normal",
+    "hp": 202,
+    "atk": 21,
+    "def": 14,
+    "exp": 84,
+    "goldMin": 12,
+    "goldMax": 25,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "water",
+    "tint": "#4aa3a8",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "slime_gel",
+        "chance": 0.8,
+        "min": 1,
+        "max": 2
+      },
+      {
+        "itemId": "moon_dew",
+        "chance": 0.25,
+        "min": 1,
+        "max": 1
+      }
+    ]
+  },
+  {
+    "id": "crab",
+    "name": "钳蟹",
+    "level": 12,
+    "role": "normal",
+    "hp": 234,
+    "atk": 24,
+    "def": 16,
+    "exp": 98,
+    "goldMin": 14,
+    "goldMax": 29,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "physical",
+    "tint": "#c4553c",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "fish_silver",
+        "chance": 0.35,
+        "min": 1,
+        "max": 1
+      }
+    ]
+  },
+  {
+    "id": "heron",
+    "name": "夜鹭",
+    "level": 13,
+    "role": "normal",
+    "hp": 250,
+    "atk": 25,
+    "def": 17,
+    "exp": 105,
+    "goldMin": 15,
+    "goldMax": 31,
+    "range": 150,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "wind",
+    "tint": "#d9e2ea",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "wind_feather",
+        "chance": 0.25,
+        "min": 1,
+        "max": 1
+      }
+    ],
+    "nightPower": true
+  },
+  {
+    "id": "fishman",
+    "name": "鱼人斥候",
+    "level": 14,
+    "role": "normal",
+    "hp": 266,
+    "atk": 27,
+    "def": 19,
+    "exp": 112,
+    "goldMin": 16,
+    "goldMax": 33,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "water",
+    "tint": "#3d7ea6",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "fish_silver",
+        "chance": 0.55,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "itemId": "moon_dew",
+        "chance": 0.3,
+        "min": 1,
+        "max": 1
+      }
+    ]
+  },
+  {
+    "id": "otter",
+    "name": "水獭",
+    "level": 11,
+    "role": "normal",
+    "hp": 218,
+    "atk": 22,
+    "def": 15,
+    "exp": 91,
+    "goldMin": 13,
+    "goldMax": 27,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 100,
+    "leash": 380,
+    "element": "physical",
+    "tint": "#8a5a3a",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "fish_silver",
+        "chance": 0.4,
+        "min": 1,
+        "max": 1
+      }
+    ],
+    "petId": "otter",
+    "captureBase": 0.5
+  },
+  {
+    "id": "elite_crab",
+    "name": "巨钳蟹",
+    "level": 14,
+    "role": "elite",
+    "hp": 692,
+    "atk": 33,
+    "def": 21,
+    "exp": 336,
+    "goldMin": 16,
+    "goldMax": 33,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "physical",
+    "tint": "#a33b32",
+    "radius": 16,
+    "respawnMs": 90000,
+    "drops": [
+      {
+        "itemId": "fish_silver",
+        "chance": 1,
+        "min": 2,
+        "max": 4
+      },
+      {
+        "itemId": "arm_gloves_2",
+        "chance": 0.3,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "elite_koi",
+    "name": "巨锦鲤",
+    "level": 15,
+    "role": "elite",
+    "hp": 733,
+    "atk": 34,
+    "def": 23,
+    "exp": 357,
+    "goldMin": 17,
+    "goldMax": 35,
+    "range": 40,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "water",
+    "tint": "#e07a4a",
+    "radius": 16,
+    "respawnMs": 90000,
+    "drops": [
+      {
+        "itemId": "fish_silver",
+        "chance": 1,
+        "min": 2,
+        "max": 3
+      },
+      {
+        "itemId": "moon_dew",
+        "chance": 0.8,
+        "min": 1,
+        "max": 2
+      },
+      {
+        "itemId": "arm_ring_3",
+        "chance": 0.25,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      }
+    ],
+    "petId": "koi",
+    "captureBase": 0.36
+  },
+  {
+    "id": "moon_cat",
+    "name": "月光猫",
+    "level": 12,
+    "role": "normal",
+    "hp": 234,
+    "atk": 24,
+    "def": 16,
+    "exp": 98,
+    "goldMin": 14,
+    "goldMax": 29,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 70,
+    "leash": 380,
+    "element": "physical",
+    "tint": "#f2e7b0",
+    "radius": 16,
+    "respawnMs": 0,
+    "drops": [
+      {
+        "itemId": "moon_dew",
+        "chance": 1,
+        "min": 1,
+        "max": 2
+      }
+    ],
+    "petId": "moon_cat",
+    "captureBase": 0.22,
+    "captureTime": [
+      "night",
+      "late"
+    ],
+    "captureWeather": {
+      "clear": 0.08,
+      "fog": 0.08
+    }
+  },
+  {
+    "id": "boss_serpent",
+    "name": "湖蛇",
+    "level": 15,
+    "role": "boss",
+    "hp": 2030,
+    "atk": 42,
+    "def": 23,
+    "exp": 952,
+    "goldMin": 68,
+    "goldMax": 140,
+    "range": 70,
+    "interval": 1600,
+    "aggro": 150,
+    "leash": 380,
+    "element": "water",
+    "tint": "#2f6d78",
+    "radius": 26,
+    "respawnMs": 180000,
+    "drops": [
+      {
+        "itemId": "serpent_scale",
+        "chance": 1,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "itemId": "wpn_staff_3",
+        "chance": 0.35,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      },
+      {
+        "itemId": "arm_boots_2",
+        "chance": 0.4,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      }
+    ],
+    "heavyEvery": 4
+  },
+  {
+    "id": "bat",
+    "name": "矿蝠",
+    "level": 16,
+    "role": "normal",
+    "hp": 298,
+    "atk": 30,
+    "def": 21,
+    "exp": 126,
+    "goldMin": 18,
+    "goldMax": 37,
+    "range": 130,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "wind",
+    "tint": "#5c4d73",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "copper_ore",
+        "chance": 0.45,
+        "min": 1,
+        "max": 1
+      }
+    ],
+    "petId": "bat",
+    "captureBase": 0.48
+  },
+  {
+    "id": "lizard",
+    "name": "岩蜥",
+    "level": 17,
+    "role": "normal",
+    "hp": 314,
+    "atk": 31,
+    "def": 22,
+    "exp": 133,
+    "goldMin": 19,
+    "goldMax": 39,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "fire",
+    "tint": "#c46a32",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "iron_ore",
+        "chance": 0.55,
+        "min": 1,
+        "max": 2
+      }
+    ],
+    "petId": "ember_lizard",
+    "captureBase": 0.4
+  },
+  {
+    "id": "ore_golem",
+    "name": "矿石傀儡",
+    "level": 18,
+    "role": "normal",
+    "hp": 330,
+    "atk": 33,
+    "def": 24,
+    "exp": 140,
+    "goldMin": 20,
+    "goldMax": 41,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "earth",
+    "tint": "#7d848c",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "iron_ore",
+        "chance": 0.8,
+        "min": 1,
+        "max": 2
+      },
+      {
+        "itemId": "copper_ore",
+        "chance": 0.45,
+        "min": 1,
+        "max": 1
+      }
+    ]
+  },
+  {
+    "id": "mine_rat",
+    "name": "矿洞鼠",
+    "level": 16,
+    "role": "normal",
+    "hp": 298,
+    "atk": 30,
+    "def": 21,
+    "exp": 126,
+    "goldMin": 18,
+    "goldMax": 37,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 100,
+    "leash": 380,
+    "element": "physical",
+    "tint": "#6b5344",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "iron_ore",
+        "chance": 0.7,
+        "min": 1,
+        "max": 2
+      },
+      {
+        "itemId": "copper_ore",
+        "chance": 0.4,
+        "min": 1,
+        "max": 1
+      }
+    ],
+    "petId": "mine_rat",
+    "captureBase": 0.58
+  },
+  {
+    "id": "elite_golem",
+    "name": "精英岩精",
+    "level": 19,
+    "role": "elite",
+    "hp": 900,
+    "atk": 42,
+    "def": 28,
+    "exp": 441,
+    "goldMin": 21,
+    "goldMax": 43,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "earth",
+    "tint": "#596068",
+    "radius": 16,
+    "respawnMs": 90000,
+    "drops": [
+      {
+        "itemId": "iron_ore",
+        "chance": 1,
+        "min": 3,
+        "max": 5
+      },
+      {
+        "itemId": "silver_ore",
+        "chance": 0.45,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "itemId": "arm_chest_3",
+        "chance": 0.3,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      }
+    ],
+    "petId": "rock_golem",
+    "captureBase": 0.26
+  },
+  {
+    "id": "boss_tyrant",
+    "name": "矿坑暴君",
+    "level": 20,
+    "role": "boss",
+    "hp": 2606,
+    "atk": 54,
+    "def": 30,
+    "exp": 1232,
+    "goldMin": 88,
+    "goldMax": 180,
+    "range": 46,
+    "interval": 1600,
+    "aggro": 150,
+    "leash": 380,
+    "element": "earth",
+    "tint": "#8a3e2f",
+    "radius": 26,
+    "respawnMs": 180000,
+    "drops": [
+      {
+        "itemId": "tyrant_horn",
+        "chance": 1,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "itemId": "silver_ore",
+        "chance": 1,
+        "min": 1,
+        "max": 2
+      },
+      {
+        "itemId": "wpn_great_3",
+        "chance": 0.32,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      },
+      {
+        "itemId": "wpn_sword_3",
+        "chance": 0.32,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      }
+    ],
+    "heavyEvery": 4
+  },
+  {
+    "id": "spark",
+    "name": "电浆史莱姆",
+    "level": 21,
+    "role": "normal",
+    "hp": 378,
+    "atk": 38,
+    "def": 27,
+    "exp": 161,
+    "goldMin": 23,
+    "goldMax": 47,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "thunder",
+    "tint": "#7ec8f0",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "slime_gel",
+        "chance": 0.7,
+        "min": 1,
+        "max": 2
+      },
+      {
+        "itemId": "thunder_ore",
+        "chance": 0.35,
+        "min": 1,
+        "max": 1,
+        "weatherBoost": "storm"
+      }
+    ]
+  },
+  {
+    "id": "thunder_bird",
+    "name": "雷鸟",
+    "level": 22,
+    "role": "normal",
+    "hp": 394,
+    "atk": 39,
+    "def": 29,
+    "exp": 168,
+    "goldMin": 24,
+    "goldMax": 49,
+    "range": 160,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "thunder",
+    "tint": "#f0d36a",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "wind_feather",
+        "chance": 0.45,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "itemId": "thunder_ore",
+        "chance": 0.3,
+        "min": 1,
+        "max": 1,
+        "weatherBoost": "storm"
+      }
+    ]
+  },
+  {
+    "id": "storm_wolf",
+    "name": "风暴狼",
+    "level": 23,
+    "role": "normal",
+    "hp": 410,
+    "atk": 41,
+    "def": 30,
+    "exp": 175,
+    "goldMin": 25,
+    "goldMax": 51,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "thunder",
+    "tint": "#6aa0c8",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "wolf_fang",
+        "chance": 0.6,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "itemId": "thunder_ore",
+        "chance": 0.25,
+        "min": 1,
+        "max": 1,
+        "weatherBoost": "storm"
+      }
+    ]
+  },
+  {
+    "id": "thunder_cat",
+    "name": "雷猫",
+    "level": 22,
+    "role": "normal",
+    "hp": 394,
+    "atk": 39,
+    "def": 29,
+    "exp": 168,
+    "goldMin": 24,
+    "goldMax": 49,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 90,
+    "leash": 380,
+    "element": "thunder",
+    "tint": "#f2e27a",
+    "radius": 16,
+    "respawnMs": 0,
+    "drops": [
+      {
+        "itemId": "thunder_ore",
+        "chance": 0.8,
+        "min": 1,
+        "max": 1
+      }
+    ],
+    "petId": "thunder_cat",
+    "captureBase": 0.26,
+    "captureWeather": {
+      "storm": 0.25
+    }
+  },
+  {
+    "id": "elite_thunder",
+    "name": "雷鸣兽",
+    "level": 24,
+    "role": "elite",
+    "hp": 1108,
+    "atk": 51,
+    "def": 36,
+    "exp": 546,
+    "goldMin": 26,
+    "goldMax": 53,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "thunder",
+    "tint": "#4f8fd6",
+    "radius": 16,
+    "respawnMs": 90000,
+    "drops": [
+      {
+        "itemId": "thunder_ore",
+        "chance": 1,
+        "min": 2,
+        "max": 4,
+        "weatherBoost": "storm"
+      },
+      {
+        "itemId": "wpn_bow_4",
+        "chance": 0.12,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      },
+      {
+        "itemId": "wpn_staff_4",
+        "chance": 0.12,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "boss_storm",
+    "name": "风暴核心",
+    "level": 25,
+    "role": "boss",
+    "hp": 3182,
+    "atk": 66,
+    "def": 37,
+    "exp": 1512,
+    "goldMin": 108,
+    "goldMax": 220,
+    "range": 180,
+    "interval": 1600,
+    "aggro": 150,
+    "leash": 380,
+    "element": "thunder",
+    "tint": "#8fd0ff",
+    "radius": 26,
+    "respawnMs": 180000,
+    "drops": [
+      {
+        "itemId": "storm_core",
+        "chance": 1,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "itemId": "thunder_ore",
+        "chance": 1,
+        "min": 2,
+        "max": 4
+      },
+      {
+        "itemId": "wpn_staff_4",
+        "chance": 0.28,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      },
+      {
+        "itemId": "arm_ring_4",
+        "chance": 0.22,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      }
+    ],
+    "heavyEvery": 4
+  },
+  {
+    "id": "hare",
+    "name": "风原兔",
+    "level": 26,
+    "role": "normal",
+    "hp": 458,
+    "atk": 45,
+    "def": 34,
+    "exp": 196,
+    "goldMin": 28,
+    "goldMax": 57,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "physical",
+    "tint": "#d9cbb8",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "wind_feather",
+        "chance": 0.2,
+        "min": 1,
+        "max": 1
+      }
+    ]
+  },
+  {
+    "id": "raptor",
+    "name": "崖鹫",
+    "level": 27,
+    "role": "normal",
+    "hp": 474,
+    "atk": 47,
+    "def": 35,
+    "exp": 203,
+    "goldMin": 29,
+    "goldMax": 59,
+    "range": 150,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "wind",
+    "tint": "#8a5a44",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "wind_feather",
+        "chance": 0.65,
+        "min": 1,
+        "max": 2
+      }
+    ]
+  },
+  {
+    "id": "gale_sprite",
+    "name": "风灵",
+    "level": 28,
+    "role": "normal",
+    "hp": 490,
+    "atk": 48,
+    "def": 36,
+    "exp": 210,
+    "goldMin": 30,
+    "goldMax": 61,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "wind",
+    "tint": "#b7e0c8",
+    "radius": 16,
+    "respawnMs": 0,
+    "drops": [
+      {
+        "itemId": "wind_feather",
+        "chance": 1,
+        "min": 1,
+        "max": 2
+      }
+    ],
+    "petId": "storm_bird",
+    "captureBase": 0.3,
+    "captureWeather": {
+      "wind": 0.15
+    }
+  },
+  {
+    "id": "elite_raptor",
+    "name": "风鸣巨鹫",
+    "level": 29,
+    "role": "elite",
+    "hp": 1316,
+    "atk": 61,
+    "def": 43,
+    "exp": 651,
+    "goldMin": 31,
+    "goldMax": 63,
+    "range": 170,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "wind",
+    "tint": "#6d4030",
+    "radius": 16,
+    "respawnMs": 90000,
+    "drops": [
+      {
+        "itemId": "wind_feather",
+        "chance": 1,
+        "min": 3,
+        "max": 5
+      },
+      {
+        "itemId": "wpn_bow_4",
+        "chance": 0.22,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      },
+      {
+        "itemId": "arm_boots_4",
+        "chance": 0.2,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "boss_wind",
+    "name": "风原霸主",
+    "level": 30,
+    "role": "boss",
+    "hp": 3758,
+    "atk": 77,
+    "def": 44,
+    "exp": 1792,
+    "goldMin": 128,
+    "goldMax": 260,
+    "range": 160,
+    "interval": 1600,
+    "aggro": 150,
+    "leash": 380,
+    "element": "wind",
+    "tint": "#d7e7c8",
+    "radius": 26,
+    "respawnMs": 180000,
+    "drops": [
+      {
+        "itemId": "wind_feather",
+        "chance": 1,
+        "min": 4,
+        "max": 6
+      },
+      {
+        "itemId": "wpn_bow_4",
+        "chance": 0.3,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      },
+      {
+        "itemId": "arm_head_4",
+        "chance": 0.25,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      }
+    ],
+    "heavyEvery": 4
+  },
+  {
+    "id": "world_whale",
+    "name": "幼年天空鲸",
+    "level": 30,
+    "role": "world",
+    "hp": 8352,
+    "atk": 85,
+    "def": 44,
+    "exp": 1200,
+    "goldMin": 200,
+    "goldMax": 360,
+    "range": 200,
+    "interval": 2000,
+    "aggro": 280,
+    "leash": 900,
+    "element": "wind",
+    "tint": "#8eb4d4",
+    "radius": 34,
+    "respawnMs": 300000,
+    "drops": [
+      {
+        "itemId": "wind_feather",
+        "chance": 1,
+        "min": 6,
+        "max": 10
+      },
+      {
+        "itemId": "storm_core",
+        "chance": 0.5,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "itemId": "arm_chest_4",
+        "chance": 0.45,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      }
+    ],
+    "heavyEvery": 4
+  },
+  {
+    "id": "relic_guard",
+    "name": "遗迹守卫",
+    "level": 26,
+    "role": "normal",
+    "hp": 458,
+    "atk": 45,
+    "def": 34,
+    "exp": 196,
+    "goldMin": 28,
+    "goldMax": 57,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "earth",
+    "tint": "#c8b48a",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "relic_fragment",
+        "chance": 0.7,
+        "min": 1,
+        "max": 1
+      }
+    ]
+  },
+  {
+    "id": "relic_mage",
+    "name": "遗迹法师",
+    "level": 28,
+    "role": "normal",
+    "hp": 490,
+    "atk": 48,
+    "def": 36,
+    "exp": 210,
+    "goldMin": 30,
+    "goldMax": 61,
+    "range": 180,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "thunder",
+    "tint": "#7a6bb5",
+    "radius": 16,
+    "respawnMs": 28000,
+    "drops": [
+      {
+        "itemId": "relic_fragment",
+        "chance": 0.75,
+        "min": 1,
+        "max": 2
+      }
+    ]
+  },
+  {
+    "id": "elite_relic",
+    "name": "遗迹守卫长",
+    "level": 29,
+    "role": "elite",
+    "hp": 1316,
+    "atk": 61,
+    "def": 43,
+    "exp": 651,
+    "goldMin": 31,
+    "goldMax": 63,
+    "range": 46,
+    "interval": 1400,
+    "aggro": 150,
+    "leash": 380,
+    "element": "earth",
+    "tint": "#e6d7a8",
+    "radius": 16,
+    "respawnMs": 90000,
+    "drops": [
+      {
+        "itemId": "relic_fragment",
+        "chance": 1,
+        "min": 2,
+        "max": 3
+      },
+      {
+        "itemId": "wpn_sword_4",
+        "chance": 0.2,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "boss_relic",
+    "name": "遗迹之心",
+    "level": 30,
+    "role": "boss",
+    "hp": 3758,
+    "atk": 77,
+    "def": 44,
+    "exp": 1792,
+    "goldMin": 128,
+    "goldMax": 260,
+    "range": 190,
+    "interval": 1600,
+    "aggro": 150,
+    "leash": 380,
+    "element": "thunder",
+    "tint": "#e6c56a",
+    "radius": 26,
+    "respawnMs": 180000,
+    "drops": [
+      {
+        "itemId": "relic_heart",
+        "chance": 1,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "itemId": "relic_fragment",
+        "chance": 1,
+        "min": 3,
+        "max": 5
+      },
+      {
+        "itemId": "relic_egg",
+        "chance": 0.35,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "itemId": "wpn_staff_4",
+        "chance": 0.3,
+        "min": 1,
+        "max": 1,
+        "qualities": [
+          {
+            "quality": "white",
+            "weight": 50
+          },
+          {
+            "quality": "green",
+            "weight": 32
+          },
+          {
+            "quality": "blue",
+            "weight": 14
+          },
+          {
+            "quality": "purple",
+            "weight": 4
+          }
+        ]
+      }
+    ],
+    "heavyEvery": 4
+  }
+]

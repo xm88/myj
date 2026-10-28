@@ -1,0 +1,135 @@
+/** 迁移前配置参考：NPC 对话、商店与服务。当前 Go 服务读取根目录 config/*.json。 */
+
+/**
+ * 城镇和野外 NPC。
+ * 对话只负责把人带到系统门口：商店、打造、拍卖、派遣、公会、仓库、航标。
+ * 任务按钮由任务模块按进度现算，不写死在台词里。
+ */
+
+import type { NpcDef } from './schema.ts'
+
+/** NPC 名称、位置、对话和服务入口的配置清单。 */
+export const npcs: NpcDef[] = [
+  {
+    id: 'npc_elder',
+    name: '艾兰',
+    title: '星落镇长',
+    mapId: 'town_starfall',
+    x: 480,
+    y: 340,
+    panels: [],
+    lines: [
+      '最近裂隙又稳了一点，可翠叶森林的史莱姆完全没有这个自觉。',
+      '旅团不是让你一个人打完所有岛。该下线的时候，把灵伴派出去。',
+    ],
+  },
+  {
+    id: 'npc_smith',
+    name: '霍特',
+    title: '铁匠',
+    mapId: 'town_starfall',
+    x: 720,
+    y: 340,
+    panels: ['craft'],
+    lines: ['材料带来，我负责敲。一个人学不会所有手艺，所以才有拍卖行。'],
+  },
+  {
+    id: 'npc_shop',
+    name: '米娜',
+    title: '杂货',
+    mapId: 'town_starfall',
+    x: 860,
+    y: 430,
+    panels: ['shop'],
+    shop: [
+      { itemId: 'capture_orb', price: 28 },
+      { itemId: 'bread', price: 8 },
+      { itemId: 'potion_mp', price: 18 },
+    ],
+    lines: ['灵契球不保证成功。先把对方打到站不稳，再谈契约。'],
+  },
+  {
+    id: 'npc_auction',
+    name: '奎因',
+    title: '拍卖师',
+    mapId: 'town_starfall',
+    x: 720,
+    y: 540,
+    panels: ['market'],
+    lines: ['标价、成交、扣 5% 的税。税不进我口袋，只是让金币别烂在城里。'],
+  },
+  {
+    id: 'npc_dispatch',
+    name: '莎雅',
+    title: '旅团官',
+    mapId: 'town_starfall',
+    x: 480,
+    y: 540,
+    panels: ['dispatch'],
+    lines: ['你睡觉的时候，灵伴还在矿上。回来不只是一袋矿，有时是一条新路。'],
+  },
+  {
+    id: 'npc_guild',
+    name: '布鲁克',
+    title: '公会接待',
+    mapId: 'town_starfall',
+    x: 340,
+    y: 450,
+    panels: ['guild'],
+    lines: ['第一版的公会还没有自己的岛。先把人聚起来，捐点金币，把等级做上去。'],
+  },
+  {
+    id: 'npc_bank',
+    name: '陶德',
+    title: '仓库',
+    mapId: 'town_starfall',
+    x: 960,
+    y: 500,
+    panels: ['bank'],
+    lines: ['背包塞满就先放我这儿。任务物品我可不代管出门。'],
+  },
+  {
+    id: 'npc_travel',
+    name: '航标',
+    title: '浮岛航标',
+    mapId: 'town_starfall',
+    x: 600,
+    y: 240,
+    panels: ['travel'],
+    lines: ['航标只在星落镇用。野外要走路，或者找到通向邻岛的门。'],
+  },
+  {
+    id: 'npc_ranger',
+    name: '林守',
+    title: '翠叶巡林',
+    mapId: 'wild_greenleaf',
+    x: 260,
+    y: 560,
+    panels: [],
+    lines: ['西边是镇，东边的蘑菇王别一个人硬闯。森林猫喜欢雨。'],
+  },
+  {
+    id: 'npc_fisher',
+    name: '老渔',
+    title: '湖边渔夫',
+    mapId: 'wild_moonlake',
+    x: 280,
+    y: 420,
+    panels: [],
+    lines: ['夜里别只顾着钓鱼。月光猫就站在桥那边，但它不一定每天来。'],
+  },
+  {
+    id: 'npc_miner',
+    name: '矿头',
+    title: '赤岩矿头',
+    mapId: 'wild_redrock',
+    x: 250,
+    y: 480,
+    panels: ['shop'],
+    shop: [
+      { itemId: 'iron_ore', price: 26 },
+      { itemId: 'copper_ore', price: 22 },
+    ],
+    lines: ['自己挖更便宜。老鼠比我的矿工还熟路，派遣的时候记得带上它。'],
+  },
+]

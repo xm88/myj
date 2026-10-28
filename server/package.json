@@ -1,0 +1,24 @@
+{
+  "name": "server",
+  "private": true,
+  "version": "0.1.1",
+  "type": "module",
+  "scripts": {
+    "dev": "node run-go.mjs run .",
+    "start": "node run-go.mjs run .",
+    "test": "node run-go.mjs test ./...",
+    "build": "node run-go.mjs build -o ../bin/float-server .",
+    "export-config": "node run-go.mjs run . -validate-config"
+  },
+  "devDependencies": {
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "ws": "^8.18.1",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/node": "^24.3.0",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  }
+}

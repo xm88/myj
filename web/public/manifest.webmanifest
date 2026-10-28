@@ -1,0 +1,10 @@
+{
+  "name": "浮岛旅团",
+  "short_name": "浮岛旅团",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#102126",
+  "theme_color": "#102126",
+  "lang": "zh-CN",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

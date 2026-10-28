@@ -1,0 +1,842 @@
+[
+  {
+    "race": "human",
+    "weapon": "sword_shield",
+    "stats": {
+      "maxHp": 334,
+      "maxMp": 122,
+      "atk": 57.8,
+      "spell": 23.1,
+      "def": 52.3,
+      "critRate": 0.13,
+      "critDmg": 1.5,
+      "speed": 183,
+      "attackInterval": 1037.2,
+      "range": 64,
+      "healPct": 1,
+      "elem": {
+        "physical": 0,
+        "fire": 0.12,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      },
+      "elemRes": {
+        "physical": 0,
+        "fire": 0,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      }
+    },
+    "attributeRows": [
+      {
+        "key": "vit",
+        "name": "体力",
+        "hint": "每点生命 +5，灵力 +0.3，速度 +0.1",
+        "value": 13,
+        "gain": "生命 +65，灵力 +3.9，速度 +1.3"
+      },
+      {
+        "key": "mag",
+        "name": "魔力",
+        "hint": "每点法力 +3，灵力 +0.7，不加速度",
+        "value": 14,
+        "gain": "法力 +42，灵力 +9.8"
+      },
+      {
+        "key": "str",
+        "name": "力量",
+        "hint": "每点物理伤害 +0.7，灵力 +0.4，速度 +0.1",
+        "value": 15,
+        "gain": "伤害 +9.9，灵力 +6，速度 +1.5"
+      },
+      {
+        "key": "agi",
+        "name": "敏捷",
+        "hint": "每点速度 +0.7，出手和走路更快，不加灵力",
+        "value": 16,
+        "gain": "速度 +11.2"
+      },
+      {
+        "key": "end",
+        "name": "耐力",
+        "hint": "每点防御 +1.5，灵力 +0.2，速度 +0.1",
+        "value": 17,
+        "gain": "防御 +25.5，灵力 +3.4，速度 +1.7"
+      }
+    ]
+  },
+  {
+    "race": "human",
+    "weapon": "greatsword",
+    "stats": {
+      "maxHp": 310,
+      "maxMp": 122,
+      "atk": 65,
+      "spell": 23.1,
+      "def": 45.3,
+      "critRate": 0.13,
+      "critDmg": 1.5,
+      "speed": 183,
+      "attackInterval": 1387.2,
+      "range": 72,
+      "healPct": 1,
+      "elem": {
+        "physical": 0,
+        "fire": 0.12,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      },
+      "elemRes": {
+        "physical": 0,
+        "fire": 0,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      }
+    },
+    "attributeRows": [
+      {
+        "key": "vit",
+        "name": "体力",
+        "hint": "每点生命 +5，灵力 +0.3，速度 +0.1",
+        "value": 13,
+        "gain": "生命 +65，灵力 +3.9，速度 +1.3"
+      },
+      {
+        "key": "mag",
+        "name": "魔力",
+        "hint": "每点法力 +3，灵力 +0.7，不加速度",
+        "value": 14,
+        "gain": "法力 +42，灵力 +9.8"
+      },
+      {
+        "key": "str",
+        "name": "力量",
+        "hint": "每点物理伤害 +0.7，灵力 +0.4，速度 +0.1",
+        "value": 15,
+        "gain": "伤害 +9.9，灵力 +6，速度 +1.5"
+      },
+      {
+        "key": "agi",
+        "name": "敏捷",
+        "hint": "每点速度 +0.7，出手和走路更快，不加灵力",
+        "value": 16,
+        "gain": "速度 +11.2"
+      },
+      {
+        "key": "end",
+        "name": "耐力",
+        "hint": "每点防御 +1.5，灵力 +0.2，速度 +0.1",
+        "value": 17,
+        "gain": "防御 +25.5，灵力 +3.4，速度 +1.7"
+      }
+    ]
+  },
+  {
+    "race": "human",
+    "weapon": "staff",
+    "stats": {
+      "maxHp": 310,
+      "maxMp": 160,
+      "atk": 60,
+      "spell": 23.1,
+      "def": 45.3,
+      "critRate": 0.13,
+      "critDmg": 1.5,
+      "speed": 183,
+      "attackInterval": 1137.2,
+      "range": 220,
+      "healPct": 1,
+      "elem": {
+        "physical": 0,
+        "fire": 0.12,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      },
+      "elemRes": {
+        "physical": 0,
+        "fire": 0,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      }
+    },
+    "attributeRows": [
+      {
+        "key": "vit",
+        "name": "体力",
+        "hint": "每点生命 +5，灵力 +0.3，速度 +0.1",
+        "value": 13,
+        "gain": "生命 +65，灵力 +3.9，速度 +1.3"
+      },
+      {
+        "key": "mag",
+        "name": "魔力",
+        "hint": "每点法力 +3，灵力 +0.7，不加速度",
+        "value": 14,
+        "gain": "法力 +42，灵力 +9.8"
+      },
+      {
+        "key": "str",
+        "name": "力量",
+        "hint": "每点物理伤害 +0.7，灵力 +0.4，速度 +0.1",
+        "value": 15,
+        "gain": "伤害 +9.9，灵力 +6，速度 +1.5"
+      },
+      {
+        "key": "agi",
+        "name": "敏捷",
+        "hint": "每点速度 +0.7，出手和走路更快，不加灵力",
+        "value": 16,
+        "gain": "速度 +11.2"
+      },
+      {
+        "key": "end",
+        "name": "耐力",
+        "hint": "每点防御 +1.5，灵力 +0.2，速度 +0.1",
+        "value": 17,
+        "gain": "防御 +25.5，灵力 +3.4，速度 +1.7"
+      }
+    ]
+  },
+  {
+    "race": "human",
+    "weapon": "bow",
+    "stats": {
+      "maxHp": 310,
+      "maxMp": 122,
+      "atk": 60.1,
+      "spell": 23.1,
+      "def": 45.3,
+      "critRate": 0.2,
+      "critDmg": 1.5,
+      "speed": 183,
+      "attackInterval": 837.2,
+      "range": 250,
+      "healPct": 1,
+      "elem": {
+        "physical": 0,
+        "fire": 0.12,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      },
+      "elemRes": {
+        "physical": 0,
+        "fire": 0,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      }
+    },
+    "attributeRows": [
+      {
+        "key": "vit",
+        "name": "体力",
+        "hint": "每点生命 +5，灵力 +0.3，速度 +0.1",
+        "value": 13,
+        "gain": "生命 +65，灵力 +3.9，速度 +1.3"
+      },
+      {
+        "key": "mag",
+        "name": "魔力",
+        "hint": "每点法力 +3，灵力 +0.7，不加速度",
+        "value": 14,
+        "gain": "法力 +42，灵力 +9.8"
+      },
+      {
+        "key": "str",
+        "name": "力量",
+        "hint": "每点物理伤害 +0.7，灵力 +0.4，速度 +0.1",
+        "value": 15,
+        "gain": "伤害 +9.9，灵力 +6，速度 +1.5"
+      },
+      {
+        "key": "agi",
+        "name": "敏捷",
+        "hint": "每点速度 +0.7，出手和走路更快，不加灵力",
+        "value": 16,
+        "gain": "速度 +11.2"
+      },
+      {
+        "key": "end",
+        "name": "耐力",
+        "hint": "每点防御 +1.5，灵力 +0.2，速度 +0.1",
+        "value": 17,
+        "gain": "防御 +25.5，灵力 +3.4，速度 +1.7"
+      }
+    ]
+  },
+  {
+    "race": "demon",
+    "weapon": "sword_shield",
+    "stats": {
+      "maxHp": 407,
+      "maxMp": 90,
+      "atk": 66.9,
+      "spell": 21.099999999999998,
+      "def": 36.6,
+      "critRate": 0.13,
+      "critDmg": 1.5,
+      "speed": 183,
+      "attackInterval": 1033.2,
+      "range": 64,
+      "healPct": 1,
+      "elem": {
+        "physical": 0,
+        "fire": 0.12,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      },
+      "elemRes": {
+        "physical": 0,
+        "fire": 0,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      }
+    },
+    "attributeRows": [
+      {
+        "key": "vit",
+        "name": "体力",
+        "hint": "每点生命 +6，灵力 +0.3，速度 +0.1",
+        "value": 23,
+        "gain": "生命 +138，灵力 +6.9，速度 +2.3"
+      },
+      {
+        "key": "mag",
+        "name": "魔力",
+        "hint": "每点法力 +2.5，灵力 +0.7，不加速度",
+        "value": 4,
+        "gain": "法力 +10，灵力 +2.8"
+      },
+      {
+        "key": "str",
+        "name": "力量",
+        "hint": "每点物理伤害 +0.8，灵力 +0.4，速度 +0.1",
+        "value": 25,
+        "gain": "伤害 +19，灵力 +10，速度 +2.5"
+      },
+      {
+        "key": "agi",
+        "name": "敏捷",
+        "hint": "每点速度 +0.7，出手和走路更快，不加灵力",
+        "value": 16,
+        "gain": "速度 +11.2"
+      },
+      {
+        "key": "end",
+        "name": "耐力",
+        "hint": "每点防御 +1.4，灵力 +0.2，速度 +0.1",
+        "value": 7,
+        "gain": "防御 +9.8，灵力 +1.4，速度 +0.7"
+      }
+    ]
+  },
+  {
+    "race": "demon",
+    "weapon": "greatsword",
+    "stats": {
+      "maxHp": 383,
+      "maxMp": 90,
+      "atk": 74.1,
+      "spell": 21.099999999999998,
+      "def": 29.6,
+      "critRate": 0.13,
+      "critDmg": 1.5,
+      "speed": 183,
+      "attackInterval": 1383.2,
+      "range": 72,
+      "healPct": 1,
+      "elem": {
+        "physical": 0,
+        "fire": 0.12,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      },
+      "elemRes": {
+        "physical": 0,
+        "fire": 0,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      }
+    },
+    "attributeRows": [
+      {
+        "key": "vit",
+        "name": "体力",
+        "hint": "每点生命 +6，灵力 +0.3，速度 +0.1",
+        "value": 23,
+        "gain": "生命 +138，灵力 +6.9，速度 +2.3"
+      },
+      {
+        "key": "mag",
+        "name": "魔力",
+        "hint": "每点法力 +2.5，灵力 +0.7，不加速度",
+        "value": 4,
+        "gain": "法力 +10，灵力 +2.8"
+      },
+      {
+        "key": "str",
+        "name": "力量",
+        "hint": "每点物理伤害 +0.8，灵力 +0.4，速度 +0.1",
+        "value": 25,
+        "gain": "伤害 +19，灵力 +10，速度 +2.5"
+      },
+      {
+        "key": "agi",
+        "name": "敏捷",
+        "hint": "每点速度 +0.7，出手和走路更快，不加灵力",
+        "value": 16,
+        "gain": "速度 +11.2"
+      },
+      {
+        "key": "end",
+        "name": "耐力",
+        "hint": "每点防御 +1.4，灵力 +0.2，速度 +0.1",
+        "value": 7,
+        "gain": "防御 +9.8，灵力 +1.4，速度 +0.7"
+      }
+    ]
+  },
+  {
+    "race": "demon",
+    "weapon": "staff",
+    "stats": {
+      "maxHp": 383,
+      "maxMp": 128,
+      "atk": 69.1,
+      "spell": 21.099999999999998,
+      "def": 29.6,
+      "critRate": 0.13,
+      "critDmg": 1.5,
+      "speed": 183,
+      "attackInterval": 1133.2,
+      "range": 220,
+      "healPct": 1,
+      "elem": {
+        "physical": 0,
+        "fire": 0.12,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      },
+      "elemRes": {
+        "physical": 0,
+        "fire": 0,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      }
+    },
+    "attributeRows": [
+      {
+        "key": "vit",
+        "name": "体力",
+        "hint": "每点生命 +6，灵力 +0.3，速度 +0.1",
+        "value": 23,
+        "gain": "生命 +138，灵力 +6.9，速度 +2.3"
+      },
+      {
+        "key": "mag",
+        "name": "魔力",
+        "hint": "每点法力 +2.5，灵力 +0.7，不加速度",
+        "value": 4,
+        "gain": "法力 +10，灵力 +2.8"
+      },
+      {
+        "key": "str",
+        "name": "力量",
+        "hint": "每点物理伤害 +0.8，灵力 +0.4，速度 +0.1",
+        "value": 25,
+        "gain": "伤害 +19，灵力 +10，速度 +2.5"
+      },
+      {
+        "key": "agi",
+        "name": "敏捷",
+        "hint": "每点速度 +0.7，出手和走路更快，不加灵力",
+        "value": 16,
+        "gain": "速度 +11.2"
+      },
+      {
+        "key": "end",
+        "name": "耐力",
+        "hint": "每点防御 +1.4，灵力 +0.2，速度 +0.1",
+        "value": 7,
+        "gain": "防御 +9.8，灵力 +1.4，速度 +0.7"
+      }
+    ]
+  },
+  {
+    "race": "demon",
+    "weapon": "bow",
+    "stats": {
+      "maxHp": 383,
+      "maxMp": 90,
+      "atk": 69.2,
+      "spell": 21.099999999999998,
+      "def": 29.6,
+      "critRate": 0.2,
+      "critDmg": 1.5,
+      "speed": 183,
+      "attackInterval": 833.2,
+      "range": 250,
+      "healPct": 1,
+      "elem": {
+        "physical": 0,
+        "fire": 0.12,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      },
+      "elemRes": {
+        "physical": 0,
+        "fire": 0,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      }
+    },
+    "attributeRows": [
+      {
+        "key": "vit",
+        "name": "体力",
+        "hint": "每点生命 +6，灵力 +0.3，速度 +0.1",
+        "value": 23,
+        "gain": "生命 +138，灵力 +6.9，速度 +2.3"
+      },
+      {
+        "key": "mag",
+        "name": "魔力",
+        "hint": "每点法力 +2.5，灵力 +0.7，不加速度",
+        "value": 4,
+        "gain": "法力 +10，灵力 +2.8"
+      },
+      {
+        "key": "str",
+        "name": "力量",
+        "hint": "每点物理伤害 +0.8，灵力 +0.4，速度 +0.1",
+        "value": 25,
+        "gain": "伤害 +19，灵力 +10，速度 +2.5"
+      },
+      {
+        "key": "agi",
+        "name": "敏捷",
+        "hint": "每点速度 +0.7，出手和走路更快，不加灵力",
+        "value": 16,
+        "gain": "速度 +11.2"
+      },
+      {
+        "key": "end",
+        "name": "耐力",
+        "hint": "每点防御 +1.4，灵力 +0.2，速度 +0.1",
+        "value": 7,
+        "gain": "防御 +9.8，灵力 +1.4，速度 +0.7"
+      }
+    ]
+  },
+  {
+    "race": "immortal",
+    "weapon": "sword_shield",
+    "stats": {
+      "maxHp": 283,
+      "maxMp": 164,
+      "atk": 50.8,
+      "spell": 25.099999999999994,
+      "def": 70,
+      "critRate": 0.13,
+      "critDmg": 1.5,
+      "speed": 182,
+      "attackInterval": 1041.2,
+      "range": 64,
+      "healPct": 1,
+      "elem": {
+        "physical": 0,
+        "fire": 0.12,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      },
+      "elemRes": {
+        "physical": 0,
+        "fire": 0,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      }
+    },
+    "attributeRows": [
+      {
+        "key": "vit",
+        "name": "体力",
+        "hint": "每点生命 +4.5，灵力 +0.3，速度 +0.1",
+        "value": 3,
+        "gain": "生命 +13.5，灵力 +0.9，速度 +0.3"
+      },
+      {
+        "key": "mag",
+        "name": "魔力",
+        "hint": "每点法力 +3.5，灵力 +0.7，不加速度",
+        "value": 24,
+        "gain": "法力 +84，灵力 +16.8"
+      },
+      {
+        "key": "str",
+        "name": "力量",
+        "hint": "每点物理伤害 +0.6，灵力 +0.4，速度 +0.1",
+        "value": 5,
+        "gain": "伤害 +2.8，灵力 +2，速度 +0.5"
+      },
+      {
+        "key": "agi",
+        "name": "敏捷",
+        "hint": "每点速度 +0.7，出手和走路更快，不加灵力",
+        "value": 16,
+        "gain": "速度 +11.2"
+      },
+      {
+        "key": "end",
+        "name": "耐力",
+        "hint": "每点防御 +1.6，灵力 +0.2，速度 +0.1",
+        "value": 27,
+        "gain": "防御 +43.2，灵力 +5.4，速度 +2.7"
+      }
+    ]
+  },
+  {
+    "race": "immortal",
+    "weapon": "greatsword",
+    "stats": {
+      "maxHp": 259,
+      "maxMp": 164,
+      "atk": 58,
+      "spell": 25.099999999999994,
+      "def": 63,
+      "critRate": 0.13,
+      "critDmg": 1.5,
+      "speed": 182,
+      "attackInterval": 1391.2,
+      "range": 72,
+      "healPct": 1,
+      "elem": {
+        "physical": 0,
+        "fire": 0.12,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      },
+      "elemRes": {
+        "physical": 0,
+        "fire": 0,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      }
+    },
+    "attributeRows": [
+      {
+        "key": "vit",
+        "name": "体力",
+        "hint": "每点生命 +4.5，灵力 +0.3，速度 +0.1",
+        "value": 3,
+        "gain": "生命 +13.5，灵力 +0.9，速度 +0.3"
+      },
+      {
+        "key": "mag",
+        "name": "魔力",
+        "hint": "每点法力 +3.5，灵力 +0.7，不加速度",
+        "value": 24,
+        "gain": "法力 +84，灵力 +16.8"
+      },
+      {
+        "key": "str",
+        "name": "力量",
+        "hint": "每点物理伤害 +0.6，灵力 +0.4，速度 +0.1",
+        "value": 5,
+        "gain": "伤害 +2.8，灵力 +2，速度 +0.5"
+      },
+      {
+        "key": "agi",
+        "name": "敏捷",
+        "hint": "每点速度 +0.7，出手和走路更快，不加灵力",
+        "value": 16,
+        "gain": "速度 +11.2"
+      },
+      {
+        "key": "end",
+        "name": "耐力",
+        "hint": "每点防御 +1.6，灵力 +0.2，速度 +0.1",
+        "value": 27,
+        "gain": "防御 +43.2，灵力 +5.4，速度 +2.7"
+      }
+    ]
+  },
+  {
+    "race": "immortal",
+    "weapon": "staff",
+    "stats": {
+      "maxHp": 259,
+      "maxMp": 202,
+      "atk": 52.9,
+      "spell": 25.099999999999994,
+      "def": 63,
+      "critRate": 0.13,
+      "critDmg": 1.5,
+      "speed": 182,
+      "attackInterval": 1141.2,
+      "range": 220,
+      "healPct": 1,
+      "elem": {
+        "physical": 0,
+        "fire": 0.12,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      },
+      "elemRes": {
+        "physical": 0,
+        "fire": 0,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      }
+    },
+    "attributeRows": [
+      {
+        "key": "vit",
+        "name": "体力",
+        "hint": "每点生命 +4.5，灵力 +0.3，速度 +0.1",
+        "value": 3,
+        "gain": "生命 +13.5，灵力 +0.9，速度 +0.3"
+      },
+      {
+        "key": "mag",
+        "name": "魔力",
+        "hint": "每点法力 +3.5，灵力 +0.7，不加速度",
+        "value": 24,
+        "gain": "法力 +84，灵力 +16.8"
+      },
+      {
+        "key": "str",
+        "name": "力量",
+        "hint": "每点物理伤害 +0.6，灵力 +0.4，速度 +0.1",
+        "value": 5,
+        "gain": "伤害 +2.8，灵力 +2，速度 +0.5"
+      },
+      {
+        "key": "agi",
+        "name": "敏捷",
+        "hint": "每点速度 +0.7，出手和走路更快，不加灵力",
+        "value": 16,
+        "gain": "速度 +11.2"
+      },
+      {
+        "key": "end",
+        "name": "耐力",
+        "hint": "每点防御 +1.6，灵力 +0.2，速度 +0.1",
+        "value": 27,
+        "gain": "防御 +43.2，灵力 +5.4，速度 +2.7"
+      }
+    ]
+  },
+  {
+    "race": "immortal",
+    "weapon": "bow",
+    "stats": {
+      "maxHp": 259,
+      "maxMp": 164,
+      "atk": 53.1,
+      "spell": 25.099999999999994,
+      "def": 63,
+      "critRate": 0.2,
+      "critDmg": 1.5,
+      "speed": 182,
+      "attackInterval": 841.2,
+      "range": 250,
+      "healPct": 1,
+      "elem": {
+        "physical": 0,
+        "fire": 0.12,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      },
+      "elemRes": {
+        "physical": 0,
+        "fire": 0,
+        "water": 0,
+        "thunder": 0,
+        "wind": 0,
+        "earth": 0
+      }
+    },
+    "attributeRows": [
+      {
+        "key": "vit",
+        "name": "体力",
+        "hint": "每点生命 +4.5，灵力 +0.3，速度 +0.1",
+        "value": 3,
+        "gain": "生命 +13.5，灵力 +0.9，速度 +0.3"
+      },
+      {
+        "key": "mag",
+        "name": "魔力",
+        "hint": "每点法力 +3.5，灵力 +0.7，不加速度",
+        "value": 24,
+        "gain": "法力 +84，灵力 +16.8"
+      },
+      {
+        "key": "str",
+        "name": "力量",
+        "hint": "每点物理伤害 +0.6，灵力 +0.4，速度 +0.1",
+        "value": 5,
+        "gain": "伤害 +2.8，灵力 +2，速度 +0.5"
+      },
+      {
+        "key": "agi",
+        "name": "敏捷",
+        "hint": "每点速度 +0.7，出手和走路更快，不加灵力",
+        "value": 16,
+        "gain": "速度 +11.2"
+      },
+      {
+        "key": "end",
+        "name": "耐力",
+        "hint": "每点防御 +1.6，灵力 +0.2，速度 +0.1",
+        "value": 27,
+        "gain": "防御 +43.2，灵力 +5.4，速度 +2.7"
+      }
+    ]
+  }
+]

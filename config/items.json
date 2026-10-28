@@ -1,0 +1,830 @@
+[
+  {
+    "id": "slime_gel",
+    "name": "史莱姆凝胶",
+    "kind": "material",
+    "stack": 999,
+    "sell": 2,
+    "desc": "软，黏，意外地能入药。",
+    "bound": false
+  },
+  {
+    "id": "rat_tail",
+    "name": "鼠尾",
+    "kind": "material",
+    "stack": 999,
+    "sell": 2,
+    "desc": "森林鼠留下的尾巴。",
+    "bound": false
+  },
+  {
+    "id": "mushroom_cap",
+    "name": "蘑菇盖",
+    "kind": "material",
+    "stack": 999,
+    "sell": 3,
+    "desc": "还在轻轻发光。",
+    "bound": false
+  },
+  {
+    "id": "boar_hide",
+    "name": "野猪皮",
+    "kind": "material",
+    "stack": 999,
+    "sell": 4,
+    "desc": "厚，适合做甲。",
+    "bound": false
+  },
+  {
+    "id": "wolf_fang",
+    "name": "狼牙",
+    "kind": "material",
+    "stack": 999,
+    "sell": 5,
+    "desc": "森林狼的犬齿。",
+    "bound": false
+  },
+  {
+    "id": "herb_green",
+    "name": "翠叶草",
+    "kind": "material",
+    "stack": 999,
+    "sell": 3,
+    "desc": "星落镇外最常见的药草。",
+    "bound": false
+  },
+  {
+    "id": "wood",
+    "name": "浮木",
+    "kind": "material",
+    "stack": 999,
+    "sell": 2,
+    "desc": "从岛缘漂来的木头。",
+    "bound": false
+  },
+  {
+    "id": "fish_silver",
+    "name": "银鳞鱼",
+    "kind": "material",
+    "stack": 999,
+    "sell": 4,
+    "desc": "月光湖的常见渔获。",
+    "bound": false
+  },
+  {
+    "id": "moon_dew",
+    "name": "月光露",
+    "kind": "material",
+    "stack": 999,
+    "sell": 8,
+    "desc": "夜里凝在湖草上的露水。",
+    "bound": false
+  },
+  {
+    "id": "iron_ore",
+    "name": "铁矿",
+    "kind": "material",
+    "stack": 999,
+    "sell": 6,
+    "desc": "赤岩矿坑的基础矿。",
+    "bound": false
+  },
+  {
+    "id": "copper_ore",
+    "name": "铜矿",
+    "kind": "material",
+    "stack": 999,
+    "sell": 5,
+    "desc": "比铁软，做饰品刚好。",
+    "bound": false
+  },
+  {
+    "id": "silver_ore",
+    "name": "银矿",
+    "kind": "material",
+    "stack": 999,
+    "sell": 14,
+    "desc": "矿脉深处才有。",
+    "bound": false
+  },
+  {
+    "id": "thunder_ore",
+    "name": "雷鸣矿",
+    "kind": "material",
+    "stack": 999,
+    "sell": 18,
+    "desc": "雷暴时更容易从岩层里露出来。",
+    "bound": false
+  },
+  {
+    "id": "wind_feather",
+    "name": "风羽",
+    "kind": "material",
+    "stack": 999,
+    "sell": 12,
+    "desc": "风鸣高地的鸟羽，轻得不像话。",
+    "bound": false
+  },
+  {
+    "id": "relic_fragment",
+    "name": "遗迹碎片",
+    "kind": "material",
+    "stack": 999,
+    "sell": 16,
+    "desc": "刻着断掉的契约文。",
+    "bound": false
+  },
+  {
+    "id": "spore_king",
+    "name": "蘑菇王孢子",
+    "kind": "material",
+    "stack": 999,
+    "sell": 20,
+    "desc": "巨型蘑菇王留下的孢子。",
+    "bound": false
+  },
+  {
+    "id": "serpent_scale",
+    "name": "湖蛇鳞",
+    "kind": "material",
+    "stack": 999,
+    "sell": 20,
+    "desc": "又冷又硬。",
+    "bound": false
+  },
+  {
+    "id": "tyrant_horn",
+    "name": "暴君之角",
+    "kind": "material",
+    "stack": 999,
+    "sell": 24,
+    "desc": "矿坑暴君的角。",
+    "bound": false
+  },
+  {
+    "id": "storm_core",
+    "name": "风暴核心",
+    "kind": "material",
+    "stack": 999,
+    "sell": 30,
+    "desc": "还在轻轻放电。",
+    "bound": false
+  },
+  {
+    "id": "relic_heart",
+    "name": "遗迹之心",
+    "kind": "material",
+    "stack": 999,
+    "sell": 40,
+    "desc": "古代遗迹最后的搏动。",
+    "bound": false
+  },
+  {
+    "id": "map_fragment",
+    "name": "神秘地图碎片",
+    "kind": "material",
+    "stack": 999,
+    "sell": 0,
+    "desc": "派遣时偶尔带回的残图。",
+    "bound": true
+  },
+  {
+    "id": "capture_orb",
+    "name": "灵契球",
+    "kind": "consumable",
+    "stack": 99,
+    "sell": 8,
+    "desc": "把残血的灵伴从战斗里带回来。空的契约，不是抽卡。",
+    "effect": {}
+  },
+  {
+    "id": "bread",
+    "name": "干粮",
+    "kind": "consumable",
+    "stack": 99,
+    "sell": 2,
+    "desc": "回复少量生命。",
+    "effect": {
+      "healHp": 28
+    }
+  },
+  {
+    "id": "potion_hp",
+    "name": "史莱姆药剂",
+    "kind": "consumable",
+    "stack": 99,
+    "sell": 6,
+    "desc": "用凝胶熬成，回复生命。",
+    "effect": {
+      "healHp": 70
+    }
+  },
+  {
+    "id": "potion_hp2",
+    "name": "星露药剂",
+    "kind": "consumable",
+    "stack": 99,
+    "sell": 16,
+    "desc": "回复大量生命。",
+    "effect": {
+      "healHp": 160
+    }
+  },
+  {
+    "id": "potion_mp",
+    "name": "回蓝茶",
+    "kind": "consumable",
+    "stack": 99,
+    "sell": 6,
+    "desc": "回复法力。",
+    "effect": {
+      "healMp": 40
+    }
+  },
+  {
+    "id": "food_atk",
+    "name": "炙狼排",
+    "kind": "consumable",
+    "stack": 99,
+    "sell": 10,
+    "desc": "短时间提高攻击。",
+    "effect": {
+      "buff": {
+        "stat": "atkPct",
+        "value": 0.12,
+        "ms": 300000
+      }
+    }
+  },
+  {
+    "id": "food_def",
+    "name": "岩汤",
+    "kind": "consumable",
+    "stack": 99,
+    "sell": 10,
+    "desc": "短时间提高防御。",
+    "effect": {
+      "buff": {
+        "stat": "defPct",
+        "value": 0.12,
+        "ms": 300000
+      }
+    }
+  },
+  {
+    "id": "food_explore",
+    "name": "夜行汤",
+    "kind": "consumable",
+    "stack": 99,
+    "sell": 12,
+    "desc": "喝下去再派遣，探索效率会好一些。",
+    "effect": {
+      "buff": {
+        "stat": "speedPct",
+        "value": 0.05,
+        "ms": 300000
+      }
+    }
+  },
+  {
+    "id": "relic_egg",
+    "name": "遗迹蛋",
+    "kind": "consumable",
+    "stack": 99,
+    "sell": 0,
+    "desc": "使用后与古代精灵建立契约。",
+    "effect": {
+      "grantPet": "ancient_sprite"
+    }
+  },
+  {
+    "id": "wpn_sword_1",
+    "name": "旅团练习剑盾",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 10,
+    "desc": "星落镇发给新旅人的第一套兵器。",
+    "slot": "weapon",
+    "weaponType": "sword_shield",
+    "tier": 1,
+    "base": {
+      "atk": 6,
+      "def": 3,
+      "hp": 12
+    }
+  },
+  {
+    "id": "wpn_sword_2",
+    "name": "铁卫剑盾",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 40,
+    "desc": "铁矿打造的剑盾，比练习用的沉得多。",
+    "slot": "weapon",
+    "weaponType": "sword_shield",
+    "tier": 2,
+    "base": {
+      "atk": 12,
+      "def": 6,
+      "hp": 24
+    }
+  },
+  {
+    "id": "wpn_sword_3",
+    "name": "翠叶守护",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 120,
+    "desc": "盾面上嵌着翠叶森林的木纹。",
+    "slot": "weapon",
+    "weaponType": "sword_shield",
+    "tier": 3,
+    "base": {
+      "atk": 20,
+      "def": 11,
+      "hp": 42
+    }
+  },
+  {
+    "id": "wpn_sword_4",
+    "name": "雷鸣壁垒",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 280,
+    "desc": "雷暴里锻过的盾，敲起来会响。",
+    "slot": "weapon",
+    "weaponType": "sword_shield",
+    "tier": 4,
+    "base": {
+      "atk": 30,
+      "def": 16,
+      "hp": 64
+    }
+  },
+  {
+    "id": "wpn_great_1",
+    "name": "学徒巨剑",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 10,
+    "desc": "挥起来会把自己带倒，但确实痛。",
+    "slot": "weapon",
+    "weaponType": "greatsword",
+    "tier": 1,
+    "base": {
+      "atk": 10
+    }
+  },
+  {
+    "id": "wpn_great_2",
+    "name": "铁矿巨剑",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 40,
+    "desc": "霍特说这才叫剑。",
+    "slot": "weapon",
+    "weaponType": "greatsword",
+    "tier": 2,
+    "base": {
+      "atk": 18
+    }
+  },
+  {
+    "id": "wpn_great_3",
+    "name": "狼牙巨剑",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 120,
+    "desc": "剑脊上嵌了一排狼牙。",
+    "slot": "weapon",
+    "weaponType": "greatsword",
+    "tier": 3,
+    "base": {
+      "atk": 28,
+      "critRate": 0.02
+    }
+  },
+  {
+    "id": "wpn_great_4",
+    "name": "裂风巨剑",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 280,
+    "desc": "砍下去时风会迟到一步。",
+    "slot": "weapon",
+    "weaponType": "greatsword",
+    "tier": 4,
+    "base": {
+      "atk": 40,
+      "critRate": 0.03
+    }
+  },
+  {
+    "id": "wpn_staff_1",
+    "name": "学徒法杖",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 10,
+    "desc": "杖头的水晶只是玻璃。",
+    "slot": "weapon",
+    "weaponType": "staff",
+    "tier": 1,
+    "base": {
+      "atk": 9,
+      "mp": 16
+    }
+  },
+  {
+    "id": "wpn_staff_2",
+    "name": "菌光法杖",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 40,
+    "desc": "蘑菇盖晒干后居然能导魔。",
+    "slot": "weapon",
+    "weaponType": "staff",
+    "tier": 2,
+    "base": {
+      "atk": 16,
+      "mp": 26
+    }
+  },
+  {
+    "id": "wpn_staff_3",
+    "name": "湖光法杖",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 120,
+    "desc": "夜里会自己亮一下。",
+    "slot": "weapon",
+    "weaponType": "staff",
+    "tier": 3,
+    "base": {
+      "atk": 26,
+      "mp": 38
+    }
+  },
+  {
+    "id": "wpn_staff_4",
+    "name": "遗迹法杖",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 280,
+    "desc": "古代文明显然也怕黑。",
+    "slot": "weapon",
+    "weaponType": "staff",
+    "tier": 4,
+    "base": {
+      "atk": 38,
+      "mp": 52
+    }
+  },
+  {
+    "id": "wpn_bow_1",
+    "name": "猎手短弓",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 10,
+    "desc": "能把史莱姆钉在树上。",
+    "slot": "weapon",
+    "weaponType": "bow",
+    "tier": 1,
+    "base": {
+      "atk": 8,
+      "critRate": 0.03
+    }
+  },
+  {
+    "id": "wpn_bow_2",
+    "name": "藤木弓",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 40,
+    "desc": "翠叶森林的藤，晒干后很有弹性。",
+    "slot": "weapon",
+    "weaponType": "bow",
+    "tier": 2,
+    "base": {
+      "atk": 15,
+      "critRate": 0.04
+    }
+  },
+  {
+    "id": "wpn_bow_3",
+    "name": "风羽弓",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 120,
+    "desc": "弓梢插着风羽。",
+    "slot": "weapon",
+    "weaponType": "bow",
+    "tier": 3,
+    "base": {
+      "atk": 24,
+      "critRate": 0.05
+    }
+  },
+  {
+    "id": "wpn_bow_4",
+    "name": "雷鸣长弓",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 280,
+    "desc": "拉满时弦上有静电。",
+    "slot": "weapon",
+    "weaponType": "bow",
+    "tier": 4,
+    "base": {
+      "atk": 36,
+      "critRate": 0.06
+    }
+  },
+  {
+    "id": "arm_head_1",
+    "name": "布帽",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 8,
+    "desc": "布帽。阶位 1。",
+    "slot": "head",
+    "tier": 1,
+    "base": {
+      "hp": 10,
+      "def": 2
+    }
+  },
+  {
+    "id": "arm_head_2",
+    "name": "铁盔",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 32,
+    "desc": "铁盔。阶位 2。",
+    "slot": "head",
+    "tier": 2,
+    "base": {
+      "hp": 20,
+      "def": 4
+    }
+  },
+  {
+    "id": "arm_head_3",
+    "name": "星落兜",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 72,
+    "desc": "星落兜。阶位 3。",
+    "slot": "head",
+    "tier": 3,
+    "base": {
+      "hp": 30,
+      "def": 6
+    }
+  },
+  {
+    "id": "arm_head_4",
+    "name": "浮岛冠",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 128,
+    "desc": "浮岛冠。阶位 4。",
+    "slot": "head",
+    "tier": 4,
+    "base": {
+      "hp": 40,
+      "def": 8
+    }
+  },
+  {
+    "id": "arm_chest_1",
+    "name": "旅袍",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 8,
+    "desc": "旅袍。阶位 1。",
+    "slot": "chest",
+    "tier": 1,
+    "base": {
+      "hp": 18,
+      "def": 3
+    }
+  },
+  {
+    "id": "arm_chest_2",
+    "name": "锁子甲",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 32,
+    "desc": "锁子甲。阶位 2。",
+    "slot": "chest",
+    "tier": 2,
+    "base": {
+      "hp": 36,
+      "def": 6
+    }
+  },
+  {
+    "id": "arm_chest_3",
+    "name": "星落衣",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 72,
+    "desc": "星落衣。阶位 3。",
+    "slot": "chest",
+    "tier": 3,
+    "base": {
+      "hp": 54,
+      "def": 9
+    }
+  },
+  {
+    "id": "arm_chest_4",
+    "name": "浮岛袍",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 128,
+    "desc": "浮岛袍。阶位 4。",
+    "slot": "chest",
+    "tier": 4,
+    "base": {
+      "hp": 72,
+      "def": 12
+    }
+  },
+  {
+    "id": "arm_gloves_1",
+    "name": "布手套",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 8,
+    "desc": "布手套。阶位 1。",
+    "slot": "gloves",
+    "tier": 1,
+    "base": {
+      "atk": 2,
+      "critRate": 0.01
+    }
+  },
+  {
+    "id": "arm_gloves_2",
+    "name": "皮手套",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 32,
+    "desc": "皮手套。阶位 2。",
+    "slot": "gloves",
+    "tier": 2,
+    "base": {
+      "atk": 4,
+      "critRate": 0.013
+    }
+  },
+  {
+    "id": "arm_gloves_3",
+    "name": "星落手套",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 72,
+    "desc": "星落手套。阶位 3。",
+    "slot": "gloves",
+    "tier": 3,
+    "base": {
+      "atk": 6,
+      "critRate": 0.017
+    }
+  },
+  {
+    "id": "arm_gloves_4",
+    "name": "浮岛手套",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 128,
+    "desc": "浮岛手套。阶位 4。",
+    "slot": "gloves",
+    "tier": 4,
+    "base": {
+      "atk": 8,
+      "critRate": 0.02
+    }
+  },
+  {
+    "id": "arm_boots_1",
+    "name": "草鞋",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 8,
+    "desc": "草鞋。阶位 1。",
+    "slot": "boots",
+    "tier": 1,
+    "base": {
+      "hp": 8,
+      "def": 2,
+      "speed": 4
+    }
+  },
+  {
+    "id": "arm_boots_2",
+    "name": "皮靴",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 32,
+    "desc": "皮靴。阶位 2。",
+    "slot": "boots",
+    "tier": 2,
+    "base": {
+      "hp": 16,
+      "def": 4,
+      "speed": 8
+    }
+  },
+  {
+    "id": "arm_boots_3",
+    "name": "星落靴",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 72,
+    "desc": "星落靴。阶位 3。",
+    "slot": "boots",
+    "tier": 3,
+    "base": {
+      "hp": 24,
+      "def": 6,
+      "speed": 12
+    }
+  },
+  {
+    "id": "arm_boots_4",
+    "name": "浮岛靴",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 128,
+    "desc": "浮岛靴。阶位 4。",
+    "slot": "boots",
+    "tier": 4,
+    "base": {
+      "hp": 32,
+      "def": 8,
+      "speed": 16
+    }
+  },
+  {
+    "id": "arm_ring_1",
+    "name": "铜戒",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 8,
+    "desc": "铜戒。阶位 1。",
+    "slot": "ring",
+    "tier": 1,
+    "base": {
+      "atk": 3,
+      "critRate": 0.014,
+      "mp": 6
+    }
+  },
+  {
+    "id": "arm_ring_2",
+    "name": "铁戒",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 32,
+    "desc": "铁戒。阶位 2。",
+    "slot": "ring",
+    "tier": 2,
+    "base": {
+      "atk": 6,
+      "critRate": 0.019,
+      "mp": 12
+    }
+  },
+  {
+    "id": "arm_ring_3",
+    "name": "星落戒",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 72,
+    "desc": "星落戒。阶位 3。",
+    "slot": "ring",
+    "tier": 3,
+    "base": {
+      "atk": 9,
+      "critRate": 0.025,
+      "mp": 18
+    }
+  },
+  {
+    "id": "arm_ring_4",
+    "name": "浮岛戒",
+    "kind": "equipment",
+    "stack": 1,
+    "sell": 128,
+    "desc": "浮岛戒。阶位 4。",
+    "slot": "ring",
+    "tier": 4,
+    "base": {
+      "atk": 12,
+      "critRate": 0.03,
+      "mp": 24
+    }
+  }
+]

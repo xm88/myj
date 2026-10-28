@@ -1,0 +1,1009 @@
+[
+  {
+    "id": "q_main_01",
+    "name": "初抵星落",
+    "desc": "镇长艾兰在街口等新来的旅团引导者。",
+    "kind": "main",
+    "giver": "npc_elder",
+    "turnin": "npc_elder",
+    "prereq": [],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "talk",
+        "npcId": "npc_elder",
+        "text": "和艾兰交谈"
+      }
+    ],
+    "rewards": {
+      "exp": 40,
+      "gold": 30
+    },
+    "next": "q_main_02"
+  },
+  {
+    "id": "q_main_02",
+    "name": "走向翠叶",
+    "desc": "森林就在镇子西门外面。",
+    "kind": "main",
+    "giver": "npc_elder",
+    "turnin": "npc_ranger",
+    "prereq": [
+      "q_main_01"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "enter",
+        "mapId": "wild_greenleaf",
+        "text": "进入翠叶森林"
+      }
+    ],
+    "rewards": {
+      "exp": 50,
+      "gold": 20
+    },
+    "next": "q_main_03"
+  },
+  {
+    "id": "q_main_03",
+    "name": "史莱姆成灾",
+    "desc": "艾兰说得没错，西边的空地上全是史莱姆。",
+    "kind": "main",
+    "giver": "npc_elder",
+    "turnin": "npc_elder",
+    "prereq": [
+      "q_main_02"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "kill",
+        "monsterId": "slime",
+        "count": 5,
+        "text": "击败史莱姆"
+      }
+    ],
+    "rewards": {
+      "exp": 80,
+      "gold": 40,
+      "items": [
+        {
+          "itemId": "capture_orb",
+          "count": 2
+        }
+      ]
+    },
+    "next": "q_main_04"
+  },
+  {
+    "id": "q_main_04",
+    "name": "凝胶成药",
+    "desc": "把凝胶带回去做成药剂。制造台在铁匠霍特那里，野外收集到的凝胶也能直接用。",
+    "kind": "main",
+    "giver": "npc_smith",
+    "turnin": "npc_smith",
+    "prereq": [
+      "q_main_03"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "collect",
+        "itemId": "slime_gel",
+        "count": 3,
+        "text": "收集史莱姆凝胶"
+      },
+      {
+        "type": "craft",
+        "recipeId": "recipe_potion_slime",
+        "count": 1,
+        "text": "制作史莱姆药剂"
+      }
+    ],
+    "rewards": {
+      "exp": 90,
+      "gold": 30
+    },
+    "next": "q_main_05"
+  },
+  {
+    "id": "q_main_05",
+    "name": "林间契约",
+    "desc": "森林猫在空地北侧。把它打到残血，再使用灵契球。下雨时会更好抓。",
+    "kind": "main",
+    "giver": "npc_ranger",
+    "turnin": "npc_ranger",
+    "prereq": [
+      "q_main_04"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "capture",
+        "petId": "forest_cat",
+        "count": 1,
+        "text": "契约森林猫"
+      }
+    ],
+    "rewards": {
+      "exp": 120,
+      "gold": 50
+    },
+    "next": "q_main_06"
+  },
+  {
+    "id": "q_main_06",
+    "name": "野猪暴走",
+    "desc": "林子南边有一头狂暴野猪，巡林的人过不去。",
+    "kind": "main",
+    "giver": "npc_ranger",
+    "turnin": "npc_ranger",
+    "prereq": [
+      "q_main_05"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "kill",
+        "monsterId": "elite_boar",
+        "count": 1,
+        "text": "击败狂暴野猪"
+      }
+    ],
+    "rewards": {
+      "exp": 160,
+      "gold": 80,
+      "items": [
+        {
+          "itemId": "arm_chest_2",
+          "count": 1,
+          "quality": "blue"
+        }
+      ]
+    },
+    "next": "q_main_07"
+  },
+  {
+    "id": "q_main_07",
+    "name": "带回星落",
+    "desc": "把森林里的事告诉艾兰。",
+    "kind": "main",
+    "giver": "npc_elder",
+    "turnin": "npc_elder",
+    "prereq": [
+      "q_main_06"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "talk",
+        "npcId": "npc_elder",
+        "text": "向艾兰复命"
+      }
+    ],
+    "rewards": {
+      "exp": 80,
+      "gold": 40
+    },
+    "next": "q_main_08"
+  },
+  {
+    "id": "q_main_08",
+    "name": "旅团出发",
+    "desc": "莎雅会教你派遣。短途侦察只要一分钟，用来确认流程；真的挂机请选半小时以上。",
+    "kind": "main",
+    "giver": "npc_dispatch",
+    "turnin": "npc_dispatch",
+    "prereq": [
+      "q_main_07"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "dispatch_start",
+        "count": 1,
+        "text": "派遣一只灵伴"
+      }
+    ],
+    "rewards": {
+      "exp": 70,
+      "gold": 20
+    },
+    "next": "q_main_09"
+  },
+  {
+    "id": "q_main_09",
+    "name": "旅团归来",
+    "desc": "时间到了就领取。人可以离线，计时在服务器上。",
+    "kind": "main",
+    "giver": "npc_dispatch",
+    "turnin": "npc_dispatch",
+    "prereq": [
+      "q_main_08"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "dispatch_claim",
+        "count": 1,
+        "text": "领取一次派遣"
+      }
+    ],
+    "rewards": {
+      "exp": 90,
+      "gold": 40
+    },
+    "next": "q_main_10"
+  },
+  {
+    "id": "q_main_10",
+    "name": "自由市场",
+    "desc": "把用不上的材料挂到拍卖行。没有交易，这里就只是一张单机地图。",
+    "kind": "main",
+    "giver": "npc_auction",
+    "turnin": "npc_auction",
+    "prereq": [
+      "q_main_09"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "market_list",
+        "count": 1,
+        "text": "在拍卖行上架一件物品"
+      }
+    ],
+    "rewards": {
+      "exp": 80,
+      "gold": 30
+    },
+    "next": "q_main_11"
+  },
+  {
+    "id": "q_main_11",
+    "name": "月光湖",
+    "desc": "等级 10 之后，南门或航标可以去月光湖。",
+    "kind": "main",
+    "giver": "npc_elder",
+    "turnin": "npc_elder",
+    "prereq": [
+      "q_main_10"
+    ],
+    "minLevel": 10,
+    "objectives": [
+      {
+        "type": "enter",
+        "mapId": "wild_moonlake",
+        "text": "进入月光湖"
+      }
+    ],
+    "rewards": {
+      "exp": 150,
+      "gold": 60
+    },
+    "next": "q_main_12"
+  },
+  {
+    "id": "q_main_12",
+    "name": "湖蛇",
+    "desc": "湖的东北角盘着湖蛇。",
+    "kind": "main",
+    "giver": "npc_fisher",
+    "turnin": "npc_fisher",
+    "prereq": [
+      "q_main_11"
+    ],
+    "minLevel": 10,
+    "objectives": [
+      {
+        "type": "kill",
+        "monsterId": "boss_serpent",
+        "count": 1,
+        "text": "击败湖蛇"
+      }
+    ],
+    "rewards": {
+      "exp": 260,
+      "gold": 100
+    },
+    "next": "q_main_13"
+  },
+  {
+    "id": "q_main_13",
+    "name": "赤岩矿坑",
+    "desc": "东门通向矿坑，建议 15 级再去。",
+    "kind": "main",
+    "giver": "npc_elder",
+    "turnin": "npc_elder",
+    "prereq": [
+      "q_main_12"
+    ],
+    "minLevel": 15,
+    "objectives": [
+      {
+        "type": "enter",
+        "mapId": "wild_redrock",
+        "text": "进入赤岩矿坑"
+      }
+    ],
+    "rewards": {
+      "exp": 180,
+      "gold": 70
+    },
+    "next": "q_main_14"
+  },
+  {
+    "id": "q_main_14",
+    "name": "第一把铁剑",
+    "desc": "霍特要一把铁矿巨剑。矿可以自己挖，也可以在矿头那儿高价买。",
+    "kind": "main",
+    "giver": "npc_smith",
+    "turnin": "npc_smith",
+    "prereq": [
+      "q_main_13"
+    ],
+    "minLevel": 15,
+    "objectives": [
+      {
+        "type": "craft",
+        "recipeId": "recipe_iron_sword",
+        "count": 1,
+        "text": "打造铁矿巨剑"
+      }
+    ],
+    "rewards": {
+      "exp": 220,
+      "gold": 80
+    },
+    "next": "q_main_15"
+  },
+  {
+    "id": "q_main_15",
+    "name": "雷鸣峡谷",
+    "desc": "20 级后从航标前往雷鸣峡谷。如果赶上雷暴，打法会不一样。",
+    "kind": "main",
+    "giver": "npc_travel",
+    "turnin": "npc_travel",
+    "prereq": [
+      "q_main_14"
+    ],
+    "minLevel": 20,
+    "objectives": [
+      {
+        "type": "enter",
+        "mapId": "wild_thunder",
+        "text": "进入雷鸣峡谷"
+      }
+    ],
+    "rewards": {
+      "exp": 220,
+      "gold": 80
+    },
+    "next": "q_main_16"
+  },
+  {
+    "id": "q_main_16",
+    "name": "风暴核心",
+    "desc": "峡谷尽头那团还在放电的东西。",
+    "kind": "main",
+    "giver": "npc_travel",
+    "turnin": "npc_travel",
+    "prereq": [
+      "q_main_15"
+    ],
+    "minLevel": 20,
+    "objectives": [
+      {
+        "type": "kill",
+        "monsterId": "boss_storm",
+        "count": 1,
+        "text": "击败风暴核心"
+      }
+    ],
+    "rewards": {
+      "exp": 360,
+      "gold": 140
+    },
+    "next": "q_main_17"
+  },
+  {
+    "id": "q_main_17",
+    "name": "风鸣高地",
+    "desc": "25 级。北风很大，天空鲸就在北侧。",
+    "kind": "main",
+    "giver": "npc_travel",
+    "turnin": "npc_travel",
+    "prereq": [
+      "q_main_16"
+    ],
+    "minLevel": 25,
+    "objectives": [
+      {
+        "type": "enter",
+        "mapId": "wild_windhigh",
+        "text": "进入风鸣高地"
+      }
+    ],
+    "rewards": {
+      "exp": 260,
+      "gold": 90
+    },
+    "next": "q_main_18"
+  },
+  {
+    "id": "q_main_18",
+    "name": "古代遗迹",
+    "desc": "从航标进入遗迹，打掉遗迹之心。",
+    "kind": "main",
+    "giver": "npc_travel",
+    "turnin": "npc_travel",
+    "prereq": [
+      "q_main_17"
+    ],
+    "minLevel": 25,
+    "objectives": [
+      {
+        "type": "enter",
+        "mapId": "dungeon_ruins",
+        "text": "进入古代遗迹"
+      },
+      {
+        "type": "kill",
+        "monsterId": "boss_relic",
+        "count": 1,
+        "text": "击败遗迹之心"
+      }
+    ],
+    "rewards": {
+      "exp": 500,
+      "gold": 200
+    },
+    "next": "q_main_19"
+  },
+  {
+    "id": "q_main_19",
+    "name": "天空的低鸣",
+    "desc": "幼年天空鲸在风鸣高地北侧。对它造成一次伤害即可，不必单人击杀。",
+    "kind": "main",
+    "giver": "npc_elder",
+    "turnin": "npc_elder",
+    "prereq": [
+      "q_main_18"
+    ],
+    "minLevel": 25,
+    "objectives": [
+      {
+        "type": "world_boss",
+        "text": "对幼年天空鲸造成伤害"
+      }
+    ],
+    "rewards": {
+      "exp": 400,
+      "gold": 160
+    },
+    "next": "q_main_20"
+  },
+  {
+    "id": "q_main_20",
+    "name": "旅团之名",
+    "desc": "把等级练到 30，回星落镇向艾兰复命。",
+    "kind": "main",
+    "giver": "npc_elder",
+    "turnin": "npc_elder",
+    "prereq": [
+      "q_main_19"
+    ],
+    "minLevel": 30,
+    "objectives": [
+      {
+        "type": "reach_level",
+        "level": 30,
+        "text": "达到 30 级"
+      }
+    ],
+    "rewards": {
+      "exp": 200,
+      "gold": 300,
+      "items": [
+        {
+          "itemId": "arm_ring_4",
+          "count": 1,
+          "quality": "purple"
+        }
+      ]
+    }
+  },
+  {
+    "id": "q_side_herb",
+    "name": "巡林的药箱",
+    "desc": "林守的药箱空了。",
+    "kind": "side",
+    "giver": "npc_ranger",
+    "turnin": "npc_ranger",
+    "prereq": [
+      "q_main_02"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "gather",
+        "nodeKind": "herb",
+        "count": 5,
+        "text": "采集药草"
+      }
+    ],
+    "rewards": {
+      "exp": 70,
+      "gold": 25
+    }
+  },
+  {
+    "id": "q_side_wood",
+    "name": "修船的木头",
+    "desc": "航标旁边的小艇缺木头。",
+    "kind": "side",
+    "giver": "npc_travel",
+    "turnin": "npc_travel",
+    "prereq": [
+      "q_main_02"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "gather",
+        "nodeKind": "wood",
+        "count": 5,
+        "text": "采集浮木"
+      }
+    ],
+    "rewards": {
+      "exp": 70,
+      "gold": 25
+    }
+  },
+  {
+    "id": "q_side_slime_more",
+    "name": "还是史莱姆",
+    "desc": "艾兰觉得五只不够说明问题。",
+    "kind": "side",
+    "giver": "npc_elder",
+    "turnin": "npc_elder",
+    "prereq": [
+      "q_main_03"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "kill",
+        "monsterId": "slime",
+        "count": 12,
+        "text": "再击败史莱姆"
+      }
+    ],
+    "rewards": {
+      "exp": 90,
+      "gold": 30
+    }
+  },
+  {
+    "id": "q_side_dog",
+    "name": "镇里的狗",
+    "desc": "狼少一点，护卫犬才肯跟你走。",
+    "kind": "side",
+    "giver": "npc_elder",
+    "turnin": "npc_elder",
+    "prereq": [
+      "q_main_07"
+    ],
+    "minLevel": 5,
+    "objectives": [
+      {
+        "type": "kill",
+        "monsterId": "wolf",
+        "count": 6,
+        "text": "击败森林狼"
+      }
+    ],
+    "rewards": {
+      "exp": 140,
+      "gold": 40,
+      "petId": "dog_knight"
+    }
+  },
+  {
+    "id": "q_side_shop",
+    "name": "米娜的第一单",
+    "desc": "在杂货铺买点东西，算认识一下商人。",
+    "kind": "side",
+    "giver": "npc_shop",
+    "turnin": "npc_shop",
+    "prereq": [
+      "q_main_01"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "buy_shop",
+        "text": "在商店购买一次"
+      }
+    ],
+    "rewards": {
+      "exp": 40,
+      "gold": 10
+    }
+  },
+  {
+    "id": "q_side_bank",
+    "name": "先放仓库",
+    "desc": "陶德想确认你知道仓库在哪。",
+    "kind": "side",
+    "giver": "npc_bank",
+    "turnin": "npc_bank",
+    "prereq": [
+      "q_main_03"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "bank",
+        "text": "存入或取出一次仓库"
+      }
+    ],
+    "rewards": {
+      "exp": 40,
+      "gold": 15
+    }
+  },
+  {
+    "id": "q_side_guild",
+    "name": "找个旅团",
+    "desc": "布鲁克说一个人也能玩，但公会聊天比世界频道安静。",
+    "kind": "side",
+    "giver": "npc_guild",
+    "turnin": "npc_guild",
+    "prereq": [
+      "q_main_07"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "join_guild",
+        "text": "加入或创建公会"
+      }
+    ],
+    "rewards": {
+      "exp": 80,
+      "gold": 20
+    }
+  },
+  {
+    "id": "q_side_donate",
+    "name": "第一笔捐献",
+    "desc": "公会等级靠捐献，不靠签到。",
+    "kind": "side",
+    "giver": "npc_guild",
+    "turnin": "npc_guild",
+    "prereq": [
+      "q_main_07"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "donate",
+        "text": "向公会捐献一次"
+      }
+    ],
+    "rewards": {
+      "exp": 60,
+      "gold": 10
+    }
+  },
+  {
+    "id": "q_side_fish",
+    "name": "今晚的鱼",
+    "desc": "老渔要三条银鳞鱼。",
+    "kind": "side",
+    "giver": "npc_fisher",
+    "turnin": "npc_fisher",
+    "prereq": [
+      "q_main_11"
+    ],
+    "minLevel": 10,
+    "objectives": [
+      {
+        "type": "gather",
+        "nodeKind": "fish",
+        "count": 3,
+        "text": "钓上银鳞鱼"
+      }
+    ],
+    "rewards": {
+      "exp": 120,
+      "gold": 40
+    }
+  },
+  {
+    "id": "q_side_mine",
+    "name": "矿头的定额",
+    "desc": "亲手挖五次矿。",
+    "kind": "side",
+    "giver": "npc_miner",
+    "turnin": "npc_miner",
+    "prereq": [
+      "q_main_13"
+    ],
+    "minLevel": 15,
+    "objectives": [
+      {
+        "type": "gather",
+        "nodeKind": "ore",
+        "count": 5,
+        "text": "采集矿石"
+      }
+    ],
+    "rewards": {
+      "exp": 150,
+      "gold": 50
+    }
+  },
+  {
+    "id": "q_side_cook",
+    "name": "给巡林热一顿",
+    "desc": "做一份炙狼排。",
+    "kind": "side",
+    "giver": "npc_ranger",
+    "turnin": "npc_ranger",
+    "prereq": [
+      "q_main_06"
+    ],
+    "minLevel": 4,
+    "objectives": [
+      {
+        "type": "craft",
+        "recipeId": "recipe_food_atk",
+        "count": 1,
+        "text": "制作炙狼排"
+      }
+    ],
+    "rewards": {
+      "exp": 100,
+      "gold": 30
+    }
+  },
+  {
+    "id": "q_side_buy",
+    "name": "从别人手里买",
+    "desc": "奎因希望你不只会卖。拍卖行里买下一件玩家挂出的东西。",
+    "kind": "side",
+    "giver": "npc_auction",
+    "turnin": "npc_auction",
+    "prereq": [
+      "q_main_10"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "market_buy",
+        "count": 1,
+        "text": "在拍卖行购买一次"
+      }
+    ],
+    "rewards": {
+      "exp": 80,
+      "gold": 20
+    }
+  },
+  {
+    "id": "q_side_blue",
+    "name": "穿上那件蓝的",
+    "desc": "霍特想看看精良装备上身的样子。",
+    "kind": "side",
+    "giver": "npc_smith",
+    "turnin": "npc_smith",
+    "prereq": [
+      "q_main_07"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "equip_quality",
+        "quality": "blue",
+        "text": "装备一件精良（蓝）装备"
+      }
+    ],
+    "rewards": {
+      "exp": 80,
+      "gold": 20
+    }
+  },
+  {
+    "id": "q_side_lv5",
+    "name": "站稳",
+    "desc": "先到 5 级。",
+    "kind": "side",
+    "giver": "npc_elder",
+    "turnin": "npc_elder",
+    "prereq": [
+      "q_main_03"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "reach_level",
+        "level": 5,
+        "text": "达到 5 级"
+      }
+    ],
+    "rewards": {
+      "exp": 40,
+      "gold": 30
+    }
+  },
+  {
+    "id": "q_side_lv10",
+    "name": "离开新手林",
+    "desc": "10 级就可以看湖了。",
+    "kind": "side",
+    "giver": "npc_elder",
+    "turnin": "npc_elder",
+    "prereq": [
+      "q_main_07"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "reach_level",
+        "level": 10,
+        "text": "达到 10 级"
+      }
+    ],
+    "rewards": {
+      "exp": 80,
+      "gold": 50
+    }
+  },
+  {
+    "id": "q_side_lv15",
+    "name": "下矿的年纪",
+    "desc": "15 级。",
+    "kind": "side",
+    "giver": "npc_smith",
+    "turnin": "npc_smith",
+    "prereq": [
+      "q_main_10"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "reach_level",
+        "level": 15,
+        "text": "达到 15 级"
+      }
+    ],
+    "rewards": {
+      "exp": 100,
+      "gold": 60
+    }
+  },
+  {
+    "id": "q_side_lv20",
+    "name": "听雷",
+    "desc": "20 级再进峡谷会从容很多。",
+    "kind": "side",
+    "giver": "npc_travel",
+    "turnin": "npc_travel",
+    "prereq": [
+      "q_main_12"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "reach_level",
+        "level": 20,
+        "text": "达到 20 级"
+      }
+    ],
+    "rewards": {
+      "exp": 120,
+      "gold": 70
+    }
+  },
+  {
+    "id": "q_side_kills",
+    "name": "武器磨合",
+    "desc": "用当前武器继续战斗。熟练度会在每一次命中里涨。",
+    "kind": "side",
+    "giver": "npc_smith",
+    "turnin": "npc_smith",
+    "prereq": [
+      "q_main_05"
+    ],
+    "minLevel": 1,
+    "objectives": [
+      {
+        "type": "kill_any",
+        "count": 15,
+        "text": "击败任意怪物"
+      }
+    ],
+    "rewards": {
+      "exp": 110,
+      "gold": 30
+    }
+  },
+  {
+    "id": "q_side_mooncat",
+    "name": "今夜的猫",
+    "desc": "月光猫只在月光湖的夜晚和深夜出现。抓到就回来告诉老渔。",
+    "kind": "side",
+    "giver": "npc_fisher",
+    "turnin": "npc_fisher",
+    "prereq": [
+      "q_main_11"
+    ],
+    "minLevel": 10,
+    "objectives": [
+      {
+        "type": "capture",
+        "petId": "moon_cat",
+        "count": 1,
+        "text": "契约月光猫"
+      }
+    ],
+    "rewards": {
+      "exp": 240,
+      "gold": 80
+    }
+  },
+  {
+    "id": "q_side_hidden",
+    "name": "矿洞鼠的发现",
+    "desc": "派遣带回了一条不在航标上的消息。去告诉艾兰。",
+    "kind": "side",
+    "giver": "npc_elder",
+    "turnin": "npc_elder",
+    "prereq": [],
+    "minLevel": 1,
+    "flag": "hidden_cave",
+    "objectives": [
+      {
+        "type": "talk",
+        "npcId": "npc_elder",
+        "text": "把发现告诉艾兰"
+      }
+    ],
+    "rewards": {
+      "exp": 100,
+      "gold": 50,
+      "items": [
+        {
+          "itemId": "capture_orb",
+          "count": 1
+        }
+      ]
+    }
+  },
+  {
+    "id": "q_side_whale_news",
+    "name": "让镇里知道",
+    "desc": "如果你已经碰过天空鲸，艾兰希望你再去确认它还在。",
+    "kind": "side",
+    "giver": "npc_elder",
+    "turnin": "npc_elder",
+    "prereq": [
+      "q_main_17"
+    ],
+    "minLevel": 25,
+    "objectives": [
+      {
+        "type": "world_boss",
+        "text": "再次对天空鲸造成伤害"
+      }
+    ],
+    "rewards": {
+      "exp": 200,
+      "gold": 80
+    }
+  }
+]

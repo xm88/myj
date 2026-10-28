@@ -1,0 +1,1093 @@
+[
+  {
+    "id": "town_starfall",
+    "name": "星落镇",
+    "desc": "旅团的起点。接任务、打造、拍卖、派遣、公会都在这条街上。",
+    "kind": "town",
+    "levelMin": 1,
+    "levelMax": 30,
+    "unlockLevel": 1,
+    "width": 1200,
+    "height": 800,
+    "spawn": {
+      "x": 600,
+      "y": 500
+    },
+    "theme": {
+      "ground": "#3a4a38",
+      "ground2": "#2c3b2e",
+      "accent": "#e2b15a",
+      "path": "#6a6248"
+    },
+    "blocks": [
+      {
+        "x": 40,
+        "y": 40,
+        "w": 220,
+        "h": 150,
+        "kind": "house"
+      },
+      {
+        "x": 940,
+        "y": 40,
+        "w": 210,
+        "h": 160,
+        "kind": "house"
+      },
+      {
+        "x": 40,
+        "y": 600,
+        "w": 200,
+        "h": 150,
+        "kind": "house"
+      },
+      {
+        "x": 960,
+        "y": 590,
+        "w": 190,
+        "h": 160,
+        "kind": "house"
+      }
+    ],
+    "scenery": [
+      {
+        "x": 320,
+        "y": 300,
+        "kind": "lamp"
+      },
+      {
+        "x": 880,
+        "y": 300,
+        "kind": "lamp"
+      },
+      {
+        "x": 320,
+        "y": 560,
+        "kind": "lamp"
+      },
+      {
+        "x": 880,
+        "y": 560,
+        "kind": "lamp"
+      },
+      {
+        "x": 180,
+        "y": 250,
+        "kind": "tree"
+      },
+      {
+        "x": 1020,
+        "y": 250,
+        "kind": "tree"
+      }
+    ],
+    "spawns": [],
+    "rares": [],
+    "portals": [
+      {
+        "x": 36,
+        "y": 400,
+        "to": "wild_greenleaf",
+        "label": "翠叶森林"
+      },
+      {
+        "x": 1164,
+        "y": 400,
+        "to": "wild_redrock",
+        "label": "赤岩矿坑"
+      },
+      {
+        "x": 600,
+        "y": 760,
+        "to": "wild_moonlake",
+        "label": "月光湖"
+      }
+    ],
+    "nodes": []
+  },
+  {
+    "id": "wild_greenleaf",
+    "name": "翠叶森林",
+    "desc": "新手野外。史莱姆、森林猫和蘑菇王都在这里。",
+    "kind": "wild",
+    "levelMin": 1,
+    "levelMax": 10,
+    "unlockLevel": 1,
+    "width": 2000,
+    "height": 1300,
+    "spawn": {
+      "x": 180,
+      "y": 700
+    },
+    "theme": {
+      "ground": "#1d4634",
+      "ground2": "#16382a",
+      "accent": "#8fd18a",
+      "path": "#3d6a45"
+    },
+    "blocks": [
+      {
+        "x": 300,
+        "y": 180,
+        "w": 90,
+        "h": 70,
+        "kind": "rock"
+      },
+      {
+        "x": 1280,
+        "y": 240,
+        "w": 120,
+        "h": 80,
+        "kind": "rock"
+      },
+      {
+        "x": 700,
+        "y": 1080,
+        "w": 140,
+        "h": 70,
+        "kind": "rock"
+      }
+    ],
+    "scenery": [
+      {
+        "x": 260,
+        "y": 420,
+        "kind": "tree"
+      },
+      {
+        "x": 340,
+        "y": 860,
+        "kind": "tree"
+      },
+      {
+        "x": 640,
+        "y": 300,
+        "kind": "tree"
+      },
+      {
+        "x": 820,
+        "y": 240,
+        "kind": "tree"
+      },
+      {
+        "x": 980,
+        "y": 980,
+        "kind": "tree"
+      },
+      {
+        "x": 1500,
+        "y": 240,
+        "kind": "tree"
+      },
+      {
+        "x": 1680,
+        "y": 900,
+        "kind": "tree"
+      },
+      {
+        "x": 1200,
+        "y": 200,
+        "kind": "tree"
+      }
+    ],
+    "spawns": [
+      {
+        "monsterId": "slime",
+        "x": 420,
+        "y": 640
+      },
+      {
+        "monsterId": "slime",
+        "x": 500,
+        "y": 760
+      },
+      {
+        "monsterId": "slime",
+        "x": 560,
+        "y": 600
+      },
+      {
+        "monsterId": "slime",
+        "x": 470,
+        "y": 860
+      },
+      {
+        "monsterId": "forest_rat",
+        "x": 720,
+        "y": 480
+      },
+      {
+        "monsterId": "forest_rat",
+        "x": 780,
+        "y": 900
+      },
+      {
+        "monsterId": "forest_cat",
+        "x": 900,
+        "y": 560
+      },
+      {
+        "monsterId": "shroom",
+        "x": 1120,
+        "y": 420
+      },
+      {
+        "monsterId": "shroom",
+        "x": 1240,
+        "y": 700
+      },
+      {
+        "monsterId": "boar",
+        "x": 1180,
+        "y": 1040
+      },
+      {
+        "monsterId": "boar",
+        "x": 1360,
+        "y": 920
+      },
+      {
+        "monsterId": "wolf",
+        "x": 1520,
+        "y": 480
+      },
+      {
+        "monsterId": "wolf",
+        "x": 1640,
+        "y": 700
+      },
+      {
+        "monsterId": "elite_wolf",
+        "x": 1680,
+        "y": 1040
+      },
+      {
+        "monsterId": "elite_boar",
+        "x": 1420,
+        "y": 1120
+      },
+      {
+        "monsterId": "boss_mushroom",
+        "x": 1760,
+        "y": 280
+      }
+    ],
+    "rares": [
+      {
+        "monsterId": "gold_slime",
+        "x": 640,
+        "y": 700,
+        "chance": 0.08,
+        "max": 1
+      },
+      {
+        "monsterId": "flower_bud",
+        "x": 1040,
+        "y": 860,
+        "chance": 0.22,
+        "max": 1,
+        "time": [
+          "morning",
+          "day"
+        ]
+      },
+      {
+        "monsterId": "fire_fox",
+        "x": 1500,
+        "y": 360,
+        "chance": 0.16,
+        "max": 1,
+        "time": [
+          "day",
+          "dusk"
+        ],
+        "weather": [
+          "clear"
+        ]
+      },
+      {
+        "monsterId": "mist_fox",
+        "x": 860,
+        "y": 280,
+        "chance": 0.4,
+        "max": 1,
+        "weather": [
+          "fog"
+        ]
+      },
+      {
+        "monsterId": "forest_cat",
+        "x": 1000,
+        "y": 740,
+        "chance": 0.35,
+        "max": 1,
+        "weather": [
+          "rain"
+        ]
+      }
+    ],
+    "portals": [
+      {
+        "x": 70,
+        "y": 700,
+        "to": "town_starfall",
+        "label": "星落镇"
+      },
+      {
+        "x": 1920,
+        "y": 700,
+        "to": "wild_moonlake",
+        "label": "月光湖"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "gl_herb_1",
+        "kind": "herb",
+        "itemId": "herb_green",
+        "x": 620,
+        "y": 400,
+        "respawnMs": 15000,
+        "name": "翠叶草"
+      },
+      {
+        "id": "gl_herb_2",
+        "kind": "herb",
+        "itemId": "herb_green",
+        "x": 1080,
+        "y": 820,
+        "respawnMs": 15000,
+        "name": "翠叶草"
+      },
+      {
+        "id": "gl_herb_3",
+        "kind": "herb",
+        "itemId": "herb_green",
+        "x": 1500,
+        "y": 980,
+        "respawnMs": 15000,
+        "name": "翠叶草"
+      },
+      {
+        "id": "gl_wood_1",
+        "kind": "wood",
+        "itemId": "wood",
+        "x": 360,
+        "y": 280,
+        "respawnMs": 18000,
+        "name": "浮木"
+      },
+      {
+        "id": "gl_wood_2",
+        "kind": "wood",
+        "itemId": "wood",
+        "x": 1700,
+        "y": 560,
+        "respawnMs": 18000,
+        "name": "浮木"
+      }
+    ]
+  },
+  {
+    "id": "wild_moonlake",
+    "name": "月光湖",
+    "desc": "适合抓水栖灵伴和钓鱼。月光猫只在夜里出现。",
+    "kind": "wild",
+    "levelMin": 10,
+    "levelMax": 15,
+    "unlockLevel": 10,
+    "width": 2000,
+    "height": 1200,
+    "spawn": {
+      "x": 160,
+      "y": 600
+    },
+    "theme": {
+      "ground": "#1a3c48",
+      "ground2": "#143240",
+      "accent": "#8fd0e0",
+      "path": "#3d6870"
+    },
+    "blocks": [
+      {
+        "x": 760,
+        "y": 300,
+        "w": 220,
+        "h": 520,
+        "kind": "water"
+      },
+      {
+        "x": 1100,
+        "y": 300,
+        "w": 220,
+        "h": 520,
+        "kind": "water"
+      }
+    ],
+    "scenery": [
+      {
+        "x": 240,
+        "y": 200,
+        "kind": "tree"
+      },
+      {
+        "x": 1680,
+        "y": 200,
+        "kind": "tree"
+      },
+      {
+        "x": 240,
+        "y": 980,
+        "kind": "tree"
+      },
+      {
+        "x": 980,
+        "y": 180,
+        "kind": "lamp"
+      }
+    ],
+    "spawns": [
+      {
+        "monsterId": "pond_slime",
+        "x": 420,
+        "y": 420
+      },
+      {
+        "monsterId": "pond_slime",
+        "x": 480,
+        "y": 760
+      },
+      {
+        "monsterId": "otter",
+        "x": 640,
+        "y": 520
+      },
+      {
+        "monsterId": "crab",
+        "x": 1320,
+        "y": 280
+      },
+      {
+        "monsterId": "crab",
+        "x": 1500,
+        "y": 860
+      },
+      {
+        "monsterId": "heron",
+        "x": 1600,
+        "y": 420
+      },
+      {
+        "monsterId": "fishman",
+        "x": 1680,
+        "y": 680
+      },
+      {
+        "monsterId": "elite_crab",
+        "x": 1760,
+        "y": 240
+      },
+      {
+        "monsterId": "elite_koi",
+        "x": 980,
+        "y": 860
+      },
+      {
+        "monsterId": "boss_serpent",
+        "x": 1700,
+        "y": 180
+      }
+    ],
+    "rares": [
+      {
+        "monsterId": "moon_cat",
+        "x": 980,
+        "y": 220,
+        "chance": 0.45,
+        "max": 1,
+        "time": [
+          "night",
+          "late"
+        ]
+      }
+    ],
+    "portals": [
+      {
+        "x": 60,
+        "y": 600,
+        "to": "town_starfall",
+        "label": "星落镇"
+      },
+      {
+        "x": 1940,
+        "y": 600,
+        "to": "wild_greenleaf",
+        "label": "翠叶森林"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "ml_fish_1",
+        "kind": "fish",
+        "itemId": "fish_silver",
+        "x": 700,
+        "y": 560,
+        "respawnMs": 16000,
+        "name": "银鳞鱼"
+      },
+      {
+        "id": "ml_fish_2",
+        "kind": "fish",
+        "itemId": "fish_silver",
+        "x": 1360,
+        "y": 560,
+        "respawnMs": 16000,
+        "name": "银鳞鱼"
+      },
+      {
+        "id": "ml_dew_1",
+        "kind": "herb",
+        "itemId": "moon_dew",
+        "x": 520,
+        "y": 240,
+        "respawnMs": 20000,
+        "name": "月光露"
+      }
+    ]
+  },
+  {
+    "id": "wild_redrock",
+    "name": "赤岩矿坑",
+    "desc": "铁矿、精英岩精，以及最适合派遣的矿洞鼠。",
+    "kind": "wild",
+    "levelMin": 15,
+    "levelMax": 20,
+    "unlockLevel": 15,
+    "width": 1900,
+    "height": 1200,
+    "spawn": {
+      "x": 160,
+      "y": 600
+    },
+    "theme": {
+      "ground": "#4a342c",
+      "ground2": "#3a2822",
+      "accent": "#e09060",
+      "path": "#6a4638"
+    },
+    "blocks": [
+      {
+        "x": 500,
+        "y": 160,
+        "w": 100,
+        "h": 80,
+        "kind": "rock"
+      },
+      {
+        "x": 900,
+        "y": 860,
+        "w": 160,
+        "h": 90,
+        "kind": "rock"
+      },
+      {
+        "x": 1400,
+        "y": 200,
+        "w": 120,
+        "h": 100,
+        "kind": "rock"
+      }
+    ],
+    "scenery": [
+      {
+        "x": 300,
+        "y": 300,
+        "kind": "rock"
+      },
+      {
+        "x": 700,
+        "y": 700,
+        "kind": "rock"
+      },
+      {
+        "x": 1500,
+        "y": 800,
+        "kind": "rock"
+      },
+      {
+        "x": 200,
+        "y": 500,
+        "kind": "lamp"
+      }
+    ],
+    "spawns": [
+      {
+        "monsterId": "bat",
+        "x": 420,
+        "y": 400
+      },
+      {
+        "monsterId": "bat",
+        "x": 560,
+        "y": 780
+      },
+      {
+        "monsterId": "mine_rat",
+        "x": 700,
+        "y": 500
+      },
+      {
+        "monsterId": "mine_rat",
+        "x": 820,
+        "y": 680
+      },
+      {
+        "monsterId": "lizard",
+        "x": 1040,
+        "y": 420
+      },
+      {
+        "monsterId": "lizard",
+        "x": 1180,
+        "y": 760
+      },
+      {
+        "monsterId": "ore_golem",
+        "x": 1360,
+        "y": 520
+      },
+      {
+        "monsterId": "ore_golem",
+        "x": 1500,
+        "y": 860
+      },
+      {
+        "monsterId": "elite_golem",
+        "x": 1600,
+        "y": 360
+      },
+      {
+        "monsterId": "boss_tyrant",
+        "x": 1680,
+        "y": 180
+      }
+    ],
+    "rares": [],
+    "portals": [
+      {
+        "x": 60,
+        "y": 600,
+        "to": "town_starfall",
+        "label": "星落镇"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "rr_ore_1",
+        "kind": "ore",
+        "itemId": "iron_ore",
+        "x": 480,
+        "y": 560,
+        "respawnMs": 18000,
+        "name": "铁矿"
+      },
+      {
+        "id": "rr_ore_2",
+        "kind": "ore",
+        "itemId": "iron_ore",
+        "x": 980,
+        "y": 300,
+        "respawnMs": 18000,
+        "name": "铁矿"
+      },
+      {
+        "id": "rr_cu_1",
+        "kind": "ore",
+        "itemId": "copper_ore",
+        "x": 1280,
+        "y": 980,
+        "respawnMs": 20000,
+        "name": "铜矿"
+      },
+      {
+        "id": "rr_ag_1",
+        "kind": "ore",
+        "itemId": "silver_ore",
+        "x": 1720,
+        "y": 700,
+        "respawnMs": 28000,
+        "name": "银矿"
+      }
+    ]
+  },
+  {
+    "id": "wild_thunder",
+    "name": "雷鸣峡谷",
+    "desc": "雷暴会强化雷属性怪物，并提高雷鸣矿的掉落。",
+    "kind": "wild",
+    "levelMin": 20,
+    "levelMax": 25,
+    "unlockLevel": 20,
+    "width": 2000,
+    "height": 1200,
+    "spawn": {
+      "x": 160,
+      "y": 640
+    },
+    "theme": {
+      "ground": "#2a3148",
+      "ground2": "#1e2538",
+      "accent": "#8ec6f5",
+      "path": "#46506a"
+    },
+    "blocks": [
+      {
+        "x": 600,
+        "y": 200,
+        "w": 80,
+        "h": 200,
+        "kind": "rock"
+      },
+      {
+        "x": 1100,
+        "y": 700,
+        "w": 200,
+        "h": 70,
+        "kind": "rock"
+      }
+    ],
+    "scenery": [
+      {
+        "x": 400,
+        "y": 300,
+        "kind": "rock"
+      },
+      {
+        "x": 1500,
+        "y": 400,
+        "kind": "rock"
+      },
+      {
+        "x": 900,
+        "y": 200,
+        "kind": "rock"
+      }
+    ],
+    "spawns": [
+      {
+        "monsterId": "spark",
+        "x": 460,
+        "y": 500
+      },
+      {
+        "monsterId": "spark",
+        "x": 620,
+        "y": 780
+      },
+      {
+        "monsterId": "thunder_bird",
+        "x": 900,
+        "y": 420
+      },
+      {
+        "monsterId": "storm_wolf",
+        "x": 1100,
+        "y": 860
+      },
+      {
+        "monsterId": "storm_wolf",
+        "x": 1300,
+        "y": 480
+      },
+      {
+        "monsterId": "elite_thunder",
+        "x": 1560,
+        "y": 700
+      },
+      {
+        "monsterId": "boss_storm",
+        "x": 1760,
+        "y": 280
+      }
+    ],
+    "rares": [
+      {
+        "monsterId": "thunder_cat",
+        "x": 1480,
+        "y": 360,
+        "chance": 0.22,
+        "max": 1
+      },
+      {
+        "monsterId": "thunder_cat",
+        "x": 1480,
+        "y": 360,
+        "chance": 0.55,
+        "max": 1,
+        "weather": [
+          "storm"
+        ]
+      }
+    ],
+    "portals": [
+      {
+        "x": 50,
+        "y": 640,
+        "to": "town_starfall",
+        "label": "星落镇"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "td_ore_1",
+        "kind": "thunder_ore",
+        "itemId": "thunder_ore",
+        "x": 760,
+        "y": 640,
+        "respawnMs": 22000,
+        "name": "雷鸣矿"
+      },
+      {
+        "id": "td_ore_2",
+        "kind": "thunder_ore",
+        "itemId": "thunder_ore",
+        "x": 1400,
+        "y": 240,
+        "respawnMs": 22000,
+        "name": "雷鸣矿"
+      }
+    ]
+  },
+  {
+    "id": "wild_windhigh",
+    "name": "风鸣高地",
+    "desc": "第一版的高级野外。北侧徘徊着幼年天空鲸。",
+    "kind": "wild",
+    "levelMin": 25,
+    "levelMax": 30,
+    "unlockLevel": 25,
+    "width": 2100,
+    "height": 1300,
+    "spawn": {
+      "x": 180,
+      "y": 1000
+    },
+    "theme": {
+      "ground": "#3d4a38",
+      "ground2": "#2e3a2c",
+      "accent": "#d5e7b0",
+      "path": "#6a7a58"
+    },
+    "blocks": [
+      {
+        "x": 800,
+        "y": 400,
+        "w": 160,
+        "h": 80,
+        "kind": "rock"
+      },
+      {
+        "x": 1400,
+        "y": 800,
+        "w": 100,
+        "h": 140,
+        "kind": "rock"
+      }
+    ],
+    "scenery": [
+      {
+        "x": 500,
+        "y": 700,
+        "kind": "rock"
+      },
+      {
+        "x": 1200,
+        "y": 300,
+        "kind": "rock"
+      },
+      {
+        "x": 300,
+        "y": 400,
+        "kind": "tree"
+      }
+    ],
+    "spawns": [
+      {
+        "monsterId": "hare",
+        "x": 460,
+        "y": 860
+      },
+      {
+        "monsterId": "hare",
+        "x": 700,
+        "y": 980
+      },
+      {
+        "monsterId": "raptor",
+        "x": 980,
+        "y": 700
+      },
+      {
+        "monsterId": "raptor",
+        "x": 1200,
+        "y": 980
+      },
+      {
+        "monsterId": "elite_raptor",
+        "x": 1500,
+        "y": 640
+      },
+      {
+        "monsterId": "boss_wind",
+        "x": 1800,
+        "y": 900
+      },
+      {
+        "monsterId": "world_whale",
+        "x": 1700,
+        "y": 240
+      }
+    ],
+    "rares": [
+      {
+        "monsterId": "gale_sprite",
+        "x": 1100,
+        "y": 240,
+        "chance": 0.2,
+        "max": 1
+      },
+      {
+        "monsterId": "gale_sprite",
+        "x": 1100,
+        "y": 240,
+        "chance": 0.5,
+        "max": 1,
+        "weather": [
+          "wind"
+        ]
+      }
+    ],
+    "portals": [
+      {
+        "x": 60,
+        "y": 1100,
+        "to": "town_starfall",
+        "label": "星落镇"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "wh_feather",
+        "kind": "explore",
+        "itemId": "wind_feather",
+        "x": 640,
+        "y": 360,
+        "respawnMs": 20000,
+        "name": "风羽"
+      }
+    ]
+  },
+  {
+    "id": "dungeon_ruins",
+    "name": "古代遗迹",
+    "desc": "第一版终局副本。从星落镇航标进入，每人或每个小队一条独立线路。",
+    "kind": "dungeon",
+    "levelMin": 25,
+    "levelMax": 30,
+    "unlockLevel": 25,
+    "width": 1800,
+    "height": 1000,
+    "spawn": {
+      "x": 140,
+      "y": 500
+    },
+    "theme": {
+      "ground": "#3a3428",
+      "ground2": "#2a261e",
+      "accent": "#e6c56a",
+      "path": "#6a5a40"
+    },
+    "blocks": [
+      {
+        "x": 500,
+        "y": 120,
+        "w": 70,
+        "h": 220,
+        "kind": "rock"
+      },
+      {
+        "x": 500,
+        "y": 640,
+        "w": 70,
+        "h": 220,
+        "kind": "rock"
+      },
+      {
+        "x": 1100,
+        "y": 200,
+        "w": 80,
+        "h": 180,
+        "kind": "rock"
+      }
+    ],
+    "scenery": [
+      {
+        "x": 300,
+        "y": 200,
+        "kind": "lamp"
+      },
+      {
+        "x": 300,
+        "y": 800,
+        "kind": "lamp"
+      },
+      {
+        "x": 900,
+        "y": 160,
+        "kind": "lamp"
+      }
+    ],
+    "spawns": [
+      {
+        "monsterId": "relic_guard",
+        "x": 420,
+        "y": 360
+      },
+      {
+        "monsterId": "relic_guard",
+        "x": 420,
+        "y": 680
+      },
+      {
+        "monsterId": "relic_mage",
+        "x": 780,
+        "y": 300
+      },
+      {
+        "monsterId": "relic_mage",
+        "x": 820,
+        "y": 700
+      },
+      {
+        "monsterId": "elite_relic",
+        "x": 1200,
+        "y": 500
+      },
+      {
+        "monsterId": "boss_relic",
+        "x": 1560,
+        "y": 480
+      }
+    ],
+    "rares": [],
+    "portals": [
+      {
+        "x": 50,
+        "y": 500,
+        "to": "town_starfall",
+        "label": "离开遗迹"
+      }
+    ],
+    "nodes": []
+  }
+]

@@ -1,0 +1,576 @@
+[
+  {
+    "id": "ss_bash",
+    "name": "盾击",
+    "desc": "用盾牌砸击，并嘲讽目标。",
+    "weapon": "sword_shield",
+    "coefficient": 0.95,
+    "element": "physical",
+    "cooldown": 4000,
+    "mp": 6,
+    "range": 64,
+    "tauntMs": 4000
+  },
+  {
+    "id": "ss_guard",
+    "name": "坚守",
+    "desc": "举起盾墙，短时间提高防御。",
+    "weapon": "sword_shield",
+    "coefficient": 0,
+    "element": "physical",
+    "cooldown": 10000,
+    "mp": 8,
+    "range": 0,
+    "buff": {
+      "stat": "defPct",
+      "value": 0.3,
+      "ms": 6000
+    }
+  },
+  {
+    "id": "ss_slam",
+    "name": "盾牌猛击",
+    "desc": "把力量压进一次重击。",
+    "weapon": "sword_shield",
+    "coefficient": 1.65,
+    "element": "physical",
+    "cooldown": 6000,
+    "mp": 10,
+    "range": 64
+  },
+  {
+    "id": "ss_will",
+    "name": "钢铁意志",
+    "desc": "稳住呼吸，回复一部分生命。",
+    "weapon": "sword_shield",
+    "coefficient": 0,
+    "element": "physical",
+    "cooldown": 12000,
+    "mp": 12,
+    "range": 0,
+    "healPct": 0.1
+  },
+  {
+    "id": "ss_charge",
+    "name": "壁垒冲锋",
+    "desc": "撞向敌人，并获得一层护盾。",
+    "weapon": "sword_shield",
+    "coefficient": 1.25,
+    "element": "physical",
+    "cooldown": 8000,
+    "mp": 10,
+    "range": 70,
+    "shieldFlat": 28
+  },
+  {
+    "id": "ss_oath",
+    "name": "守誓",
+    "desc": "短时间提高暴击，适合和灵伴一起压血线。",
+    "weapon": "sword_shield",
+    "coefficient": 1.1,
+    "element": "physical",
+    "cooldown": 9000,
+    "mp": 8,
+    "range": 64,
+    "buff": {
+      "stat": "critRate",
+      "value": 0.12,
+      "ms": 6000
+    }
+  },
+  {
+    "id": "gs_slash",
+    "name": "重斩",
+    "desc": "把巨剑砍下去。",
+    "weapon": "greatsword",
+    "coefficient": 1.85,
+    "element": "physical",
+    "cooldown": 3500,
+    "mp": 8,
+    "range": 70
+  },
+  {
+    "id": "gs_spin",
+    "name": "旋风",
+    "desc": "转一圈，打中身边所有敌人。",
+    "weapon": "greatsword",
+    "coefficient": 1.15,
+    "element": "physical",
+    "cooldown": 8000,
+    "mp": 14,
+    "range": 90,
+    "aoe": true
+  },
+  {
+    "id": "gs_break",
+    "name": "破甲",
+    "desc": "砍在护甲上，降低目标防御。",
+    "weapon": "greatsword",
+    "coefficient": 1.3,
+    "element": "physical",
+    "cooldown": 7000,
+    "mp": 10,
+    "range": 70,
+    "shredMs": 5000
+  },
+  {
+    "id": "gs_rage",
+    "name": "怒击",
+    "desc": "蓄力后的一击。",
+    "weapon": "greatsword",
+    "coefficient": 2.45,
+    "element": "physical",
+    "cooldown": 10000,
+    "mp": 16,
+    "range": 70
+  },
+  {
+    "id": "gs_shout",
+    "name": "战吼",
+    "desc": "提高自己的攻击。",
+    "weapon": "greatsword",
+    "coefficient": 0,
+    "element": "physical",
+    "cooldown": 14000,
+    "mp": 10,
+    "range": 0,
+    "buff": {
+      "stat": "atkPct",
+      "value": 0.15,
+      "ms": 8000
+    }
+  },
+  {
+    "id": "gs_cleave",
+    "name": "裂地",
+    "desc": "砸地，对周围造成伤害。",
+    "weapon": "greatsword",
+    "coefficient": 1.7,
+    "element": "earth",
+    "cooldown": 9000,
+    "mp": 14,
+    "range": 100,
+    "aoe": true
+  },
+  {
+    "id": "st_fire",
+    "name": "火球",
+    "desc": "一颗直线飞出的火球。",
+    "weapon": "staff",
+    "coefficient": 1.7,
+    "element": "fire",
+    "cooldown": 2500,
+    "mp": 8,
+    "range": 220
+  },
+  {
+    "id": "st_ice",
+    "name": "冰环",
+    "desc": "冻住身边的敌人，让他们变慢。",
+    "weapon": "staff",
+    "coefficient": 1.05,
+    "element": "water",
+    "cooldown": 8000,
+    "mp": 14,
+    "range": 140,
+    "aoe": true,
+    "slowMs": 3000
+  },
+  {
+    "id": "st_bolt",
+    "name": "雷击",
+    "desc": "把雷引到目标身上。",
+    "weapon": "staff",
+    "coefficient": 2.15,
+    "element": "thunder",
+    "cooldown": 7000,
+    "mp": 16,
+    "range": 230
+  },
+  {
+    "id": "st_arcane",
+    "name": "奥术冲击",
+    "desc": "稳定的奥术弹。",
+    "weapon": "staff",
+    "coefficient": 1.45,
+    "element": "physical",
+    "cooldown": 3000,
+    "mp": 7,
+    "range": 220
+  },
+  {
+    "id": "st_heal",
+    "name": "治疗术",
+    "desc": "回复生命。",
+    "weapon": "staff",
+    "coefficient": 0,
+    "element": "water",
+    "cooldown": 8000,
+    "mp": 14,
+    "range": 0,
+    "healPct": 0.18
+  },
+  {
+    "id": "st_surge",
+    "name": "元素涌动",
+    "desc": "下一段时间攻击提高。",
+    "weapon": "staff",
+    "coefficient": 0.8,
+    "element": "fire",
+    "cooldown": 12000,
+    "mp": 12,
+    "range": 220,
+    "buff": {
+      "stat": "atkPct",
+      "value": 0.18,
+      "ms": 6000
+    }
+  },
+  {
+    "id": "bw_quick",
+    "name": "速射",
+    "desc": "几乎不耽误走位的一箭。",
+    "weapon": "bow",
+    "coefficient": 1.05,
+    "element": "physical",
+    "cooldown": 1600,
+    "mp": 4,
+    "range": 250
+  },
+  {
+    "id": "bw_aim",
+    "name": "瞄准射击",
+    "desc": "这一箭更容易打出暴击。",
+    "weapon": "bow",
+    "coefficient": 1.9,
+    "element": "physical",
+    "cooldown": 5000,
+    "mp": 8,
+    "range": 260,
+    "forceCrit": false,
+    "buff": {
+      "stat": "critRate",
+      "value": 0.35,
+      "ms": 2000
+    }
+  },
+  {
+    "id": "bw_rain",
+    "name": "箭雨",
+    "desc": "向周围撒箭。",
+    "weapon": "bow",
+    "coefficient": 1.05,
+    "element": "physical",
+    "cooldown": 8000,
+    "mp": 12,
+    "range": 200,
+    "aoe": true
+  },
+  {
+    "id": "bw_pierce",
+    "name": "穿透",
+    "desc": "一箭破开防御，使目标易伤。",
+    "weapon": "bow",
+    "coefficient": 1.55,
+    "element": "physical",
+    "cooldown": 6000,
+    "mp": 8,
+    "range": 250,
+    "vulnerableMs": 5000
+  },
+  {
+    "id": "bw_mark",
+    "name": "标记",
+    "desc": "标记目标并提高自己的暴击。",
+    "weapon": "bow",
+    "coefficient": 1.15,
+    "element": "wind",
+    "cooldown": 7000,
+    "mp": 8,
+    "range": 250,
+    "buff": {
+      "stat": "critRate",
+      "value": 0.1,
+      "ms": 6000
+    }
+  },
+  {
+    "id": "bw_fatal",
+    "name": "致命射击",
+    "desc": "长时间瞄准后的重箭，必定暴击。",
+    "weapon": "bow",
+    "coefficient": 2.2,
+    "element": "physical",
+    "cooldown": 12000,
+    "mp": 14,
+    "range": 270,
+    "forceCrit": true
+  },
+  {
+    "id": "pet_cat",
+    "pet": "forest_cat",
+    "name": "夜袭",
+    "desc": "森林猫扑击要害，提高暴击。",
+    "coefficient": 1.35,
+    "element": "physical",
+    "cooldown": 8000,
+    "mp": 8,
+    "range": 180,
+    "buff": {
+      "stat": "critRate",
+      "value": 0.1,
+      "ms": 5000
+    }
+  },
+  {
+    "id": "pet_rat",
+    "pet": "mine_rat",
+    "name": "钻地",
+    "desc": "矿洞鼠掀起碎石，给你一层护盾。",
+    "coefficient": 0.6,
+    "element": "earth",
+    "cooldown": 8000,
+    "mp": 8,
+    "range": 180,
+    "shieldFlat": 36
+  },
+  {
+    "id": "pet_fox",
+    "pet": "fire_fox",
+    "name": "火息",
+    "desc": "火狐喷出一团火。",
+    "coefficient": 1.7,
+    "element": "fire",
+    "cooldown": 8000,
+    "mp": 8,
+    "range": 140,
+    "aoe": true
+  },
+  {
+    "id": "pet_otter",
+    "pet": "otter",
+    "name": "水疗",
+    "desc": "水獭把水膜覆在你身上。",
+    "coefficient": 0,
+    "element": "water",
+    "cooldown": 8000,
+    "mp": 8,
+    "range": 180,
+    "healPct": 0.12
+  },
+  {
+    "id": "pet_tcat",
+    "pet": "thunder_cat",
+    "name": "落雷",
+    "desc": "雷猫引下一道雷。",
+    "coefficient": 1.9,
+    "element": "thunder",
+    "cooldown": 8000,
+    "mp": 8,
+    "range": 180
+  },
+  {
+    "id": "pet_dog",
+    "pet": "dog_knight",
+    "name": "护主",
+    "desc": "狗骑士挡到前面并嘲讽。",
+    "coefficient": 0.8,
+    "element": "physical",
+    "cooldown": 8000,
+    "mp": 8,
+    "range": 180,
+    "tauntMs": 5000,
+    "buff": {
+      "stat": "defPct",
+      "value": 0.2,
+      "ms": 6000
+    }
+  },
+  {
+    "id": "pet_slime",
+    "pet": "slime_pet",
+    "name": "凝胶",
+    "desc": "史莱姆糊住伤口。",
+    "coefficient": 0,
+    "element": "water",
+    "cooldown": 8000,
+    "mp": 8,
+    "range": 180,
+    "healPct": 0.08,
+    "shieldFlat": 20
+  },
+  {
+    "id": "pet_shroom",
+    "pet": "shroom_spirit",
+    "name": "孢子",
+    "desc": "孢子降低目标防御。",
+    "coefficient": 1.1,
+    "element": "earth",
+    "cooldown": 8000,
+    "mp": 8,
+    "range": 180,
+    "shredMs": 5000
+  },
+  {
+    "id": "pet_boar",
+    "pet": "boar_cub",
+    "name": "冲撞",
+    "desc": "野猪幼崽一头撞上去。",
+    "coefficient": 1.5,
+    "element": "physical",
+    "cooldown": 8000,
+    "mp": 8,
+    "range": 180
+  },
+  {
+    "id": "pet_wolf",
+    "pet": "wolf_pup",
+    "name": "撕咬",
+    "desc": "狼崽加速你的行动。",
+    "coefficient": 1.2,
+    "element": "physical",
+    "cooldown": 8000,
+    "mp": 8,
+    "range": 180,
+    "buff": {
+      "stat": "speedPct",
+      "value": 0.15,
+      "ms": 5000
+    }
+  },
+  {
+    "id": "pet_moon",
+    "pet": "moon_cat",
+    "name": "月斩",
+    "desc": "月光变成一刀。",
+    "coefficient": 1.65,
+    "element": "water",
+    "cooldown": 8000,
+    "mp": 8,
+    "range": 180,
+    "forceCrit": true
+  },
+  {
+    "id": "pet_koi",
+    "pet": "koi",
+    "name": "鳞光",
+    "desc": "锦鲤的鳞光回复生命。",
+    "coefficient": 0,
+    "element": "water",
+    "cooldown": 8000,
+    "mp": 8,
+    "range": 180,
+    "healPct": 0.1,
+    "buff": {
+      "stat": "critRate",
+      "value": 0.06,
+      "ms": 6000
+    }
+  },
+  {
+    "id": "pet_golem",
+    "pet": "rock_golem",
+    "name": "岩壁",
+    "desc": "岩精立起一面墙。",
+    "coefficient": 0.7,
+    "element": "earth",
+    "cooldown": 8000,
+    "mp": 8,
+    "range": 180,
+    "shieldFlat": 60,
+    "buff": {
+      "stat": "defPct",
+      "value": 0.15,
+      "ms": 6000
+    }
+  },
+  {
+    "id": "pet_bird",
+    "pet": "storm_bird",
+    "name": "俯冲",
+    "desc": "风鸣鸟从高处冲下。",
+    "coefficient": 1.6,
+    "element": "wind",
+    "cooldown": 8000,
+    "mp": 8,
+    "range": 160,
+    "aoe": true
+  },
+  {
+    "id": "pet_bat",
+    "pet": "bat",
+    "name": "超声",
+    "desc": "超声波让周围敌人变慢。",
+    "coefficient": 0.9,
+    "element": "wind",
+    "cooldown": 8000,
+    "mp": 8,
+    "range": 140,
+    "aoe": true,
+    "slowMs": 3000
+  },
+  {
+    "id": "pet_flower",
+    "pet": "flower_spirit",
+    "name": "花露",
+    "desc": "花灵洒下治疗的露水。",
+    "coefficient": 0,
+    "element": "earth",
+    "cooldown": 8000,
+    "mp": 8,
+    "range": 180,
+    "healPct": 0.16
+  },
+  {
+    "id": "pet_lizard",
+    "pet": "ember_lizard",
+    "name": "余烬",
+    "desc": "余烬蜥留下灼烧般的一击。",
+    "coefficient": 1.55,
+    "element": "fire",
+    "cooldown": 8000,
+    "mp": 8,
+    "range": 180,
+    "vulnerableMs": 4000
+  },
+  {
+    "id": "pet_mist",
+    "pet": "mist_fox",
+    "name": "迷雾",
+    "desc": "雾狐隐藏你的身形，提高防御。",
+    "coefficient": 0.4,
+    "element": "water",
+    "cooldown": 8000,
+    "mp": 8,
+    "range": 180,
+    "buff": {
+      "stat": "defPct",
+      "value": 0.25,
+      "ms": 5000
+    }
+  },
+  {
+    "id": "pet_sprite",
+    "pet": "ancient_sprite",
+    "name": "遗言",
+    "desc": "遗迹精灵放出一道奥术。",
+    "coefficient": 1.8,
+    "element": "thunder",
+    "cooldown": 8000,
+    "mp": 8,
+    "range": 180
+  },
+  {
+    "id": "pet_gold",
+    "pet": "gold_slime",
+    "name": "金雾",
+    "desc": "金色史莱姆爆开，伤害周围并回复你。",
+    "coefficient": 1.2,
+    "element": "earth",
+    "cooldown": 8000,
+    "mp": 8,
+    "range": 130,
+    "aoe": true,
+    "healPct": 0.06
+  }
+]

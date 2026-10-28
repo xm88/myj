@@ -149,7 +149,7 @@ func (a *App) profile(id string) M {
 
 // publicConfig 输出客户端显示与操作需要的配置，怪物列表省略服务器战斗结算细节。
 func (a *App) publicConfig() M {
-	out := M{"version": "0.1.1"}
+	out := M{"version": "0.1.2"}
 	for _, k := range []string{"maps", "npcs", "items", "skills", "pets", "recipes", "durations", "dispatchNodes", "weathers", "constants"} {
 		out[k] = a.data[k]
 	}

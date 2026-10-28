@@ -275,6 +275,13 @@ func (a *App) channel(id, ch string, posting bool) string {
 			return ""
 		}
 		return "guild:" + str(g["guild_id"])
+	case "party":
+		party := a.playerParty[id]
+		if party == "" {
+			check(!posting, "你不在队伍里")
+			return ""
+		}
+		return "party:" + party
 	}
 	check(!posting, "没有这个频道")
 	return "world"
@@ -283,6 +290,9 @@ func (a *App) channel(id, ch string, posting bool) string {
 // chatHistory 按频道读取最近聊天记录，并按时间从早到晚返回。
 func (a *App) chatHistory(id, ch string) []M {
 	stored := a.channel(id, ch, false)
+	if stored == "" {
+		return []M{}
+	}
 	r := a.rows("SELECT id,player_name,text,created_at FROM chat_messages WHERE channel=? ORDER BY created_at DESC LIMIT 30", stored)
 	for i, j := 0, len(r)-1; i < j; i, j = i+1, j-1 {
 		r[i], r[j] = r[j], r[i]
@@ -305,11 +315,27 @@ func (a *App) postChat(id, ch, text string) M {
 	a.run("INSERT INTO chat_messages(id,channel,player_id,player_name,text,created_at) VALUES(?,?,?,?,?,?)", mid, stored, id, name, clean, t)
 	message := M{"type": "chat", "id": mid, "channel": stored, "name": name, "text": clean, "t": t}
 	for pid, l := range a.live {
-		if stored == "world" || stored == "map:"+str(l.State["mapId"]) || strings.HasPrefix(stored, "guild:") && a.one("SELECT guild_id FROM guild_members WHERE player_id=? AND guild_id=?", pid, strings.TrimPrefix(stored, "guild:")) != nil {
+		if a.hears(pid, l, stored) {
 			a.send(l, message)
 		}
 	}
 	return message
+}
+
+// hears 判断在线角色是否该收到这条频道消息。
+func (a *App) hears(pid string, l *Live, stored string) bool {
+	switch {
+	case stored == "world":
+		return true
+	case stored == "map:"+str(l.State["mapId"]):
+		return true
+	case strings.HasPrefix(stored, "guild:"):
+		return a.one("SELECT guild_id FROM guild_members WHERE player_id=? AND guild_id=?", pid, strings.TrimPrefix(stored, "guild:")) != nil
+	case strings.HasPrefix(stored, "party:"):
+		return a.playerParty[pid] == strings.TrimPrefix(stored, "party:")
+	default:
+		return false
+	}
 }
 
 // partyView 输出当前队伍的队长和成员名称，未组队时返回空值。

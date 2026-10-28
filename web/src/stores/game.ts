@@ -8,6 +8,8 @@
 
 import { defineStore } from 'pinia'
 import { api, ApiError } from '../api'
+import { nearestPacks } from '../game/crowd'
+import { guideQuest, questGuide } from '../game/guide'
 import { arriveDistance, focusReach } from '../game/npc'
 
 /** 界面短提示，使用独立 ID 管理自动消失与展示顺序。 */
@@ -87,6 +89,14 @@ export const useGame = defineStore('game', {
     retryDelay: 800,
     // 角色已在另一个窗口打开时，这个窗口停止抢连接。
     displaced: false,
+    // 连招打开后，靠近目标会自动放准备好的技能。记在本机，不进存档。
+    autoFight: localStorage.getItem('float_auto') === '1',
+    // 上次自动放技能的时间，避免一拍里连发好几下。
+    lastAuto: 0,
+    // 飘字。只活大约一秒，用来在场景和战斗画面上标伤害。
+    floats: [] as { id: number; text: string; kind: string; crit: boolean; guarded: boolean; x: number; y: number; entityId: string; at: number }[],
+    // 飘字编号。
+    floatSeq: 1,
   }),
   actions: {
     /** 为提示分配递增编号，并在3.2秒后移除对应提示。 */
@@ -232,9 +242,11 @@ export const useGame = defineStore('game', {
           this.profile.mapId = msg.mapId
         }
         for (const event of msg.events ?? []) {
+          this.pushFloat(event)
           if (event.kind === 'dmg' && event.amount) {
             const mine = event.entityId === this.profile?.id
-            this.noteBattle(`${mine ? '受到' : '造成'} ${event.crit ? '暴击 ' : ''}${event.amount}`)
+            const guard = event.guarded ? '守势 ' : ''
+            this.noteBattle(`${mine ? '受到' : '造成'} ${guard}${event.crit ? '暴击 ' : ''}${event.amount}`)
           } else if (event.kind === 'heal' && event.amount) {
             this.noteBattle(`回复 ${event.amount}`)
           } else if (event.text) {
@@ -273,6 +285,61 @@ export const useGame = defineStore('game', {
     /** 只在 WebSocket 已连接时提交 JSON 意图消息。 */
     send(message: object) {
       if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(message))
+    },
+    /** 记下一条会自己消失的飘字。 */
+    pushFloat(event: { kind?: string; amount?: number; text?: string; crit?: boolean; guarded?: boolean; x?: number; y?: number; entityId?: string }) {
+      const kind = String(event.kind || '')
+      let text = ''
+      if (kind === 'dmg' && event.amount) text = `${event.crit ? '暴' : ''}${event.amount}`
+      else if (kind === 'heal' && event.amount) text = `+${event.amount}`
+      else if (kind === 'miss') text = '闪'
+      else if (event.text) text = String(event.text)
+      else return
+      const at = performance.now()
+      const id = this.floatSeq++
+      this.floats.push({
+        id,
+        text,
+        kind,
+        crit: Boolean(event.crit),
+        guarded: Boolean(event.guarded),
+        x: Number(event.x) || 0,
+        y: Number(event.y) || 0,
+        entityId: event.entityId ? String(event.entityId) : '',
+        at,
+      })
+      this.floats = this.floats.filter((item) => at - item.at < 1100).slice(-12)
+    },
+    /** 开关连招。服务器仍逐次校验蓝耗、冷却和距离。 */
+    setAuto(on: boolean) {
+      this.autoFight = on
+      localStorage.setItem('float_auto', on ? '1' : '0')
+      this.toast(on ? '连招开了。靠近后会自动放准备好的技能' : '连招关了')
+    },
+    /** 摆出守势。这一拍少挨打，普通攻击也会晚一拍。 */
+    guard() {
+      this.send({ type: 'guard' })
+    },
+    /** 按一条任务或当前主步骤走过去。找不到落点就打开任务窗口。 */
+    pursue(questId?: string) {
+      const quests = this.profile?.quests ?? []
+      const mapId = this.snap?.mapId || this.profile?.mapId || ''
+      const who = this.snap?.self ?? { x: this.profile?.x ?? 0, y: this.profile?.y ?? 0 }
+      const monsters = (this.snap?.entities ?? []).filter((entity: { kind: string; alive: boolean }) => entity.kind === 'monster' && entity.alive)
+      const packs = nearestPacks(monsters, who)
+      const quest = questId ? quests.find((item: { id: string }) => item.id === questId) : null
+      const guide = quest ? guideQuest(quest, this.config, mapId, packs) : questGuide(quests, this.config, mapId, packs)
+      if (!guide) {
+        this.panel = 'quest'
+        return
+      }
+      if (guide.fightId) {
+        if (guide.capture) this.capture(guide.fightId)
+        else this.fight(guide.fightId)
+        return
+      }
+      if (typeof guide.x === 'number' && typeof guide.y === 'number') this.go(guide.x, guide.y, guide.act, guide.focus)
+      else this.panel = 'quest'
     },
     /** 记录最近战斗提示，并抑制连续重复的闪避文本。 */
     noteBattle(text: string) {
@@ -372,6 +439,34 @@ export const useGame = defineStore('game', {
       if (intent.kind === 'capture') {
         this.intent = null
         this.send({ type: 'capture' })
+        return
+      }
+      this.maybeAuto(mob)
+    },
+    /** 连招：优先治疗残血，否则放第一个冷却好、蓝够、距离够的攻击或增益。 */
+    maybeAuto(mob: { x: number; y: number }) {
+      if (!this.autoFight || this.intent?.kind !== 'fight') return
+      const self = this.snap?.self
+      if (!self) return
+      const stamp = performance.now()
+      if (stamp - this.lastAuto < 700) return
+      const loadout: string[] = this.profile?.loadout ?? []
+      const skills: { id: string; mp?: number; coefficient?: number; healPct?: number; range?: number; buff?: unknown; shieldFlat?: number }[] = this.config?.skills ?? []
+      const dist = Math.hypot(self.x - mob.x, self.y - mob.y)
+      const hpRatio = self.maxHp ? self.hp / self.maxHp : 1
+      for (let index = 0; index < loadout.length; index++) {
+        const skill = skills.find((item) => item.id === loadout[index])
+        if (!skill) continue
+        if ((this.snap?.cooldowns?.[skill.id] ?? 0) > 0) continue
+        if ((skill.mp ?? 0) > (self.mp ?? 0)) continue
+        const offensive = (skill.coefficient ?? 0) > 0
+        const heal = (skill.healPct ?? 0) > 0
+        if (heal && !offensive && hpRatio > 0.5) continue
+        if (!offensive && !heal && !skill.buff && !(skill.shieldFlat && skill.shieldFlat > 0)) continue
+        if (offensive && dist > (skill.range || 64) + 18) continue
+        this.lastAuto = stamp
+        this.send({ type: 'skill', slot: index + 1 })
+        return
       }
     },
     /** 同步冒险或助手模式，清空功能面板并通知服务器切换安全状态。 */

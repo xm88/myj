@@ -4,7 +4,7 @@
 import { computed } from 'vue'
 import { nearestPacks } from '../game/crowd'
 import { questGuide } from '../game/guide'
-import { mapThumb } from '../game/art'
+import { mapThumb, portrait } from '../game/art'
 import { nodeFocus, npcFocus, npcMark, portalFocus } from '../game/npc'
 import { useGame } from '../stores/game'
 
@@ -16,7 +16,13 @@ const mapId = computed(() => game.snap?.mapId || game.profile?.mapId || 'town_st
 /** 当前地图模板，提供尺寸、背景、资源点与传送门配置。 */
 const map = computed(() => game.config?.maps?.find((item: { id: string; width?: number; height?: number; portals?: { x: number; y: number; to: string; label: string }[] }) => item.id === mapId.value))
 /** 服务器推送的自身战斗快照，缺失时部分视图使用档案坐标。 */
-const self = computed(() => game.snap?.self ?? { x: game.profile?.x ?? 0, y: game.profile?.y ?? 0 })
+const self = computed(() => game.snap?.self ?? { x: game.profile?.x ?? 0, y: game.profile?.y ?? 0, hp: 0, maxHp: 0, mp: 0, maxMp: 0 })
+/** 主战灵伴，显示在场景左上角。 */
+const pet = computed(() => game.profile?.pets?.find((item: { active: boolean }) => item.active) ?? null)
+/** 场景角标上的生命百分比。 */
+const hpPct = computed(() => (self.value.maxHp ? Math.max(0, (self.value.hp / self.value.maxHp) * 100) : 0))
+/** 场景角标上的法力百分比。 */
+const mpPct = computed(() => (self.value.maxMp ? Math.max(0, (self.value.mp / self.value.maxMp) * 100) : 0))
 
 /** NPC 名称、位置、对话和服务入口的配置清单。 */
 const npcs = computed(() => (game.config?.npcs ?? []).filter((npc: { mapId: string }) => npc.mapId === mapId.value))
@@ -110,14 +116,59 @@ function pin(x: number, y: number) {
   const height = map.value?.height || 1
   return { left: `${(x / width) * 100}%`, top: `${(y / height) * 100}%` }
 }
+
+/** 点在地面上就走过去。点在名字按钮上时留给原来的互动。 */
+function walk(ev: MouseEvent) {
+  const target = ev.target as HTMLElement | null
+  if (target?.closest('button')) return
+  const el = ev.currentTarget as HTMLElement
+  const box = el.getBoundingClientRect()
+  if (!box.width || !box.height || !map.value) return
+  const x = ((ev.clientX - box.left) / box.width) * (map.value.width || 1)
+  const y = ((ev.clientY - box.top) / box.height) * (map.value.height || 1)
+  game.go(x, y)
+}
 </script>
 
 <template>
   <!-- 地图场景摘要：聚合怪物并避让对象标签，点击后提交世界坐标和精确互动目标。 -->
-  <div class="scene" v-if="map">
+  <div class="scene" v-if="map" @click="walk">
     <img class="scene-bg" :src="mapThumb(map.id)" alt="" />
+    <div class="hud-plate">
+      <img :src="portrait('hero')" alt="" />
+      <div>
+        <b>{{ game.profile?.name }} <small>Lv.{{ game.profile?.level }}</small></b>
+        <i class="bar"><b class="hp" :style="{ width: hpPct + '%' }" /></i>
+        <i class="bar"><b class="mp" :style="{ width: mpPct + '%' }" /></i>
+      </div>
+      <div v-if="pet" class="hud-pet" :title="pet.name">
+        <img :src="portrait(pet.templateId)" alt="" />
+        <small>{{ pet.name }}</small>
+      </div>
+    </div>
+    <div class="minimap" :title="map.name">
+      <i class="dot you" :style="pin(self.x, self.y)" />
+      <i v-if="dest" class="dot dest" :style="pin(dest.x, dest.y)" />
+      <i v-for="portal in portals" :key="'m' + portal.label + portal.x" class="dot exit" :style="pin(portal.x, portal.y)" />
+      <i
+        v-for="npc in npcs"
+        :key="'m' + npc.id"
+        class="dot"
+        :class="{ turnin: markOf(npc) === 'turnin', offer: markOf(npc) === 'offer' || markOf(npc) === 'talk' }"
+        :style="pin(npc.x, npc.y)"
+      />
+      <b>{{ map.name }}</b>
+    </div>
+    <div class="coords">{{ Math.round(self.x) }} , {{ Math.round(self.y) }}</div>
     <div class="pin you" :style="pin(self.x, self.y)">你</div>
     <div v-if="dest" class="pin dest" :style="pin(dest.x, dest.y)">去</div>
+    <span
+      v-for="hit in game.floats"
+      :key="hit.id"
+      class="float"
+      :class="{ crit: hit.crit, heal: hit.kind === 'heal', miss: hit.kind === 'miss' || hit.kind === 'text', guarded: hit.guarded }"
+      :style="pin(hit.x, hit.y)"
+    >{{ hit.text }}</span>
     <button
       v-for="portal in portals"
       :key="portal.label + portal.x"

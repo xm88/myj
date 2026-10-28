@@ -327,3 +327,92 @@ func TestWebSocketWorld(t *testing.T) {
 		}
 	})
 }
+
+// TestGuardPartyAndGear 验证守势减伤与停手、队伍频道，以及装备对比行不改旧存档。
+func TestGuardPartyAndGear(t *testing.T) {
+	a := testApp(t)
+	token, id := newGuest(t, a)
+	p := okRequest(t, a, "/api/profile", token, nil)
+	weapon := obj(obj(p["equipment"])["weapon"])
+	found := false
+	for _, line := range objects(weapon["lines"]) {
+		if str(line["stat"]) == "atk" && num(line["value"]) == 6 {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("starter weapon lines: %v", weapon["lines"])
+	}
+	expectFailure(t, func() { a.postChat(id, "party", "这边集合") })
+
+	token2, id2 := newGuest(t, a)
+	a.attach(id, nil)
+	a.attach(id2, nil)
+	a.inviteParty(id, str(a.player(id2)["name"]))
+	a.joinParty(id2)
+	msg := a.postChat(id, "party", "这边集合")
+	if !strings.HasPrefix(str(msg["channel"]), "party:") {
+		t.Fatal(msg)
+	}
+	history := a.chatHistory(id2, "party")
+	if len(history) != 1 || str(history[0]["text"]) != "这边集合" {
+		t.Fatalf("party history: %v", history)
+	}
+	_ = token2
+
+	okRequest(t, a, "/api/travel", token, M{"mapId": "wild_greenleaf"})
+	a.withLock(func() {
+		l := a.live[id]
+		i := a.instances[l.InstanceKey]
+		var mob M
+		for _, m := range i.Monsters {
+			if str(m["templateId"]) == "slime" {
+				mob = m
+				break
+			}
+		}
+		if mob == nil {
+			t.Fatal("no slime")
+		}
+		a.socketMessage(id, M{"type": "guard"})
+		if num(l.State["guardUntil"]) <= now() {
+			t.Fatal("guard not armed")
+		}
+		hp := num(mob["hp"])
+		l.State["x"], l.State["y"], l.State["targetId"] = mob["x"], mob["y"], mob["id"]
+		l.State["attackAt"] = 0
+		l.State["guardUntil"] = now() + 8000
+		a.tick()
+		if num(mob["hp"]) != hp {
+			t.Fatalf("guard still swung: %v -> %v", hp, mob["hp"])
+		}
+		if num(l.State["attackAt"]) < num(l.State["guardUntil"])-1 {
+			t.Fatal("next swing was not delayed")
+		}
+		before := num(l.State["hp"])
+		l.State["shield"] = 0
+		l.State["invulnUntil"] = 0
+		l.State["safe"] = false
+		l.Events = []M{}
+		a.hurtPlayer(i, mob, l, 1)
+		lost := before - num(l.State["hp"])
+		raw, _ := damage(num(a.def("monsters", "slime")["atk"]), 1, num(l.Stats["def"]), 0, num(obj(l.Stats["elemRes"])["physical"]), .05, 1.5, 1, false, func() float64 { return 1 })
+		if lost <= 0 || lost >= raw {
+			t.Fatalf("guard damage %v, unguarded non-crit %v", lost, raw)
+		}
+		marked := false
+		for _, ev := range l.Events {
+			if truth(ev["guarded"]) {
+				marked = true
+			}
+		}
+		if !marked {
+			t.Fatal("damage event missing guarded")
+		}
+		snap := a.snapshot(l, now())
+		self := obj(snap["self"])
+		if num(self["guard"]) <= 0 || self["interval"] == nil {
+			t.Fatalf("snapshot cadence: %v", self)
+		}
+	})
+}

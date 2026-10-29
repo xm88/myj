@@ -243,8 +243,12 @@ func TestChunkCrossAndSeam(t *testing.T) {
 	if num(l.State["x"]) == num(spawn["x"]) && num(l.State["y"]) == num(spawn["y"]) {
 		t.Fatal("crossed onto the map spawn")
 	}
-	if num(l.State["x"]) < 90 || num(l.State["x"]) > 160 {
-		t.Fatalf("arrival not inside the far gate: %v,%v", l.State["x"], l.State["y"])
+	_, dst, linked := a.link("town_starfall", "wild_greenleaf")
+	if !linked {
+		t.Fatal("town and forest are not paired")
+	}
+	if math.Hypot(num(l.State["x"])-num(dst["x"]), num(l.State["y"])-num(dst["y"])) > 80 {
+		t.Fatalf("arrival not inside the far gate: %v,%v gate %v,%v", l.State["x"], l.State["y"], dst["x"], dst["y"])
 	}
 	wx, wy := a.worldPos("wild_greenleaf", num(l.State["x"]), num(l.State["y"]))
 	gx, gy := a.worldPos("town_starfall", 36, 400)
@@ -254,7 +258,7 @@ func TestChunkCrossAndSeam(t *testing.T) {
 
 	seller := a.live[id2]
 	a.enter(seller, "wild_greenleaf", false)
-	seller.State["x"], seller.State["y"] = 110, 700
+	seller.State["x"], seller.State["y"] = num(dst["x"])-40, num(dst["y"])
 	a.openStall(id2, "界边摊")
 	l.State["mapId"] = "town_starfall"
 	l.State["x"], l.State["y"] = 50, 400
@@ -296,7 +300,7 @@ func TestChunkCrossAndSeam(t *testing.T) {
 	if mob == nil {
 		t.Fatal("no slime on the far side")
 	}
-	mob["x"], mob["y"] = 100, 700
+	mob["x"], mob["y"] = num(dst["x"])-24, num(dst["y"])
 	l.State["targetId"] = mob["id"]
 	a.engage(id)
 	b := a.bouts[str(l.State["boutId"])]

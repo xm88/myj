@@ -704,7 +704,32 @@ func (a *App) snapshot(l *Live, t float64) M {
 			entities = append(entities, M{"id": "stall:" + str(stall["id"]), "kind": "stall", "stallId": stall["id"], "name": stall["title"], "owner": stall["owner_name"], "x": stall["x"], "y": stall["y"], "alive": true})
 		}
 	}
-	entities = append(entities, a.seamEntities(l)...)
+	entities = append(entities, a.afarEntities(l)...)
+	seen := map[string]bool{}
+	for _, e := range entities {
+		seen[str(e["id"])] = true
+	}
+	for _, e := range a.seamEntities(l) {
+		if seen[str(e["id"])] {
+			continue
+		}
+		entities = append(entities, e)
+	}
+	mapID := str(l.State["mapId"])
+	for _, e := range entities {
+		if e["worldX"] != nil {
+			continue
+		}
+		if e["mapId"] == nil {
+			e["mapId"] = mapID
+		}
+		mid := mapID
+		if !truth(e["seam"]) && str(e["mapId"]) != "" {
+			mid = str(e["mapId"])
+		}
+		wx, wy := a.worldPos(mid, num(e["x"]), num(e["y"]))
+		e["worldX"], e["worldY"] = wx, wy
+	}
 	self := M{}
 	for _, k := range []string{"x", "y", "hp", "mp", "level", "exp", "gold", "targetId", "shield", "weaponType", "safe"} {
 		self[k] = l.State[k]
@@ -724,7 +749,7 @@ func (a *App) snapshot(l *Live, t float64) M {
 	for k, v := range l.CD {
 		cd[k] = math.Max(0, num(v)-t)
 	}
-	snap := M{"type": "snapshot", "t": t, "mapId": l.State["mapId"], "line": line, "self": self, "entities": entities, "cooldowns": cd, "events": l.Events, "gates": a.gates(str(l.State["mapId"]))}
+	snap := M{"type": "snapshot", "t": t, "mapId": l.State["mapId"], "line": line, "self": self, "entities": entities, "cooldowns": cd, "events": l.Events, "gates": a.gates(str(l.State["mapId"])), "chunks": a.cameraChunks(str(l.State["mapId"])), "camera": cameraSpan}
 	if b := a.bouts[str(l.State["boutId"])]; b != nil {
 		snap["bout"] = a.boutView(b, str(l.State["id"]))
 	}

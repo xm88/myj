@@ -14,6 +14,14 @@ const count = ref(1)
 const picked = ref('')
 
 const mine = () => game.profile?.stall
+/** 和拍卖同一档旅税。买一件时按这一件分到的价钱计算，向下取整。 */
+function due(price: number, count = 1) {
+  const rate = Number(game.config?.constants?.marketTax ?? 0.05)
+  const n = Math.max(1, Number(count) || 1)
+  const pay = n <= 1 ? Math.floor(Number(price) || 0) : Math.floor((Number(price) || 0) / n)
+  const tax = Math.floor(pay * rate)
+  return { pay, tax, net: pay - tax }
+}
 const bag = () => (game.profile?.bag ?? []).filter((item: { bound?: boolean; kind: string }) => !item.bound && item.kind !== 'quest')
 
 async function loadList() {
@@ -83,7 +91,7 @@ async function buy(id: string) {
       <article v-for="good in mine().goods" :key="good.id" class="item">
         <div>
           <b>{{ good.name }}</b>
-          <small>×{{ good.count }} · {{ good.price }} 金</small>
+          <small>×{{ good.count }} · {{ good.price }} 金 · 旅税 {{ due(good.price, good.count).tax }} · 到手 {{ due(good.price, good.count).net }}</small>
         </div>
         <button class="btn light" @click="unlist(good.id)">下架</button>
       </article>
@@ -121,7 +129,7 @@ async function buy(id: string) {
       <article v-for="good in detail.goods" :key="good.id" class="item">
         <div>
           <b>{{ good.name }}</b>
-          <small>×{{ good.count }} · 共 {{ good.price }} 金</small>
+          <small>×{{ good.count }} · 这一件 {{ due(good.price, good.count).pay }} 金，旅税 {{ due(good.price, good.count).tax }}</small>
         </div>
         <button class="btn" @click="buy(good.id)">买下</button>
       </article>

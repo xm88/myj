@@ -40,7 +40,7 @@ func (a *App) buildOrigins() map[string][2]float64 {
 			}
 		}
 	}
-	// 只有单侧门的野外（例如雷鸣、风鸣）放在镇的北侧，航标仍可直达。
+	// 没有成对门的野外才临时放到镇北。雷鸣、风鸣已经按门对齐，不应再走到这里。
 	for _, m := range objects(a.data["maps"]) {
 		id := str(m["id"])
 		if str(m["kind"]) == "dungeon" {
@@ -50,6 +50,16 @@ func (a *App) buildOrigins() map[string][2]float64 {
 			continue
 		}
 		origins[id] = [2]float64{0, -num(m["height"])}
+	}
+	// 副本不接进大陆，但镜头仍要有一个原点，单独把这一张画出来。
+	for _, m := range objects(a.data["maps"]) {
+		id := str(m["id"])
+		if str(m["kind"]) != "dungeon" {
+			continue
+		}
+		if _, placed := origins[id]; !placed {
+			origins[id] = [2]float64{0, 0}
+		}
 	}
 	return origins
 }
@@ -375,4 +385,116 @@ func distToNearestGate(pos M, portals []M) float64 {
 
 func project(src, dst, ent M) (float64, float64) {
 	return num(src["x"]) + num(ent["x"]) - num(dst["x"]), num(src["y"]) + num(ent["y"]) - num(dst["y"])
+}
+
+// cameraSpan 是自由镜头默认看见的世界宽度。相邻地块按原点铺在同一张面上。
+const cameraSpan = 1100.0
+
+// cameraChunks 列出当前地图和与它成对相连的邻块。副本不把大陆带进来。
+func (a *App) cameraChunks(mapID string) []M {
+	m := a.def("maps", mapID)
+	out := []M{}
+	if m == nil {
+		return out
+	}
+	ids := []string{mapID}
+	if str(m["kind"]) != "dungeon" {
+		seen := map[string]bool{mapID: true}
+		for _, p := range objects(m["portals"]) {
+			to := str(p["to"])
+			if seen[to] {
+				continue
+			}
+			dest := a.def("maps", to)
+			if dest == nil || str(dest["kind"]) == "dungeon" {
+				continue
+			}
+			if _, _, ok := a.link(mapID, to); !ok {
+				continue
+			}
+			seen[to] = true
+			ids = append(ids, to)
+		}
+	}
+	for _, id := range ids {
+		mm := a.def("maps", id)
+		ox, oy, ok := a.originOf(id)
+		if mm == nil || !ok {
+			continue
+		}
+		out = append(out, M{"id": id, "name": mm["name"], "kind": mm["kind"], "width": mm["width"], "height": mm["height"], "originX": ox, "originY": oy})
+	}
+	return out
+}
+
+// afarEntities 把相邻地块上、镜头够得着的人、怪和摊按各自的地图坐标送出。
+// 世界坐标由快照统一换算。副本没有邻块。
+func (a *App) afarEntities(l *Live) []M {
+	out := []M{}
+	here := str(l.State["mapId"])
+	m := a.def("maps", here)
+	if m == nil || str(m["kind"]) == "dungeon" {
+		return out
+	}
+	px, py := a.worldPos(here, num(l.State["x"]), num(l.State["y"]))
+	line := 1
+	if inst := a.instances[l.InstanceKey]; inst != nil && inst.Line > 0 {
+		line = inst.Line
+	}
+	for _, g := range a.gates(here) {
+		if truth(g["dungeon"]) {
+			continue
+		}
+		to := str(g["to"])
+		if _, _, ok := a.link(here, to); !ok {
+			continue
+		}
+		inst := a.publicLine(to, line)
+		if inst == nil {
+			continue
+		}
+		for _, mob := range inst.Monsters {
+			if !truth(mob["alive"]) {
+				continue
+			}
+			wx, wy := a.worldPos(to, num(mob["x"]), num(mob["y"]))
+			if math.Hypot(wx-px, wy-py) > 1600 {
+				continue
+			}
+			d := a.def("monsters", str(mob["templateId"]))
+			out = append(out, M{"id": mob["id"], "kind": "monster", "templateId": mob["templateId"], "name": mob["name"], "x": mob["x"], "y": mob["y"], "hp": math.Max(0, num(mob["hp"])), "maxHp": mob["maxHp"], "alive": true, "tint": d["tint"], "role": d["role"], "radius": d["radius"], "capturable": str(d["petId"]) != "", "mapId": to, "afar": true})
+		}
+		for id := range inst.Players {
+			if id == str(l.State["id"]) {
+				continue
+			}
+			p := a.live[id]
+			if p == nil {
+				continue
+			}
+			wx, wy := a.worldPos(to, num(p.State["x"]), num(p.State["y"]))
+			if math.Hypot(wx-px, wy-py) > 1600 {
+				continue
+			}
+			out = append(out, M{"id": id, "kind": "player", "name": p.State["name"], "x": p.State["x"], "y": p.State["y"], "hp": p.State["hp"], "maxHp": p.Stats["maxHp"], "alive": true, "mapId": to, "afar": true})
+		}
+		for _, stall := range a.rows("SELECT s.*, p.name AS owner_name FROM stalls s JOIN players p ON p.id=s.player_id WHERE s.open=1 AND s.map_id=?", to) {
+			wx, wy := a.worldPos(to, num(stall["x"]), num(stall["y"]))
+			if math.Hypot(wx-px, wy-py) > 1600 {
+				continue
+			}
+			out = append(out, M{"id": "stall:" + str(stall["id"]), "kind": "stall", "stallId": stall["id"], "name": stall["title"], "owner": stall["owner_name"], "x": stall["x"], "y": stall["y"], "mapId": to, "afar": true})
+		}
+	}
+	return out
+}
+
+// publicLine 取指定分线；那条线还没人时退回一条公开线，方便邻块有怪可看。
+func (a *App) publicLine(mapID string, line int) *Instance {
+	for _, inst := range a.instances {
+		if inst.MapID == mapID && !inst.Dungeon && inst.Line == line {
+			return inst
+		}
+	}
+	return a.ensurePublic(mapID)
 }

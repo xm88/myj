@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 )
 
@@ -122,8 +123,15 @@ func (a *App) buyStall(id, goods string, count float64) {
 		left := num(g["price"]) - price
 		a.run("UPDATE stall_goods SET price=? WHERE id=?", left, goods)
 	}
+	tax := math.Floor(price * a.constant("marketTax"))
+	if tax < 0 {
+		tax = 0
+	}
+	if tax > price {
+		tax = price
+	}
 	a.addGold(id, -price)
-	a.addGold(seller, price)
+	a.addGold(seller, price-tax)
 	var ex M
 	if g["extra"] != nil && str(g["extra"]) != "" {
 		ex = obj(parse(str(g["extra"])))
@@ -131,7 +139,11 @@ func (a *App) buyStall(id, goods string, count float64) {
 	a.addItem(id, str(g["template_id"]), n, ex, "bag")
 	name := str(a.def("items", str(g["template_id"]))["name"])
 	a.toast(id, "买到了 "+name)
-	a.toast(seller, str(a.player(id)["name"])+" 买走了 "+name)
+	if tax > 0 {
+		a.toast(seller, fmt.Sprintf("%s 买走了 %s。旅税 %g，到手 %g。", str(a.player(id)["name"]), name, tax, price-tax))
+	} else {
+		a.toast(seller, str(a.player(id)["name"])+" 买走了 "+name)
+	}
 	a.notify(id)
 	a.notify(seller)
 }
@@ -177,7 +189,9 @@ func (a *App) stallDetail(id, stallID string) M {
 	goods := []M{}
 	for _, g := range a.rows("SELECT * FROM stall_goods WHERE stall_id=? ORDER BY created_at", stallID) {
 		tpl := a.def("items", str(g["template_id"]))
-		goods = append(goods, M{"id": g["id"], "templateId": g["template_id"], "name": tpl["name"], "kind": tpl["kind"], "count": g["count"], "price": g["price"], "desc": tpl["desc"]})
+		price := num(g["price"])
+		tax := math.Floor(price * a.constant("marketTax"))
+		goods = append(goods, M{"id": g["id"], "templateId": g["template_id"], "name": tpl["name"], "kind": tpl["kind"], "count": g["count"], "price": g["price"], "tax": tax, "net": price - tax, "desc": tpl["desc"]})
 	}
 	return M{"id": stall["id"], "title": stall["title"], "owner": stall["owner_name"], "ownerId": stall["player_id"], "mine": str(stall["player_id"]) == id, "mapId": stall["map_id"], "x": stall["x"], "y": stall["y"], "goods": goods}
 }

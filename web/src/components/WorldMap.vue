@@ -60,6 +60,17 @@ function canGo(id: string) {
   return false
 }
 
+/** 在当前岛上按本地坐标偏一点，和连续世界里的走动对齐。 */
+const pipStyle = computed(() => {
+  const node = place(hereId.value)
+  const width = here.value?.width || 1
+  const height = here.value?.height || 1
+  const self = game.snap?.self
+  const ox = self ? ((Number(self.x) / width) - 0.5) * 36 : 0
+  const oy = self ? ((Number(self.y) / height) - 0.5) * 28 : 0
+  return { left: `calc(${node.x}% + ${ox}px)`, top: `calc(${node.y}% + ${oy}px)` }
+})
+
 /** 向服务器申请航标传送，成功后关闭世界地图面板。 */
 async function go(id: string) {
   if (!canGo(id)) return
@@ -73,7 +84,7 @@ async function go(id: string) {
   <p class="lede">
     <template v-if="here?.kind === 'town'">在星落镇可以使用航标。点亮的岛可以直接过去。</template>
     <template v-else-if="here?.kind === 'dungeon'">先离开遗迹，回到星落镇。</template>
-    <template v-else>你在野外。走到岛边的门会接着进入下一片，不会被拉回入口。航标传送仍要回星落镇。</template>
+    <template v-else>你在野外。镜头会连着相邻的地块一起走，走到门外就进入下一片。航标传送仍要回星落镇。</template>
   </p>
   <div class="world">
     <img class="world-bg" src="/art/fi-world-bg.jpg" alt="" />
@@ -102,6 +113,7 @@ async function go(id: string) {
       <small v-else-if="!unlocked(node.id)">{{ byId[node.id]?.unlockLevel }} 级解锁</small>
       <small v-else>Lv.{{ byId[node.id]?.levelMin }}–{{ byId[node.id]?.levelMax }}</small>
     </button>
+    <i v-if="here" class="you-pip" :style="pipStyle" />
   </div>
-  <p v-if="game.snap?.self?.worldX != null" class="hint">连续坐标 {{ Math.round(game.snap.self.worldX) }} , {{ Math.round(game.snap.self.worldY) }}。小地图上的红点仍是这一片的门。</p>
+  <p v-if="game.snap?.self?.worldX != null" class="hint">连续坐标 {{ Math.round(game.snap.self.worldX) }} , {{ Math.round(game.snap.self.worldY) }}。小地图跟着这块坐标，不再只画当前这一片。</p>
 </template>

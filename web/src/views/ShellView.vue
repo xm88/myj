@@ -52,11 +52,11 @@ const portals = computed(() => map.value?.portals ?? [])
 /** 当前角色档案或快照视图，用于派生面板与位置状态。 */
 const who = computed(() => game.snap?.self ?? { x: game.profile?.x ?? 0, y: game.profile?.y ?? 0 })
 /** 当前分线快照中仍存活的怪物实例，供聚合、选择和任务引导使用。 */
-const monsters = computed(() => (game.snap?.entities ?? []).filter((entity: { kind: string; alive: boolean }) => entity.kind === 'monster' && entity.alive))
+const monsters = computed(() => (game.snap?.entities ?? []).filter((entity: { kind: string; alive: boolean; seam?: boolean; mapId?: string }) => entity.kind === 'monster' && entity.alive && !entity.seam && (!entity.mapId || entity.mapId === mapId.value)))
 /** 按模板聚合的附近怪物，使用最近实例作为操作目标。 */
 const packs = computed(() => nearestPacks(monsters.value, who.value))
 /** 当前分线快照中其他玩家的显示列表。 */
-const players = computed(() => (game.snap?.entities ?? []).filter((entity: { kind: string }) => entity.kind === 'player'))
+const players = computed(() => (game.snap?.entities ?? []).filter((entity: { kind: string; seam?: boolean; mapId?: string }) => entity.kind === 'player' && !entity.seam && (!entity.mapId || entity.mapId === mapId.value)))
 /** 主界面显示的当前任务进度摘要。 */
 const questLine = computed(() => describeQuest(game.profile?.quests ?? []))
 /** 右侧追踪的几条任务。点一条就按那一条走。 */
@@ -494,7 +494,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         <p>蓝色底的地名是你现在站的地方。点地面会走过去，点白字名字也一样，红字会走进另一张地图。右上角小地图和左下角坐标跟着你。</p>
         <p>和人说话、采集，走近按 E，或点名字后面的按钮。问号是可以交差，叹号是有任务。右边的任务追踪点一下就会过去。对话打开后，数字键选事项，Enter 交付或接受，Esc 离开。</p>
         <p>点怪物会走近并开战。开战之后按速度轮流出手，可以攻击、放技能、吃药、防御或逃跑。G 在回合里是防御，平时仍是守势。连招会在轮到你时自动攻击。打到三成血以下，再点「契约」。</p>
-        <p>战斗时如果想先看地图，点「返回地图」。走到地图边上的门会直接进入下一片，不会被拉回入口。摆摊和当面交易都要站在旁边。</p>
+        <p>战斗时如果想先看地图，点「返回地图」。镜头跟着你走过相邻的地块，走到门外就进下一片，不会被拉回入口。副本仍是单独一张。摆摊和当面交易都要站在旁边，成交扣和拍卖一样的旅税。</p>
         <p>点自己的名字，或下面的「角色」，可以看属性和换技能。技能栏一次放 4 个：先点栏位，再点要换上的技能。</p>
         <p>下面一排还有任务、道具、宠物、跳市和工会。聊天选区域、世界或工会。点别的旅人「交谈」，会在区域频道叫他。</p>
       </section>

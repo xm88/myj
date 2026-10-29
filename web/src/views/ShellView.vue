@@ -138,6 +138,8 @@ const panels = [
   ['social', '好友'],
   ['info', '角色'],
   ['travel', '地图'],
+  ['stall', '摆摊'],
+  ['trade', '交易'],
 ] as const
 
 /** 主界面优先显示的交互或状态提示。 */
@@ -491,8 +493,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         <header><b>怎么玩</b><button @click="help = false">关闭</button></header>
         <p>蓝色底的地名是你现在站的地方。点地面会走过去，点白字名字也一样，红字会走进另一张地图。右上角小地图和左下角坐标跟着你。</p>
         <p>和人说话、采集，走近按 E，或点名字后面的按钮。问号是可以交差，叹号是有任务。右边的任务追踪点一下就会过去。对话打开后，数字键选事项，Enter 交付或接受，Esc 离开。</p>
-        <p>技能在最下面。也可以按 1 到 4，灵伴技是 F。G 是守势，这一拍少挨打也不普通攻击。连招会在靠近后自动放准备好的技能。打到三成血以下，再点「契约」。</p>
-        <p>战斗时如果想先看地图，点「返回地图」。左上角的地图名，或「返回战斗」，可以回到战斗画面。打不过就点「逃跑」。</p>
+        <p>点怪物会走近并开战。开战之后按速度轮流出手，可以攻击、放技能、吃药、防御或逃跑。G 在回合里是防御，平时仍是守势。连招会在轮到你时自动攻击。打到三成血以下，再点「契约」。</p>
+        <p>战斗时如果想先看地图，点「返回地图」。走到地图边上的门会直接进入下一片，不会被拉回入口。摆摊和当面交易都要站在旁边。</p>
         <p>点自己的名字，或下面的「角色」，可以看属性和换技能。技能栏一次放 4 个：先点栏位，再点要换上的技能。</p>
         <p>下面一排还有任务、道具、宠物、跳市和工会。聊天选区域、世界或工会。点别的旅人「交谈」，会在区域频道叫他。</p>
       </section>
@@ -520,7 +522,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       </button>
       <button class="skill" title="灵伴技" @click="game.send({ type: 'skill', slot: 'pet' })"><small>F</small><span>灵伴</span></button>
       <button class="skill guard" :class="{ on: (self?.guard ?? 0) > 0 }" title="这一拍少挨打，也暂不出手" @click="game.guard()"><small>G</small><span>守势</span></button>
-      <button class="skill" :class="{ on: game.autoFight }" title="靠近后自动放准备好的技能" @click="game.setAuto(!game.autoFight)"><small>连</small><span>{{ game.autoFight ? '连招中' : '连招' }}</span></button>
+      <button class="skill" :class="{ on: game.autoFight }" title="轮到你时自动攻击" @click="game.setAuto(!game.autoFight)"><small>连</small><span>{{ game.autoFight ? '连招中' : '连招' }}</span></button>
       <button v-for="item in quickItems" :key="item.id" class="skill drink" :title="'使用 ' + item.name" @click="game.act('/api/use', { itemId: item.id })">
         <small>×{{ item.count }}</small>
         <span>{{ item.name }}</span>

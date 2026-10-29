@@ -355,6 +355,20 @@ button.linkish { border: 0; background: transparent; padding: 0; }
 .minimap .dot.dest { background: #e7b423; }
 .minimap .dot.exit { background: #e06a5c; }
 .minimap .dot.offer, .minimap .dot.turnin { background: #e7b423; }
+.coords small { display: block; opacity: 0.85; }
+.minimap .dot.stall { background: #e2b15a; }
+.order { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+.order span { padding: 1px 6px; border: 1px solid var(--line); background: rgba(255,255,255,.55); font-size: 12px; }
+.order span.now { background: #f0d48a; font-weight: 700; }
+.order span.down { opacity: 0.45; text-decoration: line-through; }
+.effects { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.effects em { font-style: normal; font-size: 11px; padding: 0 4px; background: #efe4c4; border: 1px solid var(--line); }
+.bout-actions { margin-bottom: 6px; }
+.tag.seam { border-color: #8d6a2f; }
+.street .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; }
+.street input, .street select { padding: 4px 6px; border: 1px solid var(--line); background: #fffdf6; }
+.trade-panes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.item.as-btn { width: 100%; text-align: left; cursor: pointer; }
 .coords {
   position: absolute;
   z-index: 6;

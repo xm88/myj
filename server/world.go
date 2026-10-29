@@ -86,6 +86,7 @@ func (a *App) attach(id string, p *Peer) {
 			a.enter(l, str(l.State["mapId"]), false)
 		}
 	}
+	a.resumeStall(l)
 	a.send(l, M{"type": "world", "weather": a.def("weathers", str(a.weather["id"])), "period": a.period, "periodName": periodLabels[a.period]})
 }
 
@@ -99,6 +100,12 @@ func (a *App) detach(id string, p *Peer) {
 	l.State["disconnectAt"] = now()
 	l.State["safe"] = true
 	halt(l, false)
+	if str(l.State["tradeId"]) != "" {
+		a.cancelTrade(str(l.State["id"]))
+	}
+	if str(l.State["boutId"]) != "" {
+		a.forfeitBout(str(l.State["id"]))
+	}
 	a.save(l)
 }
 
@@ -209,7 +216,7 @@ func slide(m M, x, y, dx, dy, r float64) (float64, float64) {
 // move 将方向或目的地换算为本帧位移，限制对角速度并应用服务器碰撞判断。
 func move(m M, l *Live, dt float64) {
 	s := l.State
-	if truth(s["safe"]) {
+	if truth(s["safe"]) || str(s["stallId"]) != "" || str(s["boutId"]) != "" || str(s["tradeId"]) != "" {
 		return
 	}
 	ax, ay := num(s["inputX"]), num(s["inputY"])
@@ -293,13 +300,13 @@ func (a *App) hurtMonster(i *Instance, l *Live, m M, coeff float64, element stri
 	}
 }
 
-// hurtPlayer 计算怪物伤害、天气倍率、闪避与护盾；倒地后送回当前地图入口。
-func (a *App) hurtPlayer(i *Instance, m M, l *Live, coeff float64) {
+// hurtPlayer 计算怪物伤害、天气倍率、闪避与护盾；倒地后送回当前地图入口。返回是否倒下。
+func (a *App) hurtPlayer(i *Instance, m M, l *Live, coeff float64) bool {
 	s := l.State
 	t := now()
 	if truth(s["safe"]) || num(s["invulnUntil"]) > t {
 		a.tell(i, M{"kind": "miss", "text": "闪避", "x": s["x"], "y": s["y"], "entityId": s["id"]})
-		return
+		return false
 	}
 	d := a.def("monsters", str(m["templateId"]))
 	attack := num(d["atk"])
@@ -327,23 +334,33 @@ func (a *App) hurtPlayer(i *Instance, m M, l *Live, coeff float64) {
 	a.tell(i, M{"kind": "dmg", "amount": amount, "crit": crit, "guarded": guarded, "x": s["x"], "y": s["y"], "entityId": s["id"]})
 	// 倒地后回到本地图入口，清理战斗增益并短暂无敌，怪物清除对该角色的仇恨。
 	if num(s["hp"]) <= 0 {
-		spawn := obj(a.def("maps", str(s["mapId"]))["spawn"])
-		s["hp"] = math.Max(1, math.Floor(num(l.Stats["maxHp"])*.35))
-		s["x"], s["y"] = spawn["x"], spawn["y"]
-		halt(l, true)
-		s["shield"] = 0
-		s["buffs"] = []M{}
-		s["invulnUntil"] = t + 4000
+		a.downPlayer(i, l)
+		return true
+	}
+	return false
+}
+
+// downPlayer 把倒下的角色送回当前地图入口，并让盯着他的怪物散去。
+func (a *App) downPlayer(i *Instance, l *Live) {
+	s := l.State
+	spawn := obj(a.def("maps", str(s["mapId"]))["spawn"])
+	s["hp"] = math.Max(1, math.Floor(num(l.Stats["maxHp"])*.35))
+	s["x"], s["y"] = spawn["x"], spawn["y"]
+	halt(l, true)
+	s["shield"] = 0
+	s["buffs"] = []M{}
+	s["invulnUntil"] = now() + 4000
+	if i != nil {
 		for _, other := range i.Monsters {
 			if other["targetId"] == s["id"] {
 				other["targetId"] = nil
 				other["x"], other["y"], other["hp"] = other["homeX"], other["homeY"], other["maxHp"]
 			}
 		}
-		a.refresh(str(s["id"]))
-		a.toast(str(s["id"]), "你被击倒了，退回到入口")
-		push(l, M{"kind": "text", "text": "被击倒", "x": s["x"], "y": s["y"]})
 	}
+	a.refresh(str(s["id"]))
+	a.toast(str(s["id"]), "你被击倒了，退回到入口")
+	push(l, M{"kind": "text", "text": "被击倒", "x": s["x"], "y": s["y"]})
 }
 
 // rollQuality 按固定品质或配置权重决定装备掉落品质。
@@ -416,6 +433,7 @@ func (a *App) killMonster(i *Instance, l *Live, m M) {
 	a.emit(id, M{"type": "kill", "monsterId": d["id"]})
 	a.tell(i, M{"kind": "text", "text": str(d["name"]) + " 被击败", "x": m["x"], "y": m["y"]})
 	a.notify(id)
+	a.onMonsterGone(str(m["id"]))
 }
 
 // think 处理怪物仇恨、嘲讽、追击、回位和普攻，不攻击安全模式角色。
@@ -428,7 +446,7 @@ func (a *App) think(i *Instance, mp, m M, t, dt float64) {
 		best := num(d["aggro"])
 		for id := range i.Players {
 			p := a.live[id]
-			if p == nil || truth(p.State["safe"]) {
+			if p == nil || truth(p.State["safe"]) || str(p.State["boutId"]) != "" {
 				continue
 			}
 			gap := dist(m, p.State)
@@ -437,8 +455,38 @@ func (a *App) think(i *Instance, mp, m M, t, dt float64) {
 				m["targetId"] = id
 			}
 		}
+		for _, other := range a.instances {
+			if other.Key == i.Key || other.Dungeon {
+				continue
+			}
+			if _, _, linked := a.link(i.MapID, other.MapID); !linked {
+				continue
+			}
+			for id := range other.Players {
+				p := a.live[id]
+				if p == nil || truth(p.State["safe"]) || str(p.State["boutId"]) != "" {
+					continue
+				}
+				gap, ok := a.bridgeGap(i.MapID, m, other.MapID, p.State)
+				if ok && gap < best {
+					best = gap
+					m["targetId"] = id
+				}
+			}
+		}
+	}
+	if str(m["boutId"]) != "" {
+		return
 	}
 	p := a.live[str(m["targetId"])]
+	if p != nil && p.InstanceKey != i.Key {
+		gap, ok := a.bridgeGap(i.MapID, m, str(p.State["mapId"]), p.State)
+		if ok && gap <= num(d["range"])+num(d["radius"]) && t >= num(m["attackAt"]) {
+			m["attackAt"] = t + num(d["interval"])
+			a.hurtPlayer(a.instances[p.InstanceKey], m, p, 1)
+		}
+		return
+	}
 	x, y := num(m["x"]), num(m["y"])
 	home := M{"x": m["homeX"], "y": m["homeY"]}
 	if p == nil || truth(p.State["safe"]) || p.InstanceKey != i.Key {
@@ -507,6 +555,7 @@ func (a *App) rares(i *Instance, mp M) {
 func (a *App) tick() {
 	t := now()
 	worldChanged := false
+	a.tickBouts(t)
 	if t >= num(a.weather["until"]) {
 		list := objects(a.data["weathers"])
 		index := 0
@@ -575,13 +624,19 @@ func (a *App) tick() {
 				a.refresh(id)
 			}
 			move(mp, l, .1)
+			a.maybeCross(l)
+			if l.InstanceKey != i.Key {
+				continue
+			}
 			s := l.State
 			s["mp"] = math.Min(num(l.Stats["maxMp"]), num(s["mp"])+.4)
 			if t-num(s["lastCombatAt"]) > 6000 {
 				s["hp"] = math.Min(num(l.Stats["maxHp"]), num(s["hp"])+num(l.Stats["maxHp"])*.0025)
 			}
 			m := i.Monsters[str(s["targetId"])]
-			if m == nil || !truth(m["alive"]) {
+			if str(s["boutId"]) != "" {
+				// 回合战斗里不再按拍子自动挥砍，出手由回合动作决定。
+			} else if m == nil || !truth(m["alive"]) {
 				s["targetId"] = nil
 				s["beats"] = 0
 			} else if !truth(s["safe"]) && t >= num(s["attackAt"]) {
@@ -643,9 +698,13 @@ func (a *App) snapshot(l *Live, t float64) M {
 				continue
 			}
 			s := p.State
-			entities = append(entities, M{"id": id, "kind": "player", "templateId": s["weaponType"], "name": s["name"], "x": s["x"], "y": s["y"], "hp": s["hp"], "maxHp": p.Stats["maxHp"], "alive": true, "tint": "#f2d48a", "role": "player", "radius": 14})
+			entities = append(entities, M{"id": id, "kind": "player", "templateId": s["weaponType"], "name": s["name"], "x": s["x"], "y": s["y"], "hp": s["hp"], "maxHp": p.Stats["maxHp"], "alive": true, "tint": "#f2d48a", "role": "player", "radius": 14, "stalling": str(s["stallId"]) != ""})
+		}
+		for _, stall := range a.rows("SELECT s.*, p.name AS owner_name FROM stalls s JOIN players p ON p.id=s.player_id WHERE s.open=1 AND s.map_id=?", i.MapID) {
+			entities = append(entities, M{"id": "stall:" + str(stall["id"]), "kind": "stall", "stallId": stall["id"], "name": stall["title"], "owner": stall["owner_name"], "x": stall["x"], "y": stall["y"], "alive": true})
 		}
 	}
+	entities = append(entities, a.seamEntities(l)...)
 	self := M{}
 	for _, k := range []string{"x", "y", "hp", "mp", "level", "exp", "gold", "targetId", "shield", "weaponType", "safe"} {
 		self[k] = l.State[k]
@@ -656,9 +715,18 @@ func (a *App) snapshot(l *Live, t float64) M {
 	self["interval"] = num(l.Stats["attackInterval"])
 	self["speed"] = num(l.Stats["speed"])
 	self["beats"] = num(l.State["beats"])
+	wx, wy := a.worldPos(str(l.State["mapId"]), num(l.State["x"]), num(l.State["y"]))
+	self["worldX"], self["worldY"] = wx, wy
+	if ox, oy, ok := a.originOf(str(l.State["mapId"])); ok {
+		self["originX"], self["originY"] = ox, oy
+	}
 	cd := M{}
 	for k, v := range l.CD {
 		cd[k] = math.Max(0, num(v)-t)
 	}
-	return M{"type": "snapshot", "t": t, "mapId": l.State["mapId"], "line": line, "self": self, "entities": entities, "cooldowns": cd, "events": l.Events}
+	snap := M{"type": "snapshot", "t": t, "mapId": l.State["mapId"], "line": line, "self": self, "entities": entities, "cooldowns": cd, "events": l.Events, "gates": a.gates(str(l.State["mapId"]))}
+	if b := a.bouts[str(l.State["boutId"])]; b != nil {
+		snap["bout"] = a.boutView(b, str(l.State["id"]))
+	}
+	return snap
 }

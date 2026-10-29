@@ -86,7 +86,7 @@ func (a *App) route(r *http.Request, b M) any {
 	s := func(k string) string { return trimmed(b, k) }
 	n := func(k string, d float64) float64 { return math.Floor(number(b[k], d)) }
 	if is("GET", "/api/health") {
-		return M{"ok": true, "version": "0.1.2", "language": "go", "devTools": a.dev, "weather": a.weather["id"], "period": a.period}
+		return M{"ok": true, "version": gameVersion, "language": "go", "devTools": a.dev, "weather": a.weather["id"], "period": a.period}
 	}
 	if is("GET", "/api/config") {
 		return a.publicConfig()
@@ -122,6 +122,12 @@ func (a *App) route(r *http.Request, b M) any {
 			return M{"news": a.news()}
 		case "/api/leaderboard":
 			return M{"rows": a.rows("SELECT name,level,exp FROM players ORDER BY level DESC,exp DESC LIMIT 10")}
+		case "/api/stalls":
+			return M{"stalls": a.stallsNear(id)}
+		case "/api/stall":
+			return a.stallDetail(id, r.URL.Query().Get("id"))
+		case "/api/trade":
+			return M{"trade": a.tradeView(id)}
 		}
 	}
 	if method == "POST" {
@@ -189,6 +195,31 @@ func (a *App) route(r *http.Request, b M) any {
 			return M{"party": nil}
 		case "/api/travel":
 			a.travel(id, s("mapId"))
+		case "/api/stall/open":
+			a.openStall(id, s("title"))
+		case "/api/stall/list":
+			a.listStall(id, s("itemId"), n("count", 1), n("price", 0))
+		case "/api/stall/unlist":
+			a.unlistStall(id, s("id"))
+		case "/api/stall/close":
+			a.closeStall(id)
+		case "/api/stall/buy":
+			a.buyStall(id, s("id"), n("count", 1))
+		case "/api/trade/invite":
+			a.inviteTrade(id, s("name"))
+			return M{"profile": a.profile(id), "trade": a.tradeView(id)}
+		case "/api/trade/offer":
+			a.offerTrade(id, b)
+			return M{"profile": a.profile(id), "trade": a.tradeView(id)}
+		case "/api/trade/lock":
+			a.lockTrade(id)
+			return M{"profile": a.profile(id), "trade": a.tradeView(id)}
+		case "/api/trade/confirm":
+			a.confirmTrade(id)
+			return M{"profile": a.profile(id), "trade": a.tradeView(id)}
+		case "/api/trade/cancel":
+			a.cancelTrade(id)
+			return M{"profile": a.profile(id), "trade": a.tradeView(id)}
 		case "/api/dialog":
 			action, npc := s("action"), s("npcId")
 			a.nearNPC(id, npc)

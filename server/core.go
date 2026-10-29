@@ -22,6 +22,9 @@ import (
 // devJWTSecret 只用于本机开发。生产环境必须用 JWT_SECRET 覆盖，仓库里不放真实密钥。
 const devJWTSecret = "dev-float-island-change-me"
 
+// gameVersion 是这一版对外的切片号。健康检查和公开配置都读它。
+const gameVersion = "0.1.3"
+
 // maxGold 防止异常金额把 float64 金币打成 Inf 后写进存档。
 const maxGold = 1000000000
 
@@ -223,6 +226,14 @@ type App struct {
 	// authHits / authMu 只限制登录类请求，不占用世界锁。
 	authHits map[string][]time.Time
 	authMu   sync.Mutex
+	// bouts 是进行中的回合战斗。boutBy 用角色或怪物 ID 找回那一场。
+	bouts  map[string]*Bout
+	boutBy map[string]string
+	// trades 是当面交易。tradeBy 用角色 ID 找回窗口。
+	trades  map[string]*Trade
+	tradeBy map[string]string
+	// origins 是各地图在连续世界上的原点，第一次用到时按传送门对齐。
+	origins map[string][2]float64
 }
 
 // rows 执行参数化查询，将列名与列值组成对象列表；始终关闭查询游标。
@@ -317,6 +328,22 @@ func (a *App) transaction(fn func()) {
 	}
 	savedWeather := clone(a.weather)
 	savedPeriod := a.period
+	savedBouts := map[string]*Bout{}
+	for k, v := range a.bouts {
+		savedBouts[k] = cloneBout(v)
+	}
+	savedBoutBy := map[string]string{}
+	for k, v := range a.boutBy {
+		savedBoutBy[k] = v
+	}
+	savedTrades := map[string]*Trade{}
+	for k, v := range a.trades {
+		savedTrades[k] = cloneTrade(v)
+	}
+	savedTradeBy := map[string]string{}
+	for k, v := range a.tradeBy {
+		savedTradeBy[k] = v
+	}
 	committed := false
 	defer func() {
 		// 提交成功后的通知失败不能再回滚已经落地的存档。
@@ -348,6 +375,10 @@ func (a *App) transaction(fn func()) {
 			a.invites = savedInvites
 			a.weather = savedWeather
 			a.period = savedPeriod
+			a.bouts = savedBouts
+			a.boutBy = savedBoutBy
+			a.trades = savedTrades
+			a.tradeBy = savedTradeBy
 			panic(r)
 		}
 	}()
@@ -501,7 +532,7 @@ func newApp(root, file string) *App {
 	db.SetMaxOpenConns(1)
 	db.SetMaxIdleConns(1)
 	must(db.Ping())
-	a := &App{db: db, q: db, data: loadConfig(root), index: map[string]map[string]M{}, live: map[string]*Live{}, instances: map[string]*Instance{}, parties: map[string]M{}, playerParty: map[string]string{}, invites: map[string]M{}, period: dayPeriod(time.Now()), dev: os.Getenv("NODE_ENV") != "production", secret: loadSecret()}
+	a := &App{db: db, q: db, data: loadConfig(root), index: map[string]map[string]M{}, live: map[string]*Live{}, instances: map[string]*Instance{}, parties: map[string]M{}, playerParty: map[string]string{}, invites: map[string]M{}, period: dayPeriod(time.Now()), dev: os.Getenv("NODE_ENV") != "production", secret: loadSecret(), bouts: map[string]*Bout{}, boutBy: map[string]string{}, trades: map[string]*Trade{}, tradeBy: map[string]string{}}
 	a.pragma("PRAGMA busy_timeout=5000")
 	a.pragma("PRAGMA foreign_keys=ON")
 	a.pragma("PRAGMA journal_mode=WAL")

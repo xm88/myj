@@ -208,7 +208,8 @@ func (a *App) nearNPC(id, npcID string) M {
 	check(npc != nil, "没有这个人")
 	l := a.mustLive(id)
 	check(!truth(l.State["safe"]), "助手模式下不能交谈，切回冒险")
-	check(str(l.State["mapId"]) == str(npc["mapId"]) && dist(l.State, npc) <= 90, "再走近一点")
+	gap, ok := a.bridgeGap(str(l.State["mapId"]), l.State, str(npc["mapId"]), npc)
+	check(ok && gap <= 90, "再走近一点")
 	return npc
 }
 

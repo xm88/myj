@@ -89,14 +89,20 @@ export const useGame = defineStore('game', {
     retryDelay: 800,
     // 角色已在另一个窗口打开时，这个窗口停止抢连接。
     displaced: false,
-    // 连招打开后，靠近目标会自动放准备好的技能。记在本机，不进存档。
+    // 连招打开后，轮到自己时自动普攻。记在本机，不进存档。
     autoFight: localStorage.getItem('float_auto') === '1',
-    // 上次自动放技能的时间，避免一拍里连发好几下。
-    lastAuto: 0,
     // 飘字。只活大约一秒，用来在场景和战斗画面上标伤害。
     floats: [] as { id: number; text: string; kind: string; crit: boolean; guarded: boolean; x: number; y: number; entityId: string; at: number }[],
     // 飘字编号。
     floatSeq: 1,
+    // 当面交易的双栏。没有交易时是空的。
+    trade: null as any,
+    // 场景里点中的摊位，摆摊面板会先打开这一家。
+    stallFocus: '',
+    // 已经对这个目标发过开战，避免每个快照都重复请求。
+    engaging: '',
+    // 连招在同一回合只自动攻击一次。
+    lastBoutKey: '',
   }),
   actions: {
     /** 为提示分配递增编号，并在3.2秒后移除对应提示。 */
@@ -256,6 +262,14 @@ export const useGame = defineStore('game', {
         }
         this.log = this.log.slice(0, 24)
         this.snap = msg
+        if (msg.bout?.phase === 'fled' || msg.bout?.phase === 'defeat') this.view = 'scene'
+        if (msg.bout?.yours && this.autoFight && this.view === 'battle') {
+          const key = `${msg.bout.round}:${msg.bout.await}`
+          if (this.lastBoutKey !== key) {
+            this.lastBoutKey = key
+            this.send({ type: 'bout', action: 'attack' })
+          }
+        }
         this.stepIntent()
       } else if (msg.type === 'dirty') {
         void this.refresh()
@@ -276,6 +290,10 @@ export const useGame = defineStore('game', {
       } else if (msg.type === 'news') {
         this.news.unshift({ t: Date.now(), text: msg.text })
         this.toast(msg.text)
+      } else if (msg.type === 'trade') {
+        this.trade = msg.trade ?? null
+        if (this.trade) this.panel = 'trade'
+        else if (this.panel === 'trade') this.panel = ''
       } else if (msg.type === 'world' && this.profile) {
         this.profile.weather = msg.weather
         this.profile.period = msg.period
@@ -314,11 +332,16 @@ export const useGame = defineStore('game', {
     setAuto(on: boolean) {
       this.autoFight = on
       localStorage.setItem('float_auto', on ? '1' : '0')
-      this.toast(on ? '连招开了。靠近后会自动放准备好的技能' : '连招关了')
+      this.toast(on ? '连招开了。轮到你时会自动攻击' : '连招关了')
     },
-    /** 摆出守势。这一拍少挨打，普通攻击也会晚一拍。 */
+    /** 摆出守势。回合战斗里这是防御；平时仍是少挨打的那一拍。 */
     guard() {
-      this.send({ type: 'guard' })
+      if (this.snap?.bout?.yours) this.send({ type: 'bout', action: 'defend' })
+      else this.send({ type: 'guard' })
+    },
+    /** 提交当前回合的动作。 */
+    bout(action: string, extra: Record<string, unknown> = {}) {
+      this.send({ type: 'bout', action, ...extra })
     },
     /** 按一条任务或当前主步骤走过去。找不到落点就打开任务窗口。 */
     pursue(questId?: string) {
@@ -372,7 +395,8 @@ export const useGame = defineStore('game', {
       this.dialog = null
       this.view = 'battle'
       this.intent = { kind: 'fight', id }
-      this.battleLog = ['进入战斗。双方会自动攻击，技能在下面的快捷栏。']
+      this.engaging = ''
+      this.battleLog = ['进入战斗。靠近后按速度排回合，轮到你再选攻击、技能、物品、防御或逃跑。']
       this.send({ type: 'target', id })
     },
     /** 选中契约目标并设置追击意图，靠近后再请求服务器尝试契约。 */
@@ -385,6 +409,11 @@ export const useGame = defineStore('game', {
     },
     /** 取消攻击目标，优先移动到回镇门或地图入口并更新战斗提示。 */
     flee() {
+      if (this.snap?.bout?.phase === 'choose') {
+        this.send({ type: 'bout', action: 'flee' })
+        this.noteBattle('你尝试脱身')
+        return
+      }
       const map = this.config?.maps?.find((item: { id: string; portals?: { x: number; y: number; to: string }[]; spawn?: { x: number; y: number } }) => item.id === (this.snap?.mapId ?? this.profile?.mapId))
       this.view = 'scene'
       this.send({ type: 'target', id: null })
@@ -404,6 +433,10 @@ export const useGame = defineStore('game', {
       const self = this.snap?.self
       const intent = this.intent
       if (!self || !intent) return
+      if (this.snap?.bout) {
+        this.intent = null
+        return
+      }
       if (intent.kind === 'move') {
         const distance = Math.hypot(self.x - intent.x, self.y - intent.y)
         const reach = intent.act === 'interact' ? arriveDistance(intent.focus) : 28
@@ -441,32 +474,9 @@ export const useGame = defineStore('game', {
         this.send({ type: 'capture' })
         return
       }
-      this.maybeAuto(mob)
-    },
-    /** 连招：优先治疗残血，否则放第一个冷却好、蓝够、距离够的攻击或增益。 */
-    maybeAuto(mob: { x: number; y: number }) {
-      if (!this.autoFight || this.intent?.kind !== 'fight') return
-      const self = this.snap?.self
-      if (!self) return
-      const stamp = performance.now()
-      if (stamp - this.lastAuto < 700) return
-      const loadout: string[] = this.profile?.loadout ?? []
-      const skills: { id: string; mp?: number; coefficient?: number; healPct?: number; range?: number; buff?: unknown; shieldFlat?: number }[] = this.config?.skills ?? []
-      const dist = Math.hypot(self.x - mob.x, self.y - mob.y)
-      const hpRatio = self.maxHp ? self.hp / self.maxHp : 1
-      for (let index = 0; index < loadout.length; index++) {
-        const skill = skills.find((item) => item.id === loadout[index])
-        if (!skill) continue
-        if ((this.snap?.cooldowns?.[skill.id] ?? 0) > 0) continue
-        if ((skill.mp ?? 0) > (self.mp ?? 0)) continue
-        const offensive = (skill.coefficient ?? 0) > 0
-        const heal = (skill.healPct ?? 0) > 0
-        if (heal && !offensive && hpRatio > 0.5) continue
-        if (!offensive && !heal && !skill.buff && !(skill.shieldFlat && skill.shieldFlat > 0)) continue
-        if (offensive && dist > (skill.range || 64) + 18) continue
-        this.lastAuto = stamp
-        this.send({ type: 'skill', slot: index + 1 })
-        return
+      if (this.engaging !== intent.id) {
+        this.engaging = intent.id
+        this.send({ type: 'engage' })
       }
     },
     /** 同步冒险或助手模式，清空功能面板并通知服务器切换安全状态。 */
@@ -486,6 +496,11 @@ export const useGame = defineStore('game', {
           this.profileEpoch++
           this.profile = result
         } else await this.refresh()
+        if (result && Object.prototype.hasOwnProperty.call(result, 'trade')) {
+          this.trade = result.trade
+          if (result.trade) this.panel = 'trade'
+          else if (this.panel === 'trade') this.panel = ''
+        }
         return result
       } catch (err) {
         this.toast(err instanceof Error ? err.message : '没做成')

@@ -1,7 +1,7 @@
 {
   "name": "float-island",
   "private": true,
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "浮岛旅团 V0.1：可玩的跨端轻量 MMORPG 垂直切片",
   "scripts": {
     "dev": "concurrently -n server,web -c cyan,green \"npm run dev -w server\" \"npm run dev -w web\"",

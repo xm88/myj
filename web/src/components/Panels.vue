@@ -74,6 +74,16 @@ const titles: Record<string, string> = {
 }
 /** 根据当前打开的面板选择窗口标题。 */
 const title = computed(() => titles[game.panel] ?? '窗口')
+/** 窗口标题下的一行说明，只写和这一扇窗有关的事。 */
+const kicker = computed(() => {
+  const lines: Record<string, string> = {
+    bag: '装备、背包和仓库',
+    quest: '点「前往」会带你走过去',
+    stall: '买家支付标价，旅税从卖家手里扣',
+    trade: '两边锁定之后才能确认',
+  }
+  return lines[game.panel] ?? ''
+})
 
 /** 从配置中选择提供商店货物的 NPC。 */
 const shopNpc = computed(() => (game.config?.npcs ?? []).find((npc: any) => npc.shop?.length))
@@ -349,9 +359,12 @@ function pick(id: string) {
 
 <template>
   <!-- 功能弹窗：统一角色、装备、派遣、制造、拍卖、公会、社交、任务和队伍操作。 -->
-  <section v-if="game.panel" class="panel" :class="{ wide: game.panel === 'travel' }">
+  <section v-if="game.panel" class="panel" :class="['win-' + game.panel, { wide: game.panel === 'travel' }]">
     <div class="panel-head">
-      <h2>{{ title }}</h2>
+      <div class="panel-title">
+        <h2>{{ title }}</h2>
+        <small v-if="kicker">{{ kicker }}</small>
+      </div>
       <button class="btn light" @click="game.panel = ''">关闭</button>
     </div>
 

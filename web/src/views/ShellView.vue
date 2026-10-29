@@ -378,25 +378,29 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
     </header>
 
     <div class="mapbar">
-      <button class="map-name" :title="self?.targetId ? '回到战斗画面' : map?.desc" @click="onMapName">
-        {{ map?.name ?? '…' }}
-        <small v-if="game.snap?.line">{{ game.snap.line }} 线</small>
-      </button>
-      <button v-if="map && map.kind !== 'town'" class="linkish home" @click="goHome">回城</button>
-      <span v-if="self?.targetId && game.view === 'scene'" class="linkish" @click="game.view = 'battle'">返回战斗</span>
-      <button v-if="questLine" class="quest-chip" title="点这里去交任务，或走到下一步" @click="followQuest()">{{ questLine }}</button>
-      <button v-if="near && !game.dialog" class="near-act" title="按 E" @click="interactNear">{{ near.prompt }}</button>
-      <span class="status">宠物 {{ pet ? pet.name + ' Lv.' + pet.level : '无' }}</span>
-      <span class="vitals" :title="'生命 ' + (self?.hp ?? 0) + '/' + (self?.maxHp ?? 0) + '  法力 ' + (self?.mp ?? 0) + '/' + (self?.maxMp ?? 0)">
-        <span class="mini-bars">
-          <i><b class="hp" :style="{ width: hpPct + '%' }" /></i>
-          <i><b class="mp" :style="{ width: mpPct + '%' }" /></i>
-        </span>
-        <small>{{ self?.hp ?? 0 }}/{{ self?.maxHp ?? 0 }}</small>
-      </span>
-      <span class="weather">{{ game.profile?.weather?.name }} · {{ game.profile?.periodName }}</span>
-      <span v-if="moving" class="moving">{{ moving }}</span>
-      <span class="linkish" :class="{ warn: !game.connected }">{{ game.displaced ? '已在其他窗口打开' : game.connected ? '在线' : '重连中' }}</span>
+      <div class="place">
+        <button class="map-name" :title="self?.targetId ? '回到战斗画面' : map?.desc" @click="onMapName">
+          {{ map?.name ?? '…' }}
+          <small v-if="game.snap?.line">{{ game.snap.line }} 线</small>
+        </button>
+        <button v-if="map && map.kind !== 'town'" class="linkish home" @click="goHome">回城</button>
+        <button v-if="self?.targetId && game.view === 'scene'" class="linkish" type="button" @click="game.view = 'battle'">返回战斗</button>
+      </div>
+      <div class="map-acts">
+        <button v-if="questLine" class="quest-chip" title="点这里去交任务，或走到下一步" @click="followQuest()">{{ questLine }}</button>
+        <button v-if="near && !game.dialog" class="near-act" title="按 E" @click="interactNear">{{ near.prompt }}</button>
+        <span v-if="moving" class="moving">{{ moving }}</span>
+      </div>
+      <div class="vitals" :title="'生命 ' + (self?.hp ?? 0) + '/' + (self?.maxHp ?? 0) + '  法力 ' + (self?.mp ?? 0) + '/' + (self?.maxMp ?? 0) + '  经验 ' + (game.profile?.exp ?? 0) + '/' + (game.profile?.expMax ?? 0)">
+        <span class="meter hp"><em>血</em><i><b :style="{ width: hpPct + '%' }" /></i><small>{{ self?.hp ?? 0 }}/{{ self?.maxHp ?? 0 }}</small></span>
+        <span class="meter mp"><em>法</em><i><b :style="{ width: mpPct + '%' }" /></i><small>{{ self?.mp ?? 0 }}/{{ self?.maxMp ?? 0 }}</small></span>
+        <span class="meter xp"><em>经</em><i><b :style="{ width: expPct + '%' }" /></i><small>{{ game.profile?.exp ?? 0 }}/{{ game.profile?.expMax ?? 0 }}</small></span>
+      </div>
+      <div class="map-meta">
+        <span class="status">宠物 {{ pet ? pet.name + ' Lv.' + pet.level : '无' }}</span>
+        <span class="weather">{{ game.profile?.weather?.name }} · {{ game.profile?.periodName }}</span>
+        <span class="conn" :class="{ warn: !game.connected }"><i />{{ game.displaced ? '已在其他窗口打开' : game.connected ? '在线' : '重连中' }}</span>
+      </div>
     </div>
 
     <div class="play">
@@ -491,9 +495,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       </div>
       <section v-if="help" class="note">
         <header><b>怎么玩</b><button @click="help = false">关闭</button></header>
-        <p>蓝色底的地名是你现在站的地方。点地面会走过去，点白字名字也一样，红字会走进另一张地图。右上角小地图和左下角坐标跟着你。</p>
+        <p>蓝色底的地名是你现在站的地方。点地面会走过去，点白字名字也一样，红字会走进另一张地图。右上角小地图框着这一带，左下角是坐标。顶上三条是生命、法力和经验。</p>
         <p>和人说话、采集，走近按 E，或点名字后面的按钮。问号是可以交差，叹号是有任务。右边的任务追踪点一下就会过去。对话打开后，数字键选事项，Enter 交付或接受，Esc 离开。</p>
-        <p>点怪物会走近并开战。开战之后按速度轮流出手，可以攻击、放技能、吃药、防御或逃跑。G 在回合里是防御，平时仍是守势。连招会在轮到你时自动攻击。打到三成血以下，再点「契约」。</p>
+        <p>点怪物会走近并开战。开战之后按速度轮流出手。轮到你时，中间的动作会亮起来，出手顺序里高亮的是当前这一手。可以攻击、放技能、吃药、防御或逃跑。G 在回合里是防御，平时仍是守势。连招会在轮到你时自动攻击。打到三成血以下，再点「契约」。</p>
         <p>战斗时如果想先看地图，点「返回地图」。镜头跟着你走过相邻的地块，走到门外就进下一片，不会被拉回入口。副本仍是单独一张。摆摊和当面交易都要站在旁边，成交扣和拍卖一样的旅税。</p>
         <p>点自己的名字，或下面的「角色」，可以看属性和换技能。技能栏一次放 4 个：先点栏位，再点要换上的技能。</p>
         <p>下面一排还有任务、道具、宠物、跳市和工会。聊天选区域、世界或工会。点别的旅人「交谈」，会在区域频道叫他。</p>
@@ -505,7 +509,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
     </div>
 
     <div class="dock">
-    <div class="exp" title="经验"><i :style="{ width: expPct + '%' }" /></div>
+    <div class="exp" :title="'经验 ' + (game.profile?.exp ?? 0) + ' / ' + (game.profile?.expMax ?? 0)">
+      <em>经验</em>
+      <i :style="{ width: expPct + '%' }" />
+      <small>{{ game.profile?.exp ?? 0 }}/{{ game.profile?.expMax ?? 0 }}</small>
+    </div>
 
     <footer class="hotbar">
       <button

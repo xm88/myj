@@ -41,7 +41,15 @@ async function removeItem(itemId: string) {
 
 <template>
   <div class="street" v-if="game.trade">
-    <p class="hint">两边都锁定后才能确认。改东西会解开锁定。离远了确认会被拒绝。</p>
+    <p
+      class="trade-state"
+      :class="{ ready: game.trade.ready, wait: game.trade.you?.locked && !game.trade.ready }"
+    >
+      <template v-if="game.trade.ready">双方已锁定。再点确认才会成交。</template>
+      <template v-else-if="game.trade.you?.locked">你已锁定，等对方锁上。改栏里的东西会解开锁定。</template>
+      <template v-else-if="game.trade.them?.locked">对方已锁定。你锁上之后才能确认。</template>
+      <template v-else>放入物品或金币，然后锁定。两边都锁定后才能确认。</template>
+    </p>
     <div class="trade-panes">
       <section>
         <h3>我 · {{ game.trade.you?.name }}</h3>
@@ -51,7 +59,10 @@ async function removeItem(itemId: string) {
           <button class="btn light" :disabled="game.trade.you?.locked" @click="removeItem(item.itemId)">拿回</button>
         </article>
         <p v-if="!(game.trade.you?.items ?? []).length" class="empty">这一栏还是空的。</p>
-        <small>{{ game.trade.you?.locked ? '已锁定' : '未锁定' }} · {{ game.trade.you?.confirmed ? '已确认' : '未确认' }}</small>
+        <div class="seals">
+          <em :class="{ on: game.trade.you?.locked }">{{ game.trade.you?.locked ? '已锁定' : '未锁定' }}</em>
+          <em :class="{ on: game.trade.you?.confirmed, wait: game.trade.you?.locked && !game.trade.you?.confirmed }">{{ game.trade.you?.confirmed ? '已确认' : '未确认' }}</em>
+        </div>
       </section>
       <section>
         <h3>对方 · {{ game.trade.them?.name }}</h3>
@@ -60,7 +71,10 @@ async function removeItem(itemId: string) {
           <div><b>{{ item.name }}</b><small>×{{ item.count }}</small></div>
         </article>
         <p v-if="!(game.trade.them?.items ?? []).length" class="empty">对方还没有放入东西。</p>
-        <small>{{ game.trade.them?.locked ? '已锁定' : '未锁定' }} · {{ game.trade.them?.confirmed ? '已确认' : '未确认' }}</small>
+        <div class="seals">
+          <em :class="{ on: game.trade.them?.locked }">{{ game.trade.them?.locked ? '已锁定' : '未锁定' }}</em>
+          <em :class="{ on: game.trade.them?.confirmed, wait: game.trade.them?.locked && !game.trade.them?.confirmed }">{{ game.trade.them?.confirmed ? '已确认' : '未确认' }}</em>
+        </div>
       </section>
     </div>
     <div class="row">
@@ -74,7 +88,7 @@ async function removeItem(itemId: string) {
     <div class="row">
       <input v-model.number="gold" type="number" min="0" :disabled="game.trade.you?.locked" />
       <button class="btn" :disabled="game.trade.you?.locked" @click="offerGold">放入金币</button>
-      <button class="btn" @click="game.act('/api/trade/lock')">锁定</button>
+      <button class="btn" :class="{ lantern: game.trade.you?.locked }" @click="game.act('/api/trade/lock')">{{ game.trade.you?.locked ? '已锁定' : '锁定' }}</button>
       <button class="btn lantern" :disabled="!game.trade.ready" @click="game.act('/api/trade/confirm')">确认</button>
       <button class="btn danger" @click="game.act('/api/trade/cancel')">取消</button>
     </div>

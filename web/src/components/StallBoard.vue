@@ -90,8 +90,13 @@ async function buy(id: string) {
       <p class="hint">人会站在原地。收摊后才能走路。标价是这一摞的总价。</p>
       <article v-for="good in mine().goods" :key="good.id" class="item">
         <div>
-          <b>{{ good.name }}</b>
-          <small>×{{ good.count }} · {{ good.price }} 金 · 旅税 {{ due(good.price, good.count).tax }} · 到手 {{ due(good.price, good.count).net }}</small>
+          <b>{{ good.name }} <small>×{{ good.count }}</small></b>
+          <div class="quote">
+            <span>总价 <b>{{ good.price }}</b></span>
+            <span>一件 <b>{{ due(good.price, good.count).pay }}</b></span>
+            <span>旅税 <b>{{ due(good.price, good.count).tax }}</b></span>
+            <span>到手 <b class="net">{{ due(good.price, good.count).net }}</b></span>
+          </div>
         </div>
         <button class="btn light" @click="unlist(good.id)">下架</button>
       </article>
@@ -106,6 +111,12 @@ async function buy(id: string) {
         <button class="btn" :disabled="!picked" @click="listGoods">上架</button>
         <button class="btn danger" @click="closeStall">收摊</button>
       </div>
+      <p v-if="picked" class="quote">
+        <span>买家支付这一摞 <b>{{ Math.floor(Number(price) || 0) }}</b></span>
+        <span>买一件 <b>{{ due(price, count).pay }}</b></span>
+        <span>旅税 <b>{{ due(price, count).tax }}</b></span>
+        <span>到手 <b class="net">{{ due(price, count).net }}</b></span>
+      </p>
     </section>
     <section v-else>
       <h3>在这里摆摊</h3>
@@ -128,10 +139,14 @@ async function buy(id: string) {
       <h3>{{ detail.title }} · {{ detail.owner }}</h3>
       <article v-for="good in detail.goods" :key="good.id" class="item">
         <div>
-          <b>{{ good.name }}</b>
-          <small>×{{ good.count }} · 这一件 {{ due(good.price, good.count).pay }} 金，旅税 {{ due(good.price, good.count).tax }}</small>
+          <b>{{ good.name }} <small>×{{ good.count }}</small></b>
+          <div class="quote">
+            <span>你支付 <b>{{ due(good.price, good.count).pay }}</b></span>
+            <span>旅税 <b>{{ due(good.price, good.count).tax }}</b></span>
+            <span>对方到手 <b class="net">{{ due(good.price, good.count).net }}</b></span>
+          </div>
         </div>
-        <button class="btn" @click="buy(good.id)">买下</button>
+        <button class="btn lantern" @click="buy(good.id)">买下</button>
       </article>
       <p v-if="!detail.goods?.length" class="empty">这家暂时没有货。</p>
     </section>

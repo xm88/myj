@@ -101,13 +101,20 @@ function act(action: string, extra: Record<string, unknown> = {}) {
   menu.value = ''
   game.bout(action, extra)
 }
+
+/** 守势是增益，持续伤害是减益，其余保持中性。 */
+function fxKind(id: string) {
+  if (id === 'guard') return 'buff'
+  if (id === 'wound' || id === 'burn' || id === 'numb' || id === 'gust') return 'dot'
+  return ''
+}
 </script>
 
 <template>
   <!-- 战斗界面：展示服务器目标、生命法力、主战灵伴与契约入口，客户端仅提交动作。 -->
-  <div class="battle">
+  <div class="battle" :class="{ live: !!bout, yours }">
     <img class="scene-bg dim" :src="mapThumb(mapId)" alt="" />
-    <div class="fighter">
+    <div class="fighter" :class="{ acting: bout && bout.await === game.profile?.id }">
       <IconMedal class="portrait" :src="portrait('hero')" />
       <b>{{ game.profile?.name }}</b>
       <small>{{ game.profile?.weaponName }} · Lv.{{ game.profile?.level }}</small>
@@ -116,7 +123,7 @@ function act(action: string, extra: Record<string, unknown> = {}) {
       <span v-for="hit in hits(game.profile?.id)" :key="hit.id" class="float" :class="{ crit: hit.crit, heal: hit.kind === 'heal', miss: hit.kind === 'miss', guarded: hit.guarded }">{{ hit.text }}</span>
       <div class="bar"><i class="mp" :style="{ width: mpPct + '%' }" /></div>
       <div v-if="selfEffects.length" class="effects">
-        <em v-for="ef in selfEffects" :key="ef.id">{{ ef.name }} {{ ef.rounds }}</em>
+        <em v-for="ef in selfEffects" :key="ef.id" class="fx" :class="fxKind(ef.id)"><b>{{ ef.name }}</b><small>{{ ef.rounds }}</small></em>
       </div>
       <div v-if="pet" class="pet-row">
         <IconMedal :src="portrait(pet.templateId)" />
@@ -125,11 +132,20 @@ function act(action: string, extra: Record<string, unknown> = {}) {
       <p v-else class="hint">还没有主战灵伴</p>
     </div>
     <div class="battle-mid">
-      <div v-if="bout" class="cadence">
+      <div v-if="bout" class="turnbar" :class="{ yours, over: bout.phase !== 'choose' }">
         <div class="order">
-          <span v-for="actor in order" :key="actor.id" :class="{ now: actor.id === bout.await, down: actor.alive === false }">{{ actor.name }}</span>
+          <span
+            v-for="actor in order"
+            :key="actor.id"
+            :class="{ now: actor.id === bout.await, down: actor.alive === false, self: actor.id === game.profile?.id, foe: actor.kind === 'monster', mate: actor.companion }"
+          >{{ actor.name }}</span>
         </div>
-        <small>{{ turnText }}{{ game.autoFight ? ' · 连招' : '' }}{{ companions ? ' · 队友由同伴决定' : '' }}</small>
+        <p class="turn-line">
+          <b>{{ turnText }}</b>
+          <span v-if="yours" class="your-turn">请出手</span>
+          <small v-if="game.autoFight">连招</small>
+          <small v-if="companions">队友由同伴决定</small>
+        </p>
       </div>
       <div v-else class="cadence">
         <div class="swing" :title="guarding ? '守势中，这一拍少挨打' : '普通攻击的出手节奏'">
@@ -144,18 +160,18 @@ function act(action: string, extra: Record<string, unknown> = {}) {
         <p v-for="(line, index) in (bout?.log ?? []).slice().reverse()" :key="'b' + index">{{ line }}</p>
         <p v-for="(line, index) in game.battleLog" :key="index" :class="{ crit: line.includes('暴击'), guarded: line.includes('守势') }">{{ line }}</p>
       </div>
-      <div v-if="bout && yours" class="row bout-actions">
-        <button class="btn lantern" @click="act('attack')">攻击</button>
-        <button class="btn" @click="menu = menu === 'skill' ? '' : 'skill'">技能</button>
-        <button class="btn" @click="menu = menu === 'item' ? '' : 'item'">物品</button>
-        <button class="btn" :class="{ lantern: guarding }" @click="act('defend')">防御</button>
-        <button class="btn danger" @click="act('flee')">逃跑</button>
+      <div v-if="bout && yours" class="bout-actions">
+        <button class="cmd atk" @click="act('attack')">攻击</button>
+        <button class="cmd" :class="{ on: menu === 'skill' }" @click="menu = menu === 'skill' ? '' : 'skill'">技能</button>
+        <button class="cmd" :class="{ on: menu === 'item' }" @click="menu = menu === 'item' ? '' : 'item'">物品</button>
+        <button class="cmd" :class="{ hold: guarding }" @click="act('defend')">防御</button>
+        <button class="cmd danger" @click="act('flee')">逃跑</button>
       </div>
-      <div v-if="menu === 'skill'" class="row">
-        <button v-for="skill in skills" :key="skill.slot" class="btn" @click="act('skill', { slot: skill.slot })">{{ skill.name }}<small v-if="skill.mp"> {{ skill.mp }}</small></button>
+      <div v-if="menu === 'skill'" class="cmd-pop">
+        <button v-for="skill in skills" :key="skill.slot" class="cmd" @click="act('skill', { slot: skill.slot })">{{ skill.name }}<small v-if="skill.mp"> {{ skill.mp }}</small></button>
       </div>
-      <div v-if="menu === 'item'" class="row">
-        <button v-for="item in drinks" :key="item.id" class="btn" @click="act('item', { itemId: item.id })">{{ item.name }} ×{{ item.count }}</button>
+      <div v-if="menu === 'item'" class="cmd-pop">
+        <button v-for="item in drinks" :key="item.id" class="cmd" @click="act('item', { itemId: item.id })">{{ item.name }} ×{{ item.count }}</button>
         <p v-if="!drinks.length" class="hint">背包里没有能在战斗中用的药。</p>
       </div>
       <div class="row">
@@ -166,15 +182,16 @@ function act(action: string, extra: Record<string, unknown> = {}) {
         <button class="btn lantern" :disabled="!canCapture || !foe" @click="foe && game.capture(foe.id)">契约</button>
       </div>
     </div>
-    <div class="fighter">
+    <div class="fighter" :class="{ acting: bout && foe && bout.await === foe.id, marked: yours && foe }">
       <template v-if="foe">
+        <small v-if="yours" class="target-flag">当前目标</small>
         <IconMedal class="portrait" :src="portrait(foe.templateId || 'slime')" />
         <b>{{ foe.name }}</b>
         <small>{{ foeLevel ? foeLevel + '级 · ' : '' }}{{ foe.alive === false ? '已被击败' : (foe.capturable ? '可以契约' : '战斗中') }}</small>
         <div class="bar"><i class="hp foe" :style="{ width: foePct + '%' }" /></div>
         <small>{{ foe.hp }} / {{ foe.maxHp }}</small>
         <div v-if="foeEffects.length" class="effects">
-          <em v-for="ef in foeEffects" :key="ef.id">{{ ef.name }} {{ ef.rounds }}</em>
+          <em v-for="ef in foeEffects" :key="ef.id" class="fx" :class="fxKind(ef.id)"><b>{{ ef.name }}</b><small>{{ ef.rounds }}</small></em>
         </div>
         <span v-for="hit in hits(foe.id)" :key="hit.id" class="float foe" :class="{ crit: hit.crit, heal: hit.kind === 'heal' }">{{ hit.text }}</span>
       </template>

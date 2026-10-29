@@ -12,7 +12,10 @@ import { useGame } from '../stores/game'
 const game = useGame()
 const board = ref<HTMLElement | null>(null)
 const view = ref({ w: 960, h: 540 })
+/** 点地后的一圈反馈，只记屏幕位置，镜头仍跟着人。 */
+const clickFx = ref<{ x: number; y: number; id: number } | null>(null)
 let observer: ResizeObserver | null = null
+let clickTimer = 0
 
 onMounted(() => {
   const el = board.value
@@ -24,7 +27,10 @@ onMounted(() => {
   observer = new ResizeObserver(apply)
   observer.observe(el)
 })
-onUnmounted(() => observer?.disconnect())
+onUnmounted(() => {
+  observer?.disconnect()
+  window.clearTimeout(clickTimer)
+})
 
 const mapId = computed(() => game.snap?.mapId || game.profile?.mapId || 'town_starfall')
 const map = computed(() => game.config?.maps?.find((item: { id: string }) => item.id === mapId.value))
@@ -32,6 +38,7 @@ const self = computed(() => game.snap?.self ?? { x: game.profile?.x ?? 0, y: gam
 const pet = computed(() => game.profile?.pets?.find((item: { active: boolean }) => item.active) ?? null)
 const hpPct = computed(() => (self.value.maxHp ? Math.max(0, (self.value.hp / self.value.maxHp) * 100) : 0))
 const mpPct = computed(() => (self.value.maxMp ? Math.max(0, (self.value.mp / self.value.maxMp) * 100) : 0))
+const expPct = computed(() => (game.profile?.expMax ? Math.max(0, (Number(game.profile.exp) / Number(game.profile.expMax)) * 100) : 0))
 
 const chunks = computed<Chunk[]>(() => {
   const raw = game.snap?.chunks
@@ -211,7 +218,7 @@ const dest = computed(() => {
 })
 
 const mini = computed(() => {
-  const aspect = 116 / 78
+  const aspect = 148 / 98
   const width = frame.value.span * 1.15
   const height = width / aspect
   return { minX: frame.value.camX - width / 2, minY: frame.value.camY - height / 2, width, height }
@@ -256,15 +263,37 @@ function openSpot(spot: Spot) {
   }
 }
 
+/** 靠近本图的门时提示下一片，远了就不挡画面。 */
+const gateHint = computed(() => {
+  let best: Spot | null = null
+  let bestDistance = 220
+  for (const spot of spots.value) {
+    if (spot.kind !== 'portal' || spot.mapId !== mapId.value) continue
+    const distance = Math.hypot(spot.wx - selfWorld.value.x, spot.wy - selfWorld.value.y)
+    if (distance < bestDistance) {
+      bestDistance = distance
+      best = spot
+    }
+  }
+  return best
+})
+
 function walk(ev: MouseEvent) {
   const target = ev.target as HTMLElement | null
   if (target?.closest('button')) return
   const el = board.value
   if (!el || !chunks.value.length) return
   const box = el.getBoundingClientRect()
-  const world = screenToWorld(frame.value, ev.clientX - box.left, ev.clientY - box.top)
+  const localX = ev.clientX - box.left
+  const localY = ev.clientY - box.top
+  const world = screenToWorld(frame.value, localX, localY)
   const chunk = chunkAt(chunks.value, world.x, world.y, mapId.value)
   if (!chunk) return
+  clickFx.value = { x: localX, y: localY, id: Date.now() }
+  window.clearTimeout(clickTimer)
+  clickTimer = window.setTimeout(() => {
+    clickFx.value = null
+  }, 460)
   if (chunk.id === mapId.value) game.go(world.x - chunk.originX, world.y - chunk.originY)
   else game.goAcross(world.x, world.y, chunk.id)
 }
@@ -293,8 +322,11 @@ const floats = computed(() => {
       <img :src="portrait('hero')" alt="" />
       <div>
         <b>{{ game.profile?.name }} <small>Lv.{{ game.profile?.level }}</small></b>
-        <i class="bar"><b class="hp" :style="{ width: hpPct + '%' }" /></i>
-        <i class="bar"><b class="mp" :style="{ width: mpPct + '%' }" /></i>
+        <div class="hud-meters">
+          <span title="生命"><em>血</em><span class="bar"><i class="hp" :style="{ width: hpPct + '%' }" /></span></span>
+          <span title="法力"><em>法</em><span class="bar"><i class="mp" :style="{ width: mpPct + '%' }" /></span></span>
+          <span title="经验"><em>经</em><span class="bar"><i class="xp" :style="{ width: expPct + '%' }" /></span></span>
+        </div>
       </div>
       <div v-if="pet" class="hud-pet" :title="pet.name">
         <img :src="portrait(pet.templateId)" alt="" />
@@ -309,6 +341,8 @@ const floats = computed(() => {
       <b>{{ map.name }}</b>
     </div>
     <div class="coords">{{ Math.round(self.x) }} , {{ Math.round(self.y) }}<small>世界 {{ Math.round(selfWorld.x) }} , {{ Math.round(selfWorld.y) }}</small></div>
+    <div v-if="gateHint" class="gate-banner">走近「{{ gateHint.name }}」就会进入下一片</div>
+    <span v-if="clickFx" :key="clickFx.id" class="click-fx" :style="{ left: clickFx.x + 'px', top: clickFx.y + 'px' }" />
     <div class="pin you" :style="pinWorld(selfWorld.x, selfWorld.y)">你</div>
     <div v-if="dest" class="pin dest" :style="pinWorld(dest.x, dest.y)">去</div>
     <span
@@ -336,7 +370,7 @@ const floats = computed(() => {
     >
       <i v-if="spot.npc && markOf(spot.npc) === 'turnin'" class="qmark">?</i>
       <i v-else-if="spot.npc && (markOf(spot.npc) === 'offer' || markOf(spot.npc) === 'talk')" class="qmark">!</i>
-      {{ spot.name }}<template v-if="spot.count && spot.count > 1"> ×{{ spot.count }}</template><small v-if="spot.kind === 'player'">交易</small><small v-else-if="spot.kind === 'stall'">摊</small><small v-else-if="spot.mapId !== mapId">界外</small>
+      {{ spot.name }}<template v-if="spot.count && spot.count > 1"> ×{{ spot.count }}</template><small v-if="spot.kind === 'player'">交易</small><small v-else-if="spot.kind === 'stall'">摊</small><small v-else-if="spot.kind === 'portal'">{{ spot.mapId === mapId ? '进入' : '邻门' }}</small><small v-else-if="spot.mapId !== mapId">界外</small>
     </button>
   </div>
   <div v-else class="scene empty-scene">地图还在加载</div>

@@ -5,6 +5,8 @@ import { computed, ref, watch } from 'vue'
 import { api } from '../api'
 import IconMedal from './IconMedal.vue'
 import WorldMap from './WorldMap.vue'
+import StallBoard from './StallBoard.vue'
+import TradeBoard from './TradeBoard.vue'
 import { itemIcon, portrait, weaponIcon } from '../game/art'
 import { npcFocus, portalFocus } from '../game/npc'
 import { useGame } from '../stores/game'
@@ -67,6 +69,8 @@ const titles: Record<string, string> = {
   party: '队伍',
   shop: '商店',
   info: '角色',
+  stall: '摆摊',
+  trade: '当面交易',
 }
 /** 根据当前打开的面板选择窗口标题。 */
 const title = computed(() => titles[game.panel] ?? '窗口')
@@ -557,6 +561,14 @@ function pick(id: string) {
 
       <template v-else-if="game.panel === 'travel'">
         <WorldMap />
+      </template>
+
+      <template v-else-if="game.panel === 'stall'">
+        <StallBoard />
+      </template>
+
+      <template v-else-if="game.panel === 'trade'">
+        <TradeBoard />
       </template>
 
       <template v-else-if="game.panel === 'quest'">

@@ -73,7 +73,7 @@ async function go(id: string) {
   <p class="lede">
     <template v-if="here?.kind === 'town'">在星落镇可以使用航标。点亮的岛可以直接过去。</template>
     <template v-else-if="here?.kind === 'dungeon'">先离开遗迹，回到星落镇。</template>
-    <template v-else>你在野外。世界地图可以查看，传送要回星落镇，或走上岛边的门。</template>
+    <template v-else>你在野外。走到岛边的门会接着进入下一片，不会被拉回入口。航标传送仍要回星落镇。</template>
   </p>
   <div class="world">
     <img class="world-bg" src="/art/fi-world-bg.jpg" alt="" />
@@ -103,4 +103,5 @@ async function go(id: string) {
       <small v-else>Lv.{{ byId[node.id]?.levelMin }}–{{ byId[node.id]?.levelMax }}</small>
     </button>
   </div>
+  <p v-if="game.snap?.self?.worldX != null" class="hint">连续坐标 {{ Math.round(game.snap.self.worldX) }} , {{ Math.round(game.snap.self.worldY) }}。小地图上的红点仍是这一片的门。</p>
 </template>

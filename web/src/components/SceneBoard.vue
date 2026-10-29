@@ -30,8 +30,13 @@ const npcs = computed(() => (game.config?.npcs ?? []).filter((npc: { mapId: stri
 const nodes = computed(() => map.value?.nodes ?? [])
 /** 当前地图可通往其他地图的传送门列表。 */
 const portals = computed(() => map.value?.portals ?? [])
-/** 当前分线快照中仍存活的怪物实例，供聚合、选择和任务引导使用。 */
-const monsters = computed(() => (game.snap?.entities ?? []).filter((entity: { kind: string; alive: boolean }) => entity.kind === 'monster' && entity.alive))
+/** 当前分线快照中仍存活的怪物实例，供聚合、选择和任务引导使用。缝隙投影出来的怪单独点。 */
+const monsters = computed(() => (game.snap?.entities ?? []).filter((entity: { kind: string; alive: boolean; seam?: boolean }) => entity.kind === 'monster' && entity.alive && !entity.seam))
+/** 站在界边时，对面靠近门的怪、人和摊。 */
+const seam = computed(() => (game.snap?.entities ?? []).filter((entity: { seam?: boolean }) => entity.seam))
+/** 同一张图上的其他旅人和摊位。 */
+const people = computed(() => (game.snap?.entities ?? []).filter((entity: { kind: string; seam?: boolean }) => entity.kind === 'player' && !entity.seam))
+const stalls = computed(() => (game.snap?.entities ?? []).filter((entity: { kind: string; seam?: boolean }) => entity.kind === 'stall' && !entity.seam))
 /** 按模板聚合的附近怪物，使用最近实例作为操作目标。 */
 const packs = computed(() => nearestPacks(monsters.value, self.value))
 
@@ -67,6 +72,9 @@ const laid = computed(() => {
     ...nodes.value.map((node: { id: string; x: number; y: number }) => ({ key: node.id, x: node.x, y: node.y })),
     ...npcs.value.map((npc: { id: string; x: number; y: number }) => ({ key: npc.id, x: npc.x, y: npc.y })),
     ...packs.value.map((pack) => ({ key: pack.templateId, x: pack.x, y: pack.y })),
+    ...people.value.map((person: { id: string; x: number; y: number }) => ({ key: 'who:' + person.id, x: person.x, y: person.y })),
+    ...stalls.value.map((stall: { id: string; x: number; y: number }) => ({ key: stall.id, x: stall.x, y: stall.y })),
+    ...seam.value.map((mark: { id: string; x: number; y: number }) => ({ key: 'seam:' + mark.id, x: mark.x, y: mark.y })),
   ].map((mark) => ({ ...mark, left: (mark.x / width) * 100, top: (mark.y / height) * 100 }))
   for (let pass = 0; pass < 10; pass++) {
     for (let i = 0; i < marks.length; i++) {
@@ -117,6 +125,25 @@ function pin(x: number, y: number) {
   return { left: `${(x / width) * 100}%`, top: `${(y / height) * 100}%` }
 }
 
+/** 界外的名字：摊打开购买，旅人发起交易，怪物开战，其余走过去互动。 */
+function openSeam(mark: { kind: string; id: string; name: string; x: number; y: number; stallId?: string; focus?: string }) {
+  if (mark.kind === 'stall') {
+    game.stallFocus = mark.stallId || ''
+    game.panel = 'stall'
+    return
+  }
+  if (mark.kind === 'player') {
+    game.callName = mark.name
+    void game.act('/api/trade/invite', { name: mark.name })
+    return
+  }
+  if (mark.kind === 'monster') {
+    game.fight(mark.id)
+    return
+  }
+  game.go(mark.x, mark.y, 'interact', mark.focus)
+}
+
 /** 点在地面上就走过去。点在名字按钮上时留给原来的互动。 */
 function walk(ev: MouseEvent) {
   const target = ev.target as HTMLElement | null
@@ -150,6 +177,7 @@ function walk(ev: MouseEvent) {
       <i class="dot you" :style="pin(self.x, self.y)" />
       <i v-if="dest" class="dot dest" :style="pin(dest.x, dest.y)" />
       <i v-for="portal in portals" :key="'m' + portal.label + portal.x" class="dot exit" :style="pin(portal.x, portal.y)" />
+      <i v-for="stall in stalls" :key="'ms' + stall.id" class="dot stall" :style="pin(stall.x, stall.y)" />
       <i
         v-for="npc in npcs"
         :key="'m' + npc.id"
@@ -159,7 +187,7 @@ function walk(ev: MouseEvent) {
       />
       <b>{{ map.name }}</b>
     </div>
-    <div class="coords">{{ Math.round(self.x) }} , {{ Math.round(self.y) }}</div>
+    <div class="coords">{{ Math.round(self.x) }} , {{ Math.round(self.y) }}<small v-if="self.worldX != null">世界 {{ Math.round(self.worldX) }} , {{ Math.round(self.worldY) }}</small></div>
     <div class="pin you" :style="pin(self.x, self.y)">你</div>
     <div v-if="dest" class="pin dest" :style="pin(dest.x, dest.y)">去</div>
     <span
@@ -200,6 +228,27 @@ function walk(ev: MouseEvent) {
       :style="at(pack.templateId)"
       @click="game.fight(pack.id)"
     >{{ pack.name }}<template v-if="pack.count > 1"> ×{{ pack.count }}</template></button>
+    <button
+      v-for="person in people"
+      :key="person.id"
+      class="tag"
+      :style="at('who:' + person.id)"
+      @click="game.callName = person.name; game.act('/api/trade/invite', { name: person.name })"
+    >{{ person.name }}<small>交易</small></button>
+    <button
+      v-for="stall in stalls"
+      :key="stall.id"
+      class="tag"
+      :style="at(stall.id)"
+      @click="game.stallFocus = stall.stallId; game.panel = 'stall'"
+    >{{ stall.name }}<small>摊</small></button>
+    <button
+      v-for="mark in seam"
+      :key="mark.id"
+      class="tag seam"
+      :style="at('seam:' + mark.id)"
+      @click="openSeam(mark)"
+    >{{ mark.name }}<small>界外</small></button>
   </div>
   <div v-else class="scene empty-scene">地图还在加载</div>
 </template>

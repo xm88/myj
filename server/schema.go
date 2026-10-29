@@ -151,4 +151,27 @@ CREATE INDEX IF NOT EXISTS idx_dispatch_player ON pet_dispatch(player_id, status
 CREATE INDEX IF NOT EXISTS idx_mail_player ON mail(player_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_friends_pair ON friends(from_id, to_id);
 CREATE INDEX IF NOT EXISTS idx_chat_channel ON chat_messages(channel, created_at);
+
+CREATE TABLE IF NOT EXISTS stalls (
+  id TEXT PRIMARY KEY,
+  player_id TEXT NOT NULL UNIQUE,
+  map_id TEXT NOT NULL,
+  x REAL NOT NULL,
+  y REAL NOT NULL,
+  title TEXT NOT NULL,
+  open INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_stall_map ON stalls(map_id, open);
+
+CREATE TABLE IF NOT EXISTS stall_goods (
+  id TEXT PRIMARY KEY,
+  stall_id TEXT NOT NULL,
+  template_id TEXT NOT NULL,
+  count INTEGER NOT NULL,
+  price INTEGER NOT NULL,
+  extra TEXT,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_stall_goods ON stall_goods(stall_id);
 `

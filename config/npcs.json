@@ -137,6 +137,18 @@
     ]
   },
   {
+    "id": "npc_verge",
+    "name": "阿禾",
+    "title": "林缘",
+    "mapId": "wild_greenleaf",
+    "x": 118,
+    "y": 690,
+    "panels": [],
+    "lines": [
+      "这条路和星落镇是连着的。走到界桩外面，人就进镇了，不用再被拉回入口。"
+    ]
+  },
+  {
     "id": "npc_fisher",
     "name": "老渔",
     "title": "湖边渔夫",

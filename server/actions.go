@@ -148,6 +148,7 @@ func (a *App) capture(id string) {
 	if num(d["respawnMs"]) > 0 {
 		m["respawnAt"] = now() + num(d["respawnMs"])
 	}
+	a.onMonsterGone(str(m["id"]))
 	a.givePet(id, str(d["petId"]), true)
 	push(l, M{"kind": "text", "text": "契约成功", "x": m["x"], "y": m["y"]})
 }
@@ -189,14 +190,11 @@ func (a *App) interact(id, focus string) {
 	}
 	options := []option{}
 	for _, n := range objects(a.data["npcs"]) {
-		if n["mapId"] != l.State["mapId"] {
-			continue
-		}
 		if focus != "" && focus != "npc:"+str(n["id"]) {
 			continue
 		}
-		d := dist(l.State, n)
-		if d <= 72 {
+		d, ok := a.bridgeGap(str(l.State["mapId"]), l.State, str(n["mapId"]), n)
+		if ok && d <= 72 {
 			options = append(options, option{d, "npc", n})
 		}
 	}
@@ -238,7 +236,12 @@ func (a *App) interact(id, focus string) {
 	case "node":
 		a.gather(l, inst, best.v)
 	case "portal":
-		a.enter(l, str(best.v["to"]), true)
+		to := str(best.v["to"])
+		if str(a.def("maps", to)["kind"]) == "dungeon" {
+			a.enter(l, to, true)
+		} else {
+			a.cross(l, to, true)
+		}
 	}
 }
 
@@ -268,9 +271,21 @@ func (a *App) socketMessage(id string, message M) {
 			halt(l, true)
 		}
 	case "skill":
-		a.cast(id, message["slot"])
+		if str(s["boutId"]) != "" {
+			a.actBout(id, M{"action": "skill", "slot": message["slot"]})
+		} else {
+			a.cast(id, message["slot"])
+		}
 	case "guard":
-		a.guard(id)
+		if str(s["boutId"]) != "" {
+			a.actBout(id, M{"action": "defend"})
+		} else {
+			a.guard(id)
+		}
+	case "engage":
+		a.engage(id)
+	case "bout":
+		a.actBout(id, message)
 	case "capture":
 		a.capture(id)
 	case "interact":

@@ -8,6 +8,7 @@
 
 import { defineStore } from 'pinia'
 import { api, ApiError } from '../api'
+import { gateEdge, pastGate } from '../game/camera'
 import { nearestPacks } from '../game/crowd'
 import { guideQuest, questGuide } from '../game/guide'
 import { arriveDistance, focusReach } from '../game/npc'
@@ -22,7 +23,7 @@ export interface Toast {
 
 /** 猫游记式操作：点地名赶路，点「战斗 / 对话」先走过去再交给服务器。 */
 export type Intent =
-  | { kind: 'move'; x: number; y: number; act?: 'interact'; focus?: string }
+  | { kind: 'move'; x: number; y: number; act?: 'interact'; focus?: string; worldX?: number; worldY?: number; mapId?: string }
   | { kind: 'fight'; id: string }
   | { kind: 'capture'; id: string }
 
@@ -376,6 +377,32 @@ export const useGame = defineStore('game', {
       this.log.unshift(text)
       this.log = this.log.slice(0, 24)
     },
+    /** 当前地图通向目标地块的门外一步。没有直连的门就返回空。 */
+    gateExit(mapId: string) {
+      const here = this.snap?.mapId || this.profile?.mapId
+      const map = this.config?.maps?.find((item: { id: string; width?: number; height?: number; portals?: { x: number; y: number; to: string }[] }) => item.id === here)
+      const portal = map?.portals?.find((item) => item.to === mapId)
+      if (!map || !portal) return null
+      return pastGate(gateEdge(portal.x, portal.y, map.width || 1, map.height || 1), portal.x, portal.y)
+    },
+    /** 走到另一块地上的世界坐标。先穿过相连的门，落地后再改成那一块上的本地坐标。 */
+    goAcross(worldX: number, worldY: number, mapId: string, act?: 'interact', focus?: string) {
+      const here = this.snap?.mapId || this.profile?.mapId || ''
+      if (!mapId || mapId === here) {
+        const chunk = (this.snap?.chunks ?? []).find((item: { id: string }) => item.id === here)
+        const x = chunk ? worldX - chunk.originX : worldX
+        const y = chunk ? worldY - chunk.originY : worldY
+        this.go(x, y, act, focus)
+        return
+      }
+      const gate = this.gateExit(mapId)
+      if (!gate) return
+      this.dialog = null
+      this.view = 'scene'
+      this.send({ type: 'target', id: null })
+      this.intent = { kind: 'move', x: gate.x, y: gate.y, act, focus, worldX, worldY, mapId }
+      this.send({ type: 'input', x: 0, y: 0, destX: gate.x, destY: gate.y })
+    },
     /** 把「点一个名字」变成坐标移动。focus 指定要找的人、采集点或门，避免走到跟前却触发旁边的东西。 */
     go(x: number, y: number, act?: 'interact', focus?: string) {
       this.dialog = null
@@ -438,6 +465,24 @@ export const useGame = defineStore('game', {
         return
       }
       if (intent.kind === 'move') {
+        if (intent.mapId && intent.mapId !== this.snap.mapId) {
+          const stamp = performance.now()
+          if (stamp - this.lastChase > 400) {
+            this.lastChase = stamp
+            this.send({ type: 'input', x: 0, y: 0, destX: intent.x, destY: intent.y })
+          }
+          return
+        }
+        if (intent.worldX != null && intent.worldY != null && intent.mapId && intent.mapId === this.snap.mapId) {
+          const chunk = (this.snap.chunks ?? []).find((item: { id: string; originX: number; originY: number }) => item.id === intent.mapId)
+          if (chunk) {
+            const x = intent.worldX - chunk.originX
+            const y = intent.worldY - chunk.originY
+            this.intent = { kind: 'move', x, y, act: intent.act, focus: intent.focus }
+            this.send({ type: 'input', x: 0, y: 0, destX: x, destY: y })
+            return
+          }
+        }
         const distance = Math.hypot(self.x - intent.x, self.y - intent.y)
         const reach = intent.act === 'interact' ? arriveDistance(intent.focus) : 28
         if (distance > reach) {
@@ -454,10 +499,35 @@ export const useGame = defineStore('game', {
         if (act === 'interact') this.send(focus ? { type: 'interact', focus } : { type: 'interact' })
         return
       }
-      const mob = (this.snap?.entities ?? []).find((entity: { id: string; alive: boolean; x: number; y: number; name?: string }) => entity.id === intent.id)
+      const mob = (this.snap?.entities ?? []).find((entity: { id: string; alive: boolean; x: number; y: number; name?: string; mapId?: string; seam?: boolean; worldX?: number; worldY?: number }) => entity.id === intent.id)
       if (!mob?.alive) {
         this.intent = null
         this.noteBattle(mob?.name ? `${mob.name} 被击败了` : '目标已经不在了')
+        return
+      }
+      const sameMap = !mob.mapId || mob.seam || mob.mapId === this.snap.mapId
+      if (!sameMap) {
+        const wd = Math.hypot((self.worldX ?? self.x) - (mob.worldX ?? mob.x), (self.worldY ?? self.y) - (mob.worldY ?? mob.y))
+        if (wd <= 80) {
+          if (intent.kind === 'capture') {
+            this.intent = null
+            this.send({ type: 'capture' })
+            return
+          }
+          if (this.engaging !== intent.id) {
+            this.engaging = intent.id
+            this.send({ type: 'engage' })
+          }
+          return
+        }
+        const gate = this.gateExit(mob.mapId)
+        if (gate) {
+          const stamp = performance.now()
+          if (stamp - this.lastChase > 180) {
+            this.lastChase = stamp
+            this.send({ type: 'input', x: 0, y: 0, destX: gate.x, destY: gate.y })
+          }
+        }
         return
       }
       const distance = Math.hypot(self.x - mob.x, self.y - mob.y)

@@ -51,6 +51,8 @@ const beats = computed(() => Number(self.value?.beats) || 0)
 const yours = computed(() => Boolean(bout.value?.yours))
 /** 出手顺序，用来标出当前是谁。 */
 const order = computed(() => bout.value?.order ?? [])
+/** 被拉进这场的队友由服务器选动作，本人的回合仍要点。 */
+const companions = computed(() => order.value.some((actor: { companion?: boolean; id: string }) => actor.companion && actor.id !== game.profile?.id))
 /** 自己身上还在倒数的回合状态。 */
 const selfEffects = computed(() => order.value.find((actor: { id: string }) => actor.id === game.profile?.id)?.effects ?? [])
 /** 目标身上的回合状态。 */
@@ -127,7 +129,7 @@ function act(action: string, extra: Record<string, unknown> = {}) {
         <div class="order">
           <span v-for="actor in order" :key="actor.id" :class="{ now: actor.id === bout.await, down: actor.alive === false }">{{ actor.name }}</span>
         </div>
-        <small>{{ turnText }}{{ game.autoFight ? ' · 连招' : '' }}</small>
+        <small>{{ turnText }}{{ game.autoFight ? ' · 连招' : '' }}{{ companions ? ' · 队友由同伴决定' : '' }}</small>
       </div>
       <div v-else class="cadence">
         <div class="swing" :title="guarding ? '守势中，这一拍少挨打' : '普通攻击的出手节奏'">

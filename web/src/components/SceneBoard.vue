@@ -1,166 +1,294 @@
 <script setup lang="ts">
-/** 地图场景摘要：聚合怪物并避让对象标签，点击后提交世界坐标和精确互动目标。 */
+/** 自由镜头：当前地块和相邻地块按世界原点铺开，镜头跟着人走。副本仍只有自己这一张。 */
 
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { nearestPacks } from '../game/crowd'
 import { questGuide } from '../game/guide'
 import { mapThumb, portrait } from '../game/art'
+import { chunkAt, frameOf, screenToWorld, worldToScreen, type Chunk } from '../game/camera'
 import { nodeFocus, npcFocus, npcMark, portalFocus } from '../game/npc'
 import { useGame } from '../stores/game'
 
-/** 共享游戏状态仓库，组件通过它读取服务端数据和提交操作。 */
 const game = useGame()
+const board = ref<HTMLElement | null>(null)
+const view = ref({ w: 960, h: 540 })
+let observer: ResizeObserver | null = null
 
-/** 优先使用实时快照中的地图，再回退到持久化角色档案。 */
+onMounted(() => {
+  const el = board.value
+  if (!el || typeof ResizeObserver === 'undefined') return
+  const apply = () => {
+    view.value = { w: el.clientWidth || 960, h: el.clientHeight || 540 }
+  }
+  apply()
+  observer = new ResizeObserver(apply)
+  observer.observe(el)
+})
+onUnmounted(() => observer?.disconnect())
+
 const mapId = computed(() => game.snap?.mapId || game.profile?.mapId || 'town_starfall')
-/** 当前地图模板，提供尺寸、背景、资源点与传送门配置。 */
-const map = computed(() => game.config?.maps?.find((item: { id: string; width?: number; height?: number; portals?: { x: number; y: number; to: string; label: string }[] }) => item.id === mapId.value))
-/** 服务器推送的自身战斗快照，缺失时部分视图使用档案坐标。 */
-const self = computed(() => game.snap?.self ?? { x: game.profile?.x ?? 0, y: game.profile?.y ?? 0, hp: 0, maxHp: 0, mp: 0, maxMp: 0 })
-/** 主战灵伴，显示在场景左上角。 */
+const map = computed(() => game.config?.maps?.find((item: { id: string }) => item.id === mapId.value))
+const self = computed(() => game.snap?.self ?? { x: game.profile?.x ?? 0, y: game.profile?.y ?? 0, hp: 0, maxHp: 0, mp: 0, maxMp: 0, worldX: undefined as number | undefined, worldY: undefined as number | undefined, originX: 0, originY: 0 })
 const pet = computed(() => game.profile?.pets?.find((item: { active: boolean }) => item.active) ?? null)
-/** 场景角标上的生命百分比。 */
 const hpPct = computed(() => (self.value.maxHp ? Math.max(0, (self.value.hp / self.value.maxHp) * 100) : 0))
-/** 场景角标上的法力百分比。 */
 const mpPct = computed(() => (self.value.maxMp ? Math.max(0, (self.value.mp / self.value.maxMp) * 100) : 0))
 
-/** NPC 名称、位置、对话和服务入口的配置清单。 */
-const npcs = computed(() => (game.config?.npcs ?? []).filter((npc: { mapId: string }) => npc.mapId === mapId.value))
-/** 地图资源点或世界地图固定岛屿坐标，具体形状由所在组件定义。 */
-const nodes = computed(() => map.value?.nodes ?? [])
-/** 当前地图可通往其他地图的传送门列表。 */
-const portals = computed(() => map.value?.portals ?? [])
-/** 当前分线快照中仍存活的怪物实例，供聚合、选择和任务引导使用。缝隙投影出来的怪单独点。 */
-const monsters = computed(() => (game.snap?.entities ?? []).filter((entity: { kind: string; alive: boolean; seam?: boolean }) => entity.kind === 'monster' && entity.alive && !entity.seam))
-/** 站在界边时，对面靠近门的怪、人和摊。 */
-const seam = computed(() => (game.snap?.entities ?? []).filter((entity: { seam?: boolean }) => entity.seam))
-/** 同一张图上的其他旅人和摊位。 */
-const people = computed(() => (game.snap?.entities ?? []).filter((entity: { kind: string; seam?: boolean }) => entity.kind === 'player' && !entity.seam))
-const stalls = computed(() => (game.snap?.entities ?? []).filter((entity: { kind: string; seam?: boolean }) => entity.kind === 'stall' && !entity.seam))
-/** 按模板聚合的附近怪物，使用最近实例作为操作目标。 */
-const packs = computed(() => nearestPacks(monsters.value, self.value))
+const chunks = computed<Chunk[]>(() => {
+  const raw = game.snap?.chunks
+  if (Array.isArray(raw) && raw.length) {
+    return raw.map((chunk: Chunk) => ({
+      id: chunk.id,
+      name: chunk.name,
+      kind: chunk.kind,
+      width: Number(chunk.width) || 1,
+      height: Number(chunk.height) || 1,
+      originX: Number(chunk.originX) || 0,
+      originY: Number(chunk.originY) || 0,
+    }))
+  }
+  if (!map.value) return []
+  return [{
+    id: map.value.id,
+    name: map.value.name,
+    kind: map.value.kind,
+    width: map.value.width || 1,
+    height: map.value.height || 1,
+    originX: Number(self.value.originX) || 0,
+    originY: Number(self.value.originY) || 0,
+  }]
+})
+const hereChunk = computed(() => chunks.value.find((chunk) => chunk.id === mapId.value) ?? chunks.value[0])
+const selfWorld = computed(() => {
+  if (self.value.worldX != null && self.value.worldY != null) return { x: Number(self.value.worldX), y: Number(self.value.worldY) }
+  const origin = hereChunk.value
+  return { x: (origin?.originX ?? 0) + Number(self.value.x), y: (origin?.originY ?? 0) + Number(self.value.y) }
+})
+const frame = computed(() => frameOf(selfWorld.value.x, selfWorld.value.y, view.value.w, view.value.h, Number(game.snap?.camera) || 1100))
+const drawChunks = computed(() => [...chunks.value].sort((a, b) => Number(a.id === mapId.value) - Number(b.id === mapId.value)))
 
-/** 当前任务推荐对象的场景标记，用于高亮下一步位置。 */
+function chunkBox(chunk: Chunk) {
+  const point = worldToScreen(frame.value, chunk.originX, chunk.originY)
+  return {
+    left: `${point.x}px`,
+    top: `${point.y}px`,
+    width: `${chunk.width * frame.value.scale}px`,
+    height: `${chunk.height * frame.value.scale}px`,
+  }
+}
+function worldOf(id: string, x: number, y: number) {
+  const chunk = chunks.value.find((item) => item.id === id)
+  if (!chunk) return { x, y }
+  return { x: chunk.originX + x, y: chunk.originY + y }
+}
+function onScreen(wx: number, wy: number) {
+  const point = worldToScreen(frame.value, wx, wy)
+  return point.x >= -80 && point.y >= -80 && point.x <= frame.value.viewW + 80 && point.y <= frame.value.viewH + 80
+}
+
+const monsters = computed(() => (game.snap?.entities ?? []).filter((entity: { kind: string; alive: boolean; seam?: boolean; afar?: boolean; mapId?: string }) => entity.kind === 'monster' && entity.alive && !entity.seam && !entity.afar && (!entity.mapId || entity.mapId === mapId.value)))
+const afar = computed(() => (game.snap?.entities ?? []).filter((entity: { afar?: boolean; seam?: boolean }) => entity.afar && !entity.seam))
+const people = computed(() => (game.snap?.entities ?? []).filter((entity: { kind: string; seam?: boolean; afar?: boolean; mapId?: string }) => entity.kind === 'player' && !entity.seam && !entity.afar && (!entity.mapId || entity.mapId === mapId.value)))
+const stalls = computed(() => (game.snap?.entities ?? []).filter((entity: { kind: string; seam?: boolean; afar?: boolean; mapId?: string }) => entity.kind === 'stall' && !entity.seam && !entity.afar && (!entity.mapId || entity.mapId === mapId.value)))
+const packs = computed(() => nearestPacks(monsters.value, self.value))
 const guideKey = computed(() => questGuide(game.profile?.quests ?? [], game.config, mapId.value, packs.value)?.key ?? '')
 
-/** 在九十坐标单位以内选择最近的门、资源点或 NPC，用于场景位置高亮。 */
-const hereId = computed(() => {
-  const who = self.value
-  let best = ''
-  let bestDistance = 90
-  const spots = [
-    ...portals.value.map((portal: { x: number; y: number; label: string }) => ({ id: `p:${portal.label}`, x: portal.x, y: portal.y })),
-    ...nodes.value.map((node: { id: string; x: number; y: number }) => ({ id: node.id, x: node.x, y: node.y })),
-    ...npcs.value.map((npc: { id: string; x: number; y: number }) => ({ id: npc.id, x: npc.x, y: npc.y })),
-  ]
-  for (const spot of spots) {
-    const distance = Math.hypot(spot.x - who.x, spot.y - who.y)
-    if (distance < bestDistance) {
-      bestDistance = distance
-      best = spot.id
+const configOf = (id: string) => game.config?.maps?.find((item: { id: string }) => item.id === id)
+
+interface Spot {
+  key: string
+  kind: string
+  name: string
+  wx: number
+  wy: number
+  x: number
+  y: number
+  mapId: string
+  id?: string
+  focus?: string
+  stallId?: string
+  count?: number
+  npc?: { id: string; name: string }
+}
+
+const spots = computed<Spot[]>(() => {
+  const list: Spot[] = []
+  const add = (spot: Spot) => {
+    if (onScreen(spot.wx, spot.wy)) list.push(spot)
+  }
+  for (const chunk of chunks.value) {
+    const cfg = configOf(chunk.id)
+    if (!cfg) continue
+    for (const portal of cfg.portals ?? []) {
+      const world = worldOf(chunk.id, portal.x, portal.y)
+      add({ key: chunk.id === mapId.value ? `p:${portal.label}` : `p:${chunk.id}:${portal.label}`, kind: 'portal', name: portal.label, wx: world.x, wy: world.y, x: portal.x, y: portal.y, mapId: chunk.id, focus: portalFocus(portal.x, portal.y) })
+    }
+    for (const node of cfg.nodes ?? []) {
+      const world = worldOf(chunk.id, node.x, node.y)
+      add({ key: node.id, kind: 'node', name: node.name, wx: world.x, wy: world.y, x: node.x, y: node.y, mapId: chunk.id, focus: nodeFocus(node.id) })
     }
   }
-  return best
+  for (const npc of game.config?.npcs ?? []) {
+    if (!chunks.value.some((chunk) => chunk.id === npc.mapId)) continue
+    const world = worldOf(npc.mapId, npc.x, npc.y)
+    add({ key: npc.id, kind: 'npc', name: npc.name, wx: world.x, wy: world.y, x: npc.x, y: npc.y, mapId: npc.mapId, focus: npcFocus(npc.id), npc })
+  }
+  for (const pack of packs.value) {
+    const world = worldOf(mapId.value, pack.x, pack.y)
+    add({ key: pack.templateId, kind: 'pack', name: pack.name, wx: world.x, wy: world.y, x: pack.x, y: pack.y, mapId: mapId.value, id: pack.id, count: pack.count })
+  }
+  for (const person of people.value) {
+    const world = person.worldX != null ? { x: Number(person.worldX), y: Number(person.worldY) } : worldOf(mapId.value, person.x, person.y)
+    add({ key: 'who:' + person.id, kind: 'player', name: person.name, wx: world.x, wy: world.y, x: person.x, y: person.y, mapId: mapId.value, id: person.id })
+  }
+  for (const stall of stalls.value) {
+    const world = stall.worldX != null ? { x: Number(stall.worldX), y: Number(stall.worldY) } : worldOf(mapId.value, stall.x, stall.y)
+    add({ key: stall.id, kind: 'stall', name: stall.name, wx: world.x, wy: world.y, x: stall.x, y: stall.y, mapId: mapId.value, stallId: stall.stallId })
+  }
+  for (const mark of afar.value) {
+    const world = mark.worldX != null ? { x: Number(mark.worldX), y: Number(mark.worldY) } : worldOf(mark.mapId, mark.x, mark.y)
+    add({ key: 'afar:' + mark.id, kind: mark.kind, name: mark.name, wx: world.x, wy: world.y, x: mark.x, y: mark.y, mapId: mark.mapId, id: mark.id, stallId: mark.stallId })
+  }
+  return list
 })
 
-/** 把场景对象转换成百分比位置并做多轮避让，减少标签重叠。 */
 const laid = computed(() => {
-  const width = map.value?.width || 1
-  const height = map.value?.height || 1
-  const marks = [
-    ...portals.value.map((portal: { label: string; x: number; y: number }) => ({ key: `p:${portal.label}`, x: portal.x, y: portal.y })),
-    ...nodes.value.map((node: { id: string; x: number; y: number }) => ({ key: node.id, x: node.x, y: node.y })),
-    ...npcs.value.map((npc: { id: string; x: number; y: number }) => ({ key: npc.id, x: npc.x, y: npc.y })),
-    ...packs.value.map((pack) => ({ key: pack.templateId, x: pack.x, y: pack.y })),
-    ...people.value.map((person: { id: string; x: number; y: number }) => ({ key: 'who:' + person.id, x: person.x, y: person.y })),
-    ...stalls.value.map((stall: { id: string; x: number; y: number }) => ({ key: stall.id, x: stall.x, y: stall.y })),
-    ...seam.value.map((mark: { id: string; x: number; y: number }) => ({ key: 'seam:' + mark.id, x: mark.x, y: mark.y })),
-  ].map((mark) => ({ ...mark, left: (mark.x / width) * 100, top: (mark.y / height) * 100 }))
-  for (let pass = 0; pass < 10; pass++) {
+  const marks = spots.value.map((spot) => ({ ...spot, ...worldToScreen(frame.value, spot.wx, spot.wy) }))
+  for (let pass = 0; pass < 8; pass++) {
     for (let i = 0; i < marks.length; i++) {
       for (let j = i + 1; j < marks.length; j++) {
         const a = marks[i]!
         const b = marks[j]!
-        let dx = b.left - a.left
-        let dy = b.top - a.top
+        let dx = b.x - a.x
+        let dy = b.y - a.y
         const dist = Math.hypot(dx, dy) || 0.01
-        if (dist >= 8) continue
-        const push = (8 - dist) / 2
+        if (dist >= 36) continue
+        const push = (36 - dist) / 2
         dx /= dist
         dy /= dist
-        a.left -= dx * push
-        a.top -= dy * push
-        b.left += dx * push
-        b.top += dy * push
+        a.x -= dx * push
+        a.y -= dy * push
+        b.x += dx * push
+        b.y += dy * push
       }
     }
   }
   const at: Record<string, { left: string; top: string }> = {}
   for (const mark of marks) {
     at[mark.key] = {
-      left: `${Math.min(94, Math.max(6, mark.left))}%`,
-      top: `${Math.min(92, Math.max(8, mark.top))}%`,
+      left: `${Math.min(frame.value.viewW - 8, Math.max(8, mark.x))}px`,
+      top: `${Math.min(frame.value.viewH - 8, Math.max(8, mark.y))}px`,
     }
   }
   return at
 })
 
-/** 读取场景标记的避让布局坐标，缺失标记暂置于场景中央。 */
 function at(key: string) {
   return laid.value[key] ?? { left: '50%', top: '50%' }
 }
-
-/** 复用任务状态规则，生成场景 NPC 的任务高亮标记。 */
 function markOf(npc: { id: string; name: string }) {
   return npcMark(npc, game.profile)
 }
+const hereId = computed(() => {
+  let best = ''
+  let bestDistance = 90
+  for (const spot of spots.value) {
+    if (spot.kind === 'pack' || spot.kind === 'player' || spot.kind === 'stall' || spot.kind === 'monster') continue
+    const distance = Math.hypot(spot.wx - selfWorld.value.x, spot.wy - selfWorld.value.y)
+    if (distance < bestDistance) {
+      bestDistance = distance
+      best = spot.key
+    }
+  }
+  return best
+})
+const dest = computed(() => {
+  const intent = game.intent
+  if (!intent || intent.kind !== 'move') return null
+  if (intent.worldX != null && intent.worldY != null && intent.mapId && intent.mapId !== mapId.value) return { x: intent.worldX, y: intent.worldY }
+  const origin = hereChunk.value
+  if (!origin) return null
+  return { x: origin.originX + intent.x, y: origin.originY + intent.y }
+})
 
-/** 当前移动意图的目的地，供场景显示目标位置。 */
-const dest = computed(() => (game.intent?.kind === 'move' ? game.intent : null))
-
-/** 将服务器世界坐标按地图尺寸换成百分比界面位置。 */
-function pin(x: number, y: number) {
-  const width = map.value?.width || 1
-  const height = map.value?.height || 1
-  return { left: `${(x / width) * 100}%`, top: `${(y / height) * 100}%` }
+const mini = computed(() => {
+  const aspect = 116 / 78
+  const width = frame.value.span * 1.15
+  const height = width / aspect
+  return { minX: frame.value.camX - width / 2, minY: frame.value.camY - height / 2, width, height }
+})
+function mm(wx: number, wy: number) {
+  const box = mini.value
+  return { left: `${((wx - box.minX) / box.width) * 100}%`, top: `${((wy - box.minY) / box.height) * 100}%` }
+}
+function land(chunk: Chunk) {
+  const box = mini.value
+  return {
+    left: `${((chunk.originX - box.minX) / box.width) * 100}%`,
+    top: `${((chunk.originY - box.minY) / box.height) * 100}%`,
+    width: `${(chunk.width / box.width) * 100}%`,
+    height: `${(chunk.height / box.height) * 100}%`,
+  }
+}
+function pinWorld(wx: number, wy: number) {
+  const point = worldToScreen(frame.value, wx, wy)
+  return { left: `${point.x}px`, top: `${point.y}px` }
 }
 
-/** 界外的名字：摊打开购买，旅人发起交易，怪物开战，其余走过去互动。 */
-function openSeam(mark: { kind: string; id: string; name: string; x: number; y: number; stallId?: string; focus?: string }) {
-  if (mark.kind === 'stall') {
-    game.stallFocus = mark.stallId || ''
+function openSpot(spot: Spot) {
+  const here = spot.mapId === mapId.value
+  if (spot.kind === 'portal' || spot.kind === 'node' || spot.kind === 'npc') {
+    if (here) game.go(spot.x, spot.y, 'interact', spot.focus)
+    else game.goAcross(spot.wx, spot.wy, spot.mapId, 'interact', spot.focus)
+    return
+  }
+  if (spot.kind === 'pack' || spot.kind === 'monster') {
+    if (spot.id) game.fight(spot.id)
+    return
+  }
+  if (spot.kind === 'player') {
+    game.callName = spot.name
+    void game.act('/api/trade/invite', { name: spot.name })
+    return
+  }
+  if (spot.kind === 'stall') {
+    game.stallFocus = spot.stallId || ''
     game.panel = 'stall'
-    return
   }
-  if (mark.kind === 'player') {
-    game.callName = mark.name
-    void game.act('/api/trade/invite', { name: mark.name })
-    return
-  }
-  if (mark.kind === 'monster') {
-    game.fight(mark.id)
-    return
-  }
-  game.go(mark.x, mark.y, 'interact', mark.focus)
 }
 
-/** 点在地面上就走过去。点在名字按钮上时留给原来的互动。 */
 function walk(ev: MouseEvent) {
   const target = ev.target as HTMLElement | null
   if (target?.closest('button')) return
-  const el = ev.currentTarget as HTMLElement
+  const el = board.value
+  if (!el || !chunks.value.length) return
   const box = el.getBoundingClientRect()
-  if (!box.width || !box.height || !map.value) return
-  const x = ((ev.clientX - box.left) / box.width) * (map.value.width || 1)
-  const y = ((ev.clientY - box.top) / box.height) * (map.value.height || 1)
-  game.go(x, y)
+  const world = screenToWorld(frame.value, ev.clientX - box.left, ev.clientY - box.top)
+  const chunk = chunkAt(chunks.value, world.x, world.y, mapId.value)
+  if (!chunk) return
+  if (chunk.id === mapId.value) game.go(world.x - chunk.originX, world.y - chunk.originY)
+  else game.goAcross(world.x, world.y, chunk.id)
 }
+
+const floats = computed(() => {
+  const origin = hereChunk.value
+  return game.floats.map((hit) => {
+    const world = origin ? worldOf(mapId.value, hit.x, hit.y) : { x: hit.x, y: hit.y }
+    return { ...hit, wx: world.x, wy: world.y }
+  })
+})
 </script>
 
 <template>
-  <!-- 地图场景摘要：聚合怪物并避让对象标签，点击后提交世界坐标和精确互动目标。 -->
-  <div class="scene" v-if="map" @click="walk">
-    <img class="scene-bg" :src="mapThumb(map.id)" alt="" />
+  <div class="scene" v-if="map" ref="board" @click="walk">
+    <img
+      v-for="chunk in drawChunks"
+      :key="chunk.id"
+      class="chunk-bg"
+      :class="{ here: chunk.id === mapId }"
+      :src="mapThumb(chunk.id)"
+      alt=""
+      :style="chunkBox(chunk)"
+    />
     <div class="hud-plate">
       <img :src="portrait('hero')" alt="" />
       <div>
@@ -174,81 +302,42 @@ function walk(ev: MouseEvent) {
       </div>
     </div>
     <div class="minimap" :title="map.name">
-      <i class="dot you" :style="pin(self.x, self.y)" />
-      <i v-if="dest" class="dot dest" :style="pin(dest.x, dest.y)" />
-      <i v-for="portal in portals" :key="'m' + portal.label + portal.x" class="dot exit" :style="pin(portal.x, portal.y)" />
-      <i v-for="stall in stalls" :key="'ms' + stall.id" class="dot stall" :style="pin(stall.x, stall.y)" />
-      <i
-        v-for="npc in npcs"
-        :key="'m' + npc.id"
-        class="dot"
-        :class="{ turnin: markOf(npc) === 'turnin', offer: markOf(npc) === 'offer' || markOf(npc) === 'talk' }"
-        :style="pin(npc.x, npc.y)"
-      />
+      <i v-for="chunk in chunks" :key="'land' + chunk.id" class="land" :class="{ here: chunk.id === mapId }" :style="land(chunk)" />
+      <i class="dot you" :style="mm(selfWorld.x, selfWorld.y)" />
+      <i v-if="dest" class="dot dest" :style="mm(dest.x, dest.y)" />
+      <i v-for="spot in spots.filter((item) => item.kind === 'portal')" :key="'m' + spot.key" class="dot exit" :style="mm(spot.wx, spot.wy)" />
       <b>{{ map.name }}</b>
     </div>
-    <div class="coords">{{ Math.round(self.x) }} , {{ Math.round(self.y) }}<small v-if="self.worldX != null">世界 {{ Math.round(self.worldX) }} , {{ Math.round(self.worldY) }}</small></div>
-    <div class="pin you" :style="pin(self.x, self.y)">你</div>
-    <div v-if="dest" class="pin dest" :style="pin(dest.x, dest.y)">去</div>
+    <div class="coords">{{ Math.round(self.x) }} , {{ Math.round(self.y) }}<small>世界 {{ Math.round(selfWorld.x) }} , {{ Math.round(selfWorld.y) }}</small></div>
+    <div class="pin you" :style="pinWorld(selfWorld.x, selfWorld.y)">你</div>
+    <div v-if="dest" class="pin dest" :style="pinWorld(dest.x, dest.y)">去</div>
     <span
-      v-for="hit in game.floats"
+      v-for="hit in floats"
       :key="hit.id"
       class="float"
       :class="{ crit: hit.crit, heal: hit.kind === 'heal', miss: hit.kind === 'miss' || hit.kind === 'text', guarded: hit.guarded }"
-      :style="pin(hit.x, hit.y)"
+      :style="pinWorld(hit.wx, hit.wy)"
     >{{ hit.text }}</span>
     <button
-      v-for="portal in portals"
-      :key="portal.label + portal.x"
-      class="tag exit"
-      :class="{ here: hereId === `p:${portal.label}`, goal: guideKey === `p:${portal.label}` }"
-      :style="at(`p:${portal.label}`)"
-      @click="game.go(portal.x, portal.y, 'interact', portalFocus(portal.x, portal.y))"
-    >{{ portal.label }}</button>
-    <button
-      v-for="node in nodes"
-      :key="node.id"
+      v-for="spot in spots"
+      :key="spot.key"
       class="tag"
-      :class="{ here: hereId === node.id }"
-      :style="at(node.id)"
-      @click="game.go(node.x, node.y, 'interact', nodeFocus(node.id))"
-    >{{ node.name }}</button>
-    <button
-      v-for="npc in npcs"
-      :key="npc.id"
-      class="tag"
-      :class="{ here: hereId === npc.id, goal: guideKey === npc.id, turnin: markOf(npc) === 'turnin', offer: markOf(npc) === 'offer' || markOf(npc) === 'talk' }"
-      :style="at(npc.id)"
-      @click="game.go(npc.x, npc.y, 'interact', npcFocus(npc.id))"
-    ><i v-if="markOf(npc) === 'turnin'" class="qmark">?</i><i v-else-if="markOf(npc) === 'offer' || markOf(npc) === 'talk'" class="qmark">!</i>{{ npc.name }}</button>
-    <button
-      v-for="pack in packs"
-      :key="pack.templateId"
-      class="tag foe"
-      :style="at(pack.templateId)"
-      @click="game.fight(pack.id)"
-    >{{ pack.name }}<template v-if="pack.count > 1"> ×{{ pack.count }}</template></button>
-    <button
-      v-for="person in people"
-      :key="person.id"
-      class="tag"
-      :style="at('who:' + person.id)"
-      @click="game.callName = person.name; game.act('/api/trade/invite', { name: person.name })"
-    >{{ person.name }}<small>交易</small></button>
-    <button
-      v-for="stall in stalls"
-      :key="stall.id"
-      class="tag"
-      :style="at(stall.id)"
-      @click="game.stallFocus = stall.stallId; game.panel = 'stall'"
-    >{{ stall.name }}<small>摊</small></button>
-    <button
-      v-for="mark in seam"
-      :key="mark.id"
-      class="tag seam"
-      :style="at('seam:' + mark.id)"
-      @click="openSeam(mark)"
-    >{{ mark.name }}<small>界外</small></button>
+      :class="{
+        exit: spot.kind === 'portal',
+        foe: spot.kind === 'pack' || spot.kind === 'monster',
+        here: hereId === spot.key,
+        goal: guideKey === spot.key,
+        turnin: spot.npc && markOf(spot.npc) === 'turnin',
+        offer: spot.npc && (markOf(spot.npc) === 'offer' || markOf(spot.npc) === 'talk'),
+        seam: spot.mapId !== mapId,
+      }"
+      :style="at(spot.key)"
+      @click="openSpot(spot)"
+    >
+      <i v-if="spot.npc && markOf(spot.npc) === 'turnin'" class="qmark">?</i>
+      <i v-else-if="spot.npc && (markOf(spot.npc) === 'offer' || markOf(spot.npc) === 'talk')" class="qmark">!</i>
+      {{ spot.name }}<template v-if="spot.count && spot.count > 1"> ×{{ spot.count }}</template><small v-if="spot.kind === 'player'">交易</small><small v-else-if="spot.kind === 'stall'">摊</small><small v-else-if="spot.mapId !== mapId">界外</small>
+    </button>
   </div>
   <div v-else class="scene empty-scene">地图还在加载</div>
 </template>

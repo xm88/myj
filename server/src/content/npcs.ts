@@ -103,10 +103,10 @@ export const npcs: NpcDef[] = [
     name: '林守',
     title: '翠叶巡林',
     mapId: 'wild_greenleaf',
-    x: 260,
+    x: 1740,
     y: 560,
     panels: [],
-    lines: ['西边是镇，东边的蘑菇王别一个人硬闯。森林猫喜欢雨。'],
+    lines: ['东边是镇，西边的蘑菇王别一个人硬闯。森林猫喜欢雨。'],
   },
   {
     id: 'npc_fisher',

@@ -254,6 +254,20 @@ button.linkish { border: 0; background: transparent; padding: 0; }
   height: 100%;
   object-fit: fill;
 }
+.chunk-bg {
+  position: absolute;
+  object-fit: fill;
+  pointer-events: none;
+  z-index: 0;
+}
+.chunk-bg.here { z-index: 1; }
+.minimap .land {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-sizing: border-box;
+}
+.minimap .land.here { background: rgba(143, 209, 138, 0.38); }
 .scene-bg.dim { opacity: 0.28; object-fit: cover; }
 .empty-scene { display: grid; place-items: center; color: white; }
 .pin, .tag {
@@ -331,6 +345,7 @@ button.linkish { border: 0; background: transparent; padding: 0; }
   right: 8px;
   width: 116px;
   height: 78px;
+  overflow: hidden;
   background: rgba(12, 32, 28, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.7);
   pointer-events: none;
@@ -894,6 +909,17 @@ button.item { width: 100%; text-align: left; color: inherit; }
   background: #14343a;
 }
 .isle.here img { box-shadow: 0 0 0 3px white; }
+.you-pip {
+  position: absolute;
+  z-index: 3;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: #3a7ec8;
+  border: 1px solid white;
+  pointer-events: none;
+}
 .isle.locked { opacity: 0.6; }
 .isle.locked img { filter: grayscale(0.8); }
 .isle b, .isle small { font-size: 11px; }

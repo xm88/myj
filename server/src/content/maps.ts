@@ -43,6 +43,7 @@ export const maps: MapDef[] = [
       { x: 36, y: 400, to: 'wild_greenleaf', label: '翠叶森林' },
       { x: 1164, y: 400, to: 'wild_redrock', label: '赤岩矿坑' },
       { x: 600, y: 760, to: 'wild_moonlake', label: '月光湖' },
+      { x: 600, y: 36, to: 'wild_thunder', label: '雷鸣峡谷' },
     ],
     nodes: [],
   },
@@ -56,7 +57,7 @@ export const maps: MapDef[] = [
     unlockLevel: 1,
     width: 2000,
     height: 1300,
-    spawn: { x: 180, y: 700 },
+    spawn: { x: 1820, y: 700 },
     theme: { ground: '#1d4634', ground2: '#16382a', accent: '#8fd18a', path: '#3d6a45' },
     blocks: [
       { x: 300, y: 180, w: 90, h: 70, kind: 'rock' },
@@ -93,8 +94,8 @@ export const maps: MapDef[] = [
       { monsterId: 'forest_cat', x: 1000, y: 740, chance: 0.35, max: 1, weather: ['rain'] },
     ],
     portals: [
-      { x: 70, y: 700, to: 'town_starfall', label: '星落镇' },
-      { x: 1920, y: 700, to: 'wild_moonlake', label: '月光湖' },
+      { x: 1930, y: 700, to: 'town_starfall', label: '星落镇' },
+      { x: 1930, y: 1150, to: 'wild_moonlake', label: '月光湖' },
     ],
     nodes: [
       { id: 'gl_herb_1', kind: 'herb', itemId: 'herb_green', x: 620, y: 400, respawnMs: 15000, name: '翠叶草' },
@@ -114,7 +115,7 @@ export const maps: MapDef[] = [
     unlockLevel: 10,
     width: 2000,
     height: 1200,
-    spawn: { x: 160, y: 600 },
+    spawn: { x: 600, y: 180 },
     theme: { ground: '#1a3c48', ground2: '#143240', accent: '#8fd0e0', path: '#3d6870' },
     blocks: [
       { x: 760, y: 300, w: 220, h: 520, kind: 'water' },
@@ -137,8 +138,8 @@ export const maps: MapDef[] = [
       { monsterId: 'moon_cat', x: 980, y: 220, chance: 0.45, max: 1, time: ['night', 'late'] },
     ],
     portals: [
-      { x: 60, y: 600, to: 'town_starfall', label: '星落镇' },
-      { x: 1940, y: 600, to: 'wild_greenleaf', label: '翠叶森林' },
+      { x: 600, y: 40, to: 'town_starfall', label: '星落镇' },
+      { x: 36, y: 130, to: 'wild_greenleaf', label: '翠叶森林' },
     ],
     nodes: [
       { id: 'ml_fish_1', kind: 'fish', itemId: 'fish_silver', x: 700, y: 560, respawnMs: 16000, name: '银鳞鱼' },
@@ -195,7 +196,7 @@ export const maps: MapDef[] = [
     unlockLevel: 20,
     width: 2000,
     height: 1200,
-    spawn: { x: 160, y: 640 },
+    spawn: { x: 1000, y: 1040 },
     theme: { ground: '#2a3148', ground2: '#1e2538', accent: '#8ec6f5', path: '#46506a' },
     blocks: [
       { x: 600, y: 200, w: 80, h: 200, kind: 'rock' },
@@ -215,7 +216,10 @@ export const maps: MapDef[] = [
       { monsterId: 'thunder_cat', x: 1480, y: 360, chance: 0.22, max: 1 },
       { monsterId: 'thunder_cat', x: 1480, y: 360, chance: 0.55, max: 1, weather: ['storm'] },
     ],
-    portals: [{ x: 50, y: 640, to: 'town_starfall', label: '星落镇' }],
+    portals: [
+      { x: 1000, y: 1164, to: 'town_starfall', label: '星落镇' },
+      { x: 1000, y: 36, to: 'wild_windhigh', label: '风鸣高地' },
+    ],
     nodes: [
       { id: 'td_ore_1', kind: 'thunder_ore', itemId: 'thunder_ore', x: 760, y: 640, respawnMs: 22000, name: '雷鸣矿' },
       { id: 'td_ore_2', kind: 'thunder_ore', itemId: 'thunder_ore', x: 1400, y: 240, respawnMs: 22000, name: '雷鸣矿' },
@@ -231,7 +235,7 @@ export const maps: MapDef[] = [
     unlockLevel: 25,
     width: 2100,
     height: 1300,
-    spawn: { x: 180, y: 1000 },
+    spawn: { x: 1050, y: 1120 },
     theme: { ground: '#3d4a38', ground2: '#2e3a2c', accent: '#d5e7b0', path: '#6a7a58' },
     blocks: [
       { x: 800, y: 400, w: 160, h: 80, kind: 'rock' },
@@ -251,7 +255,7 @@ export const maps: MapDef[] = [
       { monsterId: 'gale_sprite', x: 1100, y: 240, chance: 0.2, max: 1 },
       { monsterId: 'gale_sprite', x: 1100, y: 240, chance: 0.5, max: 1, weather: ['wind'] },
     ],
-    portals: [{ x: 60, y: 1100, to: 'town_starfall', label: '星落镇' }],
+    portals: [{ x: 1050, y: 1264, to: 'wild_thunder', label: '雷鸣峡谷' }],
     nodes: [
       { id: 'wh_feather', kind: 'explore', itemId: 'wind_feather', x: 640, y: 360, respawnMs: 20000, name: '风羽' },
     ],

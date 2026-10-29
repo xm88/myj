@@ -35,6 +35,7 @@ type Bout struct {
 	Await     string                   `json:"await"`
 	WaitSince float64                  `json:"waitSince"`
 	Ended     float64                  `json:"ended"`
+	Leader    string                   `json:"leader"`
 	Order     []BoutActor              `json:"order"`
 	Players   map[string]bool          `json:"players"`
 	Monsters  map[string]bool          `json:"monsters"`
@@ -119,6 +120,7 @@ func (a *App) engage(id string) {
 			a.addBoutMonster(b, inst, other)
 		}
 	}
+	b.Leader = id
 	b.Order = a.boutOrder(b)
 	a.bouts[b.ID] = b
 	halt(l, false)
@@ -234,6 +236,12 @@ func (a *App) advance(b *Bout) {
 		if q := b.Queued[actor.ID]; q != nil {
 			delete(b.Queued, actor.ID)
 			a.playerTurn(b, actor.ID, q)
+			b.Index++
+			continue
+		}
+		// 被拉进这场的队友立刻由同伴 AI 出手。开战的人仍自己选。
+		if b.Leader != "" && actor.ID != b.Leader {
+			a.playerTurn(b, actor.ID, a.companionAction(b, actor.ID))
 			b.Index++
 			continue
 		}
@@ -652,11 +660,11 @@ func (a *App) forfeitBout(id string) {
 	}
 }
 
-// tickBouts 长时间不操作就自动普攻，结束画面保留一小会儿再拆掉。
+// tickBouts 长时间不操作就交给同伴 AI，结束画面保留一小会儿再拆掉。
 func (a *App) tickBouts(t float64) {
 	for _, b := range a.bouts {
 		if b.Phase == "choose" && b.Await != "" && b.WaitSince > 0 && t-b.WaitSince > 20000 {
-			b.Queued[b.Await] = M{"action": "attack"}
+			b.Queued[b.Await] = a.companionAction(b, b.Await)
 			b.Await = ""
 			a.advance(b)
 			continue
@@ -702,7 +710,7 @@ func (a *App) boutView(b *Bout, pid string) M {
 		for _, ef := range b.Effects[actor.ID] {
 			effects = append(effects, M{"id": ef.ID, "name": ef.Name, "rounds": ef.Rounds})
 		}
-		order = append(order, M{"id": actor.ID, "kind": actor.Kind, "name": actor.Name, "speed": actor.Speed, "hp": hp, "maxHp": maxHp, "alive": alive, "effects": effects})
+		order = append(order, M{"id": actor.ID, "kind": actor.Kind, "name": actor.Name, "speed": actor.Speed, "hp": hp, "maxHp": maxHp, "alive": alive, "effects": effects, "companion": actor.Kind == "player" && b.Leader != "" && actor.ID != b.Leader})
 	}
 	awaitName := ""
 	for _, actor := range b.Order {

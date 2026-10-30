@@ -350,6 +350,11 @@ function goNpc(id: string) {
   else game.panel = 'travel'
 }
 
+function whole(value: unknown) {
+  const n = Number(value)
+  return Number.isFinite(n) ? Math.round(n) : 0
+}
+
 /** 切换当前选中实例，再次点击同一实例时取消选中。 */
 function pick(id: string) {
   pickedId.value = pickedId.value === id ? null : id
@@ -359,6 +364,7 @@ function pick(id: string) {
 
 <template>
   <!-- 功能弹窗：统一角色、装备、派遣、制造、拍卖、公会、社交、任务和队伍操作。 -->
+  <Transition name="sheet">
   <section v-if="game.panel" class="panel" :class="['win-' + game.panel, { wide: game.panel === 'travel' }]">
     <div class="panel-head">
       <div class="panel-title">
@@ -666,17 +672,17 @@ function pick(id: string) {
                 <div class="mh-bar">
                   <em>气血</em>
                   <i><b class="hp" :style="{ width: barWidth(who.hp, who.maxHp) }" /></i>
-                  <small>{{ who.hp }}/{{ who.maxHp }}</small>
+                  <small>{{ whole(who.hp) }}/{{ whole(who.maxHp) }}</small>
                 </div>
                 <div class="mh-bar">
                   <em>魔法</em>
                   <i><b class="mp" :style="{ width: barWidth(who.mp, who.maxMp) }" /></i>
-                  <small>{{ who.mp }}/{{ who.maxMp }}</small>
+                  <small>{{ whole(who.mp) }}/{{ whole(who.maxMp) }}</small>
                 </div>
                 <div class="mh-bar">
                   <em>经验</em>
                   <i><b class="xp" :style="{ width: barWidth(who.exp, who.expMax) }" /></i>
-                  <small>{{ who.exp }}/{{ who.expMax }}</small>
+                  <small>{{ whole(who.exp) }}/{{ whole(who.expMax) }}</small>
                 </div>
               </div>
             </div>
@@ -702,7 +708,7 @@ function pick(id: string) {
             </div>
           </div>
           <div v-for="[label, track] in lifeTracks" :key="label" class="track">
-            <b>{{ label }} {{ track.level }} 级<small> {{ track.exp }}/{{ track.expMax }}</small></b>
+            <b>{{ label }} {{ track.level }} 级<small> {{ whole(track.exp) }}/{{ whole(track.expMax) }}</small></b>
             <div class="qbar light"><i :style="{ width: trackWidth(track) }" /></div>
           </div>
           <h3>身上</h3>
@@ -832,4 +838,5 @@ function pick(id: string) {
       </div>
     </div>
   </section>
+  </Transition>
 </template>

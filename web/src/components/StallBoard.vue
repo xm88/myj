@@ -12,6 +12,8 @@ const title = ref('路边摊')
 const price = ref(12)
 const count = ref(1)
 const picked = ref('')
+const listedPop = ref(false)
+let listTimer = 0
 
 const mine = () => game.profile?.stall
 /** 和拍卖同一档旅税。买一件时按这一件分到的价钱计算，向下取整。 */
@@ -60,6 +62,11 @@ async function openStall() {
 
 async function listGoods() {
   if (!picked.value) return
+  listedPop.value = true
+  window.clearTimeout(listTimer)
+  listTimer = window.setTimeout(() => {
+    listedPop.value = false
+  }, 380)
   await game.act('/api/stall/list', { itemId: picked.value, count: count.value, price: price.value })
   picked.value = ''
   await refresh()
@@ -108,7 +115,7 @@ async function buy(id: string) {
         </select>
         <input v-model.number="count" type="number" min="1" max="99" />
         <input v-model.number="price" type="number" min="1" />
-        <button class="btn" :disabled="!picked" @click="listGoods">上架</button>
+        <button class="btn" :class="{ pop: listedPop }" :disabled="!picked" @click="listGoods">上架</button>
         <button class="btn danger" @click="closeStall">收摊</button>
       </div>
       <p v-if="picked" class="quote">

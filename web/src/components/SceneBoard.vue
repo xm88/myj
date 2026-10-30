@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /** 自由镜头：当前地块和相邻地块按世界原点铺开，镜头跟着人走。副本仍只有自己这一张。 */
 
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { nearestPacks } from '../game/crowd'
 import { questGuide } from '../game/guide'
 import { mapThumb, portrait } from '../game/art'
+import { useDropFlash } from '../game/motion'
 import { chunkAt, frameOf, screenToWorld, worldToScreen, type Chunk } from '../game/camera'
 import { nodeFocus, npcFocus, npcMark, portalFocus } from '../game/npc'
 import { useGame } from '../stores/game'
@@ -30,6 +31,7 @@ onMounted(() => {
 onUnmounted(() => {
   observer?.disconnect()
   window.clearTimeout(clickTimer)
+  window.clearTimeout(veilTimer)
 })
 
 const mapId = computed(() => game.snap?.mapId || game.profile?.mapId || 'town_starfall')
@@ -37,6 +39,7 @@ const map = computed(() => game.config?.maps?.find((item: { id: string }) => ite
 const self = computed(() => game.snap?.self ?? { x: game.profile?.x ?? 0, y: game.profile?.y ?? 0, hp: 0, maxHp: 0, mp: 0, maxMp: 0, worldX: undefined as number | undefined, worldY: undefined as number | undefined, originX: 0, originY: 0 })
 const pet = computed(() => game.profile?.pets?.find((item: { active: boolean }) => item.active) ?? null)
 const hpPct = computed(() => (self.value.maxHp ? Math.max(0, (self.value.hp / self.value.maxHp) * 100) : 0))
+const hpHurt = useDropFlash(() => Number(self.value?.hp))
 const mpPct = computed(() => (self.value.maxMp ? Math.max(0, (self.value.mp / self.value.maxMp) * 100) : 0))
 const expPct = computed(() => (game.profile?.expMax ? Math.max(0, (Number(game.profile.exp) / Number(game.profile.expMax)) * 100) : 0))
 
@@ -69,6 +72,31 @@ const selfWorld = computed(() => {
   if (self.value.worldX != null && self.value.worldY != null) return { x: Number(self.value.worldX), y: Number(self.value.worldY) }
   const origin = hereChunk.value
   return { x: (origin?.originX ?? 0) + Number(self.value.x), y: (origin?.originY ?? 0) + Number(self.value.y) }
+})
+/** 走路时箭头跟着位移转，镜头计算不动。 */
+const facing = ref('down')
+const walking = computed(() => {
+  const kind = game.intent?.kind
+  return kind === 'move' || kind === 'fight' || kind === 'capture'
+})
+const veilKey = ref(0)
+let veilTimer = 0
+watch(() => `${Math.round(selfWorld.value.x * 10)}:${Math.round(selfWorld.value.y * 10)}`, (next, prev) => {
+  if (!prev) return
+  const [x, y] = next.split(':').map(Number)
+  const [px, py] = prev.split(':').map(Number)
+  const dx = x - px
+  const dy = y - py
+  if (Math.abs(dx) + Math.abs(dy) < 3) return
+  facing.value = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up')
+})
+watch(mapId, (next, prev) => {
+  if (!prev || next === prev) return
+  veilKey.value = Date.now()
+  window.clearTimeout(veilTimer)
+  veilTimer = window.setTimeout(() => {
+    veilKey.value = 0
+  }, 700)
 })
 const frame = computed(() => frameOf(selfWorld.value.x, selfWorld.value.y, view.value.w, view.value.h, Number(game.snap?.camera) || 1100))
 const drawChunks = computed(() => [...chunks.value].sort((a, b) => Number(a.id === mapId.value) - Number(b.id === mapId.value)))
@@ -323,7 +351,7 @@ const floats = computed(() => {
       <div>
         <b>{{ game.profile?.name }} <small>Lv.{{ game.profile?.level }}</small></b>
         <div class="hud-meters">
-          <span title="生命"><em>血</em><span class="bar"><i class="hp" :style="{ width: hpPct + '%' }" /></span></span>
+          <span title="生命"><em>血</em><span class="bar" :class="{ hurt: hpHurt }"><i class="hp" :style="{ width: hpPct + '%' }" /></span></span>
           <span title="法力"><em>法</em><span class="bar"><i class="mp" :style="{ width: mpPct + '%' }" /></span></span>
           <span title="经验"><em>经</em><span class="bar"><i class="xp" :style="{ width: expPct + '%' }" /></span></span>
         </div>
@@ -343,7 +371,8 @@ const floats = computed(() => {
     <div class="coords">{{ Math.round(self.x) }} , {{ Math.round(self.y) }}<small>世界 {{ Math.round(selfWorld.x) }} , {{ Math.round(selfWorld.y) }}</small></div>
     <div v-if="gateHint" class="gate-banner">走近「{{ gateHint.name }}」就会进入下一片</div>
     <span v-if="clickFx" :key="clickFx.id" class="click-fx" :style="{ left: clickFx.x + 'px', top: clickFx.y + 'px' }" />
-    <div class="pin you" :style="pinWorld(selfWorld.x, selfWorld.y)">你</div>
+    <div v-if="veilKey" :key="veilKey" class="map-veil" />
+    <div class="pin you" :class="['face-' + facing, { step: walking }]" :style="pinWorld(selfWorld.x, selfWorld.y)"><i class="face" aria-hidden="true" />你</div>
     <div v-if="dest" class="pin dest" :style="pinWorld(dest.x, dest.y)">去</div>
     <span
       v-for="hit in floats"

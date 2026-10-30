@@ -8,6 +8,17 @@ const game = useGame()
 const gold = ref(0)
 const picked = ref('')
 const count = ref(1)
+const lockPop = ref(false)
+let lockTimer = 0
+
+function lockTrade() {
+  lockPop.value = true
+  window.clearTimeout(lockTimer)
+  lockTimer = window.setTimeout(() => {
+    lockPop.value = false
+  }, 380)
+  void game.act('/api/trade/lock')
+}
 
 const bag = () => (game.profile?.bag ?? []).filter((item: { bound?: boolean; kind: string }) => !item.bound && item.kind !== 'quest')
 
@@ -88,7 +99,7 @@ async function removeItem(itemId: string) {
     <div class="row">
       <input v-model.number="gold" type="number" min="0" :disabled="game.trade.you?.locked" />
       <button class="btn" :disabled="game.trade.you?.locked" @click="offerGold">放入金币</button>
-      <button class="btn" :class="{ lantern: game.trade.you?.locked }" @click="game.act('/api/trade/lock')">{{ game.trade.you?.locked ? '已锁定' : '锁定' }}</button>
+      <button class="btn" :class="{ lantern: game.trade.you?.locked, pop: lockPop }" @click="lockTrade">{{ game.trade.you?.locked ? '已锁定' : '锁定' }}</button>
       <button class="btn lantern" :disabled="!game.trade.ready" @click="game.act('/api/trade/confirm')">确认</button>
       <button class="btn danger" @click="game.act('/api/trade/cancel')">取消</button>
     </div>

@@ -89,9 +89,9 @@ async function create() {
       <img class="emblem" src="/art/fi-ui-emblem.jpg?v=q2" alt="" />
       <h1>进入游戏</h1>
       <p class="lede">点地名走路，点名字旁边的按钮对话或战斗。同一个角色，也可以用助手收派遣。</p>
-      <div class="toasts" style="position:static;margin-bottom:12px">
+      <TransitionGroup name="toast" tag="div" class="toasts" style="position:static;margin-bottom:12px">
         <div v-for="item in game.toasts" :key="item.id" class="toast">{{ item.text }}</div>
-      </div>
+      </TransitionGroup>
       <div class="row">
         <label class="field" style="flex:1"><span>邮箱</span><input v-model="email" autocomplete="username" /></label>
         <label class="field" style="flex:1"><span>密码</span><input v-model="password" type="password" autocomplete="current-password" /></label>

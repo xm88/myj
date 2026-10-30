@@ -1,9 +1,10 @@
 <script setup lang="ts">
 /** 战斗界面：没开战时仍显示出手拍；开战后面板改成回合、出手顺序和动作。 */
 
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import IconMedal from './IconMedal.vue'
 import { mapThumb, portrait } from '../game/art'
+import { useDropFlash } from '../game/motion'
 import { useGame } from '../stores/game'
 
 /** 共享游戏状态仓库，组件通过它读取服务端数据和提交操作。 */
@@ -26,6 +27,11 @@ const self = computed(() => game.snap?.self)
 const bout = computed(() => game.snap?.bout ?? null)
 /** 将自身当前生命换算成血条显示百分比。 */
 const hpPct = computed(() => (self.value ? Math.max(0, (self.value.hp / self.value.maxHp) * 100) : 0))
+const selfHurt = useDropFlash(() => Number(self.value?.hp))
+const foeHurt = ref(false)
+let foeTimer = 0
+let engageTimer = 0
+const engage = ref(false)
 /** 将自身当前法力换算成法力条显示百分比。 */
 const mpPct = computed(() => (self.value ? Math.max(0, (self.value.mp / self.value.maxMp) * 100) : 0))
 /** 将目标当前生命换算成目标血条百分比。 */
@@ -82,8 +88,30 @@ const lastName = ref('')
 watch(foe, (next) => {
   if (next?.name) lastName.value = next.name
 })
-watch(bout, (next) => {
+watch(() => (foe.value?.id ? `${foe.value.id}:${foe.value.hp}` : ''), (next, prev) => {
+  if (!next || !prev) return
+  const [id, hp] = next.split(':')
+  const [prevId, prevHp] = prev.split(':')
+  if (id !== prevId || !Number.isFinite(Number(hp)) || !Number.isFinite(Number(prevHp)) || Number(hp) >= Number(prevHp)) return
+  foeHurt.value = true
+  window.clearTimeout(foeTimer)
+  foeTimer = window.setTimeout(() => {
+    foeHurt.value = false
+  }, 320)
+})
+watch(bout, (next, prev) => {
   if (!next?.yours) menu.value = ''
+  if (next && !prev) {
+    engage.value = true
+    window.clearTimeout(engageTimer)
+    engageTimer = window.setTimeout(() => {
+      engage.value = false
+    }, 680)
+  }
+})
+onUnmounted(() => {
+  window.clearTimeout(foeTimer)
+  window.clearTimeout(engageTimer)
 })
 
 /** 回合提示：轮到谁，或这一场已经怎么结束。 */
@@ -95,6 +123,11 @@ const turnText = computed(() => {
   if (bout.value.yours) return `第 ${bout.value.round} 回合 · 轮到你`
   return `第 ${bout.value.round} 回合 · ${bout.value.awaitName || '对方'} 行动`
 })
+
+function whole(value: unknown) {
+  const n = Number(value)
+  return Number.isFinite(n) ? Math.round(n) : 0
+}
 
 function act(action: string, extra: Record<string, unknown> = {}) {
   if (!yours.value) return
@@ -112,14 +145,14 @@ function fxKind(id: string) {
 
 <template>
   <!-- 战斗界面：展示服务器目标、生命法力、主战灵伴与契约入口，客户端仅提交动作。 -->
-  <div class="battle" :class="{ live: !!bout, yours }">
+  <div class="battle" :class="{ live: !!bout, yours, engage }">
     <img class="scene-bg dim" :src="mapThumb(mapId)" alt="" />
-    <div class="fighter" :class="{ acting: bout && bout.await === game.profile?.id }">
+    <div class="fighter" :class="{ acting: bout && bout.await === game.profile?.id, hurt: selfHurt }">
       <IconMedal class="portrait" :src="portrait('hero')" />
       <b>{{ game.profile?.name }}</b>
       <small>{{ game.profile?.weaponName }} · Lv.{{ game.profile?.level }}</small>
-      <div class="bar"><i class="hp" :style="{ width: hpPct + '%' }" /></div>
-      <small>{{ self?.hp ?? 0 }} / {{ self?.maxHp ?? 0 }}</small>
+      <div class="bar" :class="{ hurt: selfHurt }"><i class="hp" :style="{ width: hpPct + '%' }" /></div>
+      <small>{{ whole(self?.hp) }} / {{ whole(self?.maxHp) }}</small>
       <span v-for="hit in hits(game.profile?.id)" :key="hit.id" class="float" :class="{ crit: hit.crit, heal: hit.kind === 'heal', miss: hit.kind === 'miss', guarded: hit.guarded }">{{ hit.text }}</span>
       <div class="bar"><i class="mp" :style="{ width: mpPct + '%' }" /></div>
       <div v-if="selfEffects.length" class="effects">
@@ -182,14 +215,14 @@ function fxKind(id: string) {
         <button class="btn lantern" :disabled="!canCapture || !foe" @click="foe && game.capture(foe.id)">契约</button>
       </div>
     </div>
-    <div class="fighter" :class="{ acting: bout && foe && bout.await === foe.id, marked: yours && foe }">
+    <div class="fighter" :class="{ acting: bout && foe && bout.await === foe.id, marked: yours && foe, hurt: foeHurt }">
       <template v-if="foe">
         <small v-if="yours" class="target-flag">当前目标</small>
         <IconMedal class="portrait" :src="portrait(foe.templateId || 'slime')" />
         <b>{{ foe.name }}</b>
         <small>{{ foeLevel ? foeLevel + '级 · ' : '' }}{{ foe.alive === false ? '已被击败' : (foe.capturable ? '可以契约' : '战斗中') }}</small>
-        <div class="bar"><i class="hp foe" :style="{ width: foePct + '%' }" /></div>
-        <small>{{ foe.hp }} / {{ foe.maxHp }}</small>
+        <div class="bar" :class="{ hurt: foeHurt }"><i class="hp foe" :style="{ width: foePct + '%' }" /></div>
+        <small>{{ whole(foe.hp) }} / {{ whole(foe.maxHp) }}</small>
         <div v-if="foeEffects.length" class="effects">
           <em v-for="ef in foeEffects" :key="ef.id" class="fx" :class="fxKind(ef.id)"><b>{{ ef.name }}</b><small>{{ ef.rounds }}</small></em>
         </div>

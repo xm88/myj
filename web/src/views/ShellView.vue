@@ -5,6 +5,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from '../api'
 import { nearestPacks } from '../game/crowd'
 import { describeQuest, questTracks } from '../game/guide'
+import { useDropFlash } from '../game/motion'
 import { closestSpot, focusReach, nodeFocus, npcAction, npcFocus, npcHint, npcMark, portalFocus } from '../game/npc'
 import AssistantView from '../components/AssistantView.vue'
 import BattleBoard from '../components/BattleBoard.vue'
@@ -37,6 +38,25 @@ const hpPct = computed(() => (self.value ? Math.max(0, (self.value.hp / self.val
 const mpPct = computed(() => (self.value ? Math.max(0, (self.value.mp / self.value.maxMp) * 100) : 0))
 /** 角色经验相对于升级需求的进度条百分比。 */
 const expPct = computed(() => (game.profile ? Math.max(0, (game.profile.exp / game.profile.expMax) * 100) : 0))
+/** 自己掉血时，顶栏血条亮一下。 */
+const hpHurt = useDropFlash(() => Number(self.value?.hp))
+/** 技能栏刚按下去的槽位，只负责出手那一下脉冲。 */
+const castKey = ref('')
+let castTimer = 0
+
+function whole(value: unknown) {
+  const n = Number(value)
+  return Number.isFinite(n) ? Math.round(n) : 0
+}
+
+function castSkill(slot: number | 'pet') {
+  castKey.value = String(slot)
+  window.clearTimeout(castTimer)
+  castTimer = window.setTimeout(() => {
+    castKey.value = ''
+  }, 420)
+  game.send({ type: 'skill', slot })
+}
 
 /** NPC 名称、位置、对话和服务入口的配置清单。 */
 const npcs = computed(() => (game.config?.npcs ?? []).filter((npc: { mapId: string }) => npc.mapId === mapId.value))
@@ -118,9 +138,11 @@ const skills = computed(() => {
   const loadout: string[] = game.profile?.loadout ?? []
   const all = game.config?.skills ?? []
   return loadout.map((id: string, index: number) => {
-    const skill = all.find((item: { id: string }) => item.id === id)
+    const skill = all.find((item: { id: string; cooldown?: number }) => item.id === id)
     const left = game.snap?.cooldowns?.[id] ?? 0
-    return { index: index + 1, name: skill?.name ?? '技能', left, mp: skill?.mp ?? 0, desc: skill?.desc ?? '' }
+    const max = Number(skill?.cooldown) || 0
+    const ratio = max > 0 ? Math.max(0, Math.min(1, left / max)) : (left > 0 ? 1 : 0)
+    return { index: index + 1, name: skill?.name ?? '技能', left, ratio, mp: skill?.mp ?? 0, desc: skill?.desc ?? '' }
   })
 })
 
@@ -315,9 +337,9 @@ function onKey(ev: KeyboardEvent) {
   }
   if (ev.key >= '1' && ev.key <= '4') {
     ev.preventDefault()
-    game.send({ type: 'skill', slot: Number(ev.key) })
+    castSkill(Number(ev.key))
   }
-  if (ev.key.toLowerCase() === 'f') game.send({ type: 'skill', slot: 'pet' })
+  if (ev.key.toLowerCase() === 'f') castSkill('pet')
 }
 
 /** 已有攻击目标时从地图标题切换回战斗视图。 */
@@ -350,13 +372,18 @@ onMounted(() => {
   }).catch(() => {})
   void loadChannel('world')
 })
-onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKey)
+  window.clearTimeout(castTimer)
+})
 </script>
 
 <template>
   <!-- 冒险主界面：状态栏、附近名册、场景与战斗切换、对话、快捷键、任务引导和聊天。 -->
-  <AssistantView v-if="game.mode === 'assistant'" />
-  <div v-else class="desk">
+  <Transition name="assist">
+    <AssistantView v-if="game.mode === 'assistant'" />
+  </Transition>
+  <div class="desk" :class="{ tucked: game.mode === 'assistant' }" :inert="game.mode === 'assistant'">
     <header class="mast">
       <img class="mark" src="/art/fi-ui-emblem.jpg?v=q2" alt="" />
       <b class="brand">浮岛旅团</b>
@@ -391,10 +418,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         <button v-if="near && !game.dialog" class="near-act" title="按 E" @click="interactNear">{{ near.prompt }}</button>
         <span v-if="moving" class="moving">{{ moving }}</span>
       </div>
-      <div class="vitals" :title="'生命 ' + (self?.hp ?? 0) + '/' + (self?.maxHp ?? 0) + '  法力 ' + (self?.mp ?? 0) + '/' + (self?.maxMp ?? 0) + '  经验 ' + (game.profile?.exp ?? 0) + '/' + (game.profile?.expMax ?? 0)">
-        <span class="meter hp"><em>血</em><i><b :style="{ width: hpPct + '%' }" /></i><small>{{ self?.hp ?? 0 }}/{{ self?.maxHp ?? 0 }}</small></span>
-        <span class="meter mp"><em>法</em><i><b :style="{ width: mpPct + '%' }" /></i><small>{{ self?.mp ?? 0 }}/{{ self?.maxMp ?? 0 }}</small></span>
-        <span class="meter xp"><em>经</em><i><b :style="{ width: expPct + '%' }" /></i><small>{{ game.profile?.exp ?? 0 }}/{{ game.profile?.expMax ?? 0 }}</small></span>
+      <div class="vitals" :title="'生命 ' + whole(self?.hp) + '/' + whole(self?.maxHp) + '  法力 ' + whole(self?.mp) + '/' + whole(self?.maxMp) + '  经验 ' + whole(game.profile?.exp) + '/' + whole(game.profile?.expMax)">
+        <span class="meter hp" :class="{ hurt: hpHurt }"><em>血</em><i><b :style="{ width: hpPct + '%' }" /></i><small>{{ whole(self?.hp) }}/{{ whole(self?.maxHp) }}</small></span>
+        <span class="meter mp"><em>法</em><i><b :style="{ width: mpPct + '%' }" /></i><small>{{ whole(self?.mp) }}/{{ whole(self?.maxMp) }}</small></span>
+        <span class="meter xp"><em>经</em><i><b :style="{ width: expPct + '%' }" /></i><small>{{ whole(game.profile?.exp) }}/{{ whole(game.profile?.expMax) }}</small></span>
       </div>
       <div class="map-meta">
         <span class="status">宠物 {{ pet ? pet.name + ' Lv.' + pet.level : '无' }}</span>
@@ -454,7 +481,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         </template>
       </aside>
 
-      <button v-if="game.panel" class="scrim" aria-label="关闭窗口" @click="game.panel = ''" />
+      <Transition name="fade">
+        <button v-if="game.panel" class="scrim" aria-label="关闭窗口" @click="game.panel = ''" />
+      </Transition>
+      <Transition name="sheet">
       <div v-if="game.dialog" class="dialog" role="dialog" :aria-label="game.dialog.name">
         <header>
           <b>{{ game.dialog.name }}<small> · {{ game.dialog.title }}</small></b>
@@ -493,26 +523,29 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
           </div>
         </div>
       </div>
+      </Transition>
+      <Transition name="sheet">
       <section v-if="help" class="note">
         <header><b>怎么玩</b><button @click="help = false">关闭</button></header>
-        <p>蓝色底的地名是你现在站的地方。点地面会走过去，点白字名字也一样，红字会走进另一张地图。右上角小地图框着这一带，左下角是坐标。顶上三条是生命、法力和经验。</p>
+        <p>木框里的地名是你现在站的地方。点地面会走过去，点名字也一样，红字会走进另一张地图。右上角小地图框着这一带，左下角是坐标。顶上三条是生命、法力和经验。</p>
         <p>和人说话、采集，走近按 E，或点名字后面的按钮。问号是可以交差，叹号是有任务。右边的任务追踪点一下就会过去。对话打开后，数字键选事项，Enter 交付或接受，Esc 离开。</p>
         <p>点怪物会走近并开战。开战之后按速度轮流出手。轮到你时，中间的动作会亮起来，出手顺序里高亮的是当前这一手。可以攻击、放技能、吃药、防御或逃跑。G 在回合里是防御，平时仍是守势。连招会在轮到你时自动攻击。打到三成血以下，再点「契约」。</p>
         <p>战斗时如果想先看地图，点「返回地图」。镜头跟着你走过相邻的地块，走到门外就进下一片，不会被拉回入口。副本仍是单独一张。摆摊和当面交易都要站在旁边，成交扣和拍卖一样的旅税。</p>
         <p>点自己的名字，或下面的「角色」，可以看属性和换技能。技能栏一次放 4 个：先点栏位，再点要换上的技能。</p>
         <p>下面一排还有任务、道具、宠物、跳市和工会。聊天选区域、世界或工会。点别的旅人「交谈」，会在区域频道叫他。</p>
       </section>
+      </Transition>
       <Panels />
-      <div class="toasts">
+      <TransitionGroup name="toast" tag="div" class="toasts">
         <div v-for="item in game.toasts" :key="item.id" class="toast">{{ item.text }}</div>
-      </div>
+      </TransitionGroup>
     </div>
 
     <div class="dock">
     <div class="exp" :title="'经验 ' + (game.profile?.exp ?? 0) + ' / ' + (game.profile?.expMax ?? 0)">
       <em>经验</em>
       <i :style="{ width: expPct + '%' }" />
-      <small>{{ game.profile?.exp ?? 0 }}/{{ game.profile?.expMax ?? 0 }}</small>
+      <small>{{ whole(game.profile?.exp) }}/{{ whole(game.profile?.expMax) }}</small>
     </div>
 
     <footer class="hotbar">
@@ -520,15 +553,17 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         v-for="skill in skills"
         :key="skill.index"
         class="skill"
+        :class="{ cooling: skill.left > 0, cast: castKey === String(skill.index) }"
+        :style="skill.left > 0 ? { '--cd': skill.ratio } : undefined"
         :title="skill.desc + (skill.mp ? ' · 法力 ' + skill.mp : '')"
         :disabled="skill.left > 0"
-        @click="game.send({ type: 'skill', slot: skill.index })"
+        @click="castSkill(skill.index)"
       >
         <small>{{ skill.index }}<template v-if="skill.mp"> · {{ skill.mp }}</template></small>
         <span>{{ skill.name }}</span>
         <b v-if="skill.left > 0" class="cd">{{ Math.ceil(skill.left / 1000) }}</b>
       </button>
-      <button class="skill" title="灵伴技" @click="game.send({ type: 'skill', slot: 'pet' })"><small>F</small><span>灵伴</span></button>
+      <button class="skill" :class="{ cast: castKey === 'pet' }" title="灵伴技" @click="castSkill('pet')"><small>F</small><span>灵伴</span></button>
       <button class="skill guard" :class="{ on: (self?.guard ?? 0) > 0 }" title="这一拍少挨打，也暂不出手" @click="game.guard()"><small>G</small><span>守势</span></button>
       <button class="skill" :class="{ on: game.autoFight }" title="轮到你时自动攻击" @click="game.setAuto(!game.autoFight)"><small>连</small><span>{{ game.autoFight ? '连招中' : '连招' }}</span></button>
       <button v-for="item in quickItems" :key="item.id" class="skill drink" :title="'使用 ' + item.name" @click="game.act('/api/use', { itemId: item.id })">

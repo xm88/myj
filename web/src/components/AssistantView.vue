@@ -49,20 +49,34 @@ function remain(endsAt: number) {
         <div>金币 {{ game.profile.gold }} · {{ game.profile.weather?.name }} · {{ game.profile.periodName }}</div>
         <p class="lede">{{ game.profile.weather?.desc }}</p>
       </section>
-      <section class="hero" v-for="job in game.profile?.dispatches ?? []" :key="job.id">
-        <b>{{ job.petName }} · {{ job.nodeName }}</b>
-        <div class="progress"><i :style="{ width: job.ready ? '100%' : '55%' }" /></div>
-        <div>{{ job.ready ? '已经回来了' : '剩余 ' + remain(job.endsAt) }}</div>
-        <div class="row">
-          <button v-if="game.profile.devTools && !job.ready" class="btn light" @click="game.act('/api/dispatches/finish', { id: job.id })">测试：立刻完成</button>
-          <button class="btn lantern" :disabled="!job.ready" @click="game.act('/api/dispatches/claim', { id: job.id })">领取</button>
-        </div>
-      </section>
-      <div v-if="!game.profile?.dispatches?.length" class="tile">还没有派遣。回冒险找莎雅，或在派遣面板把灵伴派出去。</div>
-      <div class="grid" style="margin-top:12px">
-        <button class="tile" @click="game.setMode('play'); game.panel = 'dispatch'"><b>灵伴</b><div class="muted">{{ game.profile?.pets?.length ?? 0 }} 只</div></button>
-        <button class="tile" @click="game.setMode('play'); game.panel = 'market'"><b>拍卖</b><div class="muted">处理材料</div></button>
-        <button class="tile" @click="game.setMode('play'); game.panel = 'guild'"><b>公会</b><div class="muted">{{ game.profile?.guild?.name ?? '还没有' }}</div></button>
+      <div class="phone-cards">
+        <section class="phone-card">
+          <div class="card-top">
+            <b>派遣</b>
+            <small>灵伴 {{ game.profile?.pets?.length ?? 0 }} 只</small>
+          </div>
+          <article v-for="job in game.profile?.dispatches ?? []" :key="job.id" class="phone-job">
+            <b>{{ job.petName }} · {{ job.nodeName }}</b>
+            <div class="progress"><i :style="{ width: job.ready ? '100%' : '55%' }" /></div>
+            <div>{{ job.ready ? '已经回来了' : '剩余 ' + remain(job.endsAt) }}</div>
+            <div class="row">
+              <button v-if="game.profile.devTools && !job.ready" class="btn light" @click="game.act('/api/dispatches/finish', { id: job.id })">测试：立刻完成</button>
+              <button class="btn lantern" :disabled="!job.ready" @click="game.act('/api/dispatches/claim', { id: job.id })">领取</button>
+            </div>
+          </article>
+          <p v-if="!game.profile?.dispatches?.length" class="muted">还没有派遣。回冒险找莎雅，或在派遣面板把灵伴派出去。</p>
+          <button class="btn" @click="game.setMode('play'); game.panel = 'dispatch'">打开派遣</button>
+        </section>
+        <button class="phone-card" type="button" @click="game.setMode('play'); game.panel = 'market'">
+          <div class="card-top"><b>拍卖</b><small>跳市</small></div>
+          <p>看在售、上架材料。成交仍按原来的旅税结算。</p>
+        </button>
+        <button class="phone-card" type="button" @click="game.setMode('play'); game.panel = 'guild'">
+          <div class="card-top"><b>公会</b><small>{{ game.profile?.guild?.name ?? '未加入' }}</small></div>
+          <p>{{ game.profile?.guild ? '捐献、公告和成员都在这里。' : '还没有公会。点这里去创建或加入。' }}</p>
+        </button>
+      </div>
+      <div class="phone-row">
         <button class="tile" @click="game.setMode('play'); game.panel = 'bag'"><b>背包</b><div class="muted">{{ game.profile?.bag?.length ?? 0 }} 格</div></button>
         <button class="tile" @click="game.setMode('play'); game.panel = 'info'"><b>角色</b><div class="muted">{{ game.profile?.weaponName ?? '技能' }}</div></button>
       </div>

@@ -129,6 +129,14 @@ const mapName = computed(() => game.config?.maps?.find((item: { id: string }) =>
 const weaponSkills = computed(() => (game.config?.skills ?? []).filter((skill: { weapon?: string }) => skill.weapon === who.value?.weaponType))
 /** 按角色技能栏 ID 顺序解析技能模板，保持栏位对应关系。 */
 const barSkills = computed(() => (who.value?.loadout ?? []).map((id: string) => (game.config?.skills ?? []).find((skill: { id: string }) => skill.id === id)))
+/** 任务按主线、支线分成两栏。空的一栏不显示。 */
+function questLanes<T extends { kind?: string }>(list: T[] | undefined) {
+  const rows = list ?? []
+  return [
+    { id: 'main' as const, label: '主线', rows: rows.filter((quest) => quest.kind === 'main') },
+    { id: 'side' as const, label: '支线', rows: rows.filter((quest) => quest.kind !== 'main') },
+  ].filter((lane) => lane.rows.length)
+}
 /** 当前设为主战的灵伴，面板展示与技能入口共用。 */
 const activePet = computed(() => who.value?.pets?.find((pet: { active: boolean }) => pet.active) ?? null)
 /** 累计五项自行分配的潜力，用于角色属性展示。 */
@@ -593,27 +601,33 @@ function pick(id: string) {
       <template v-else-if="game.panel === 'quest'">
         <h3>进行中</h3>
         <p v-if="!game.profile.quests.length" class="empty">还没有接任务。去场景里点一个人的「对话」。</p>
-        <article v-for="quest in game.profile.quests" :key="quest.id" class="item quest-card">
-          <div>
-            <b>{{ quest.name }}</b>
-            <small>{{ quest.kind === 'main' ? '主线' : '支线' }} · 交给 {{ quest.turnin || '委托人' }}</small>
-            <div v-for="(goal, index) in quest.objectives" :key="index" class="qline">
-              <span>{{ goal.text }}</span>
-              <span>{{ goal.current }}/{{ goal.need }}</span>
-              <span class="qbar"><i :style="{ width: Math.min(100, (goal.current / Math.max(1, goal.need)) * 100) + '%' }" /></span>
+        <section v-for="lane in questLanes(game.profile.quests)" :key="'on-' + lane.id" class="quest-lane" :class="lane.id">
+          <h3><em>{{ lane.label }}</em></h3>
+          <article v-for="quest in lane.rows" :key="quest.id" class="item quest-card" :class="lane.id">
+            <div>
+              <b>{{ quest.name }}</b>
+              <small>{{ lane.label }} · 交给 {{ quest.turnin || '委托人' }}</small>
+              <div v-for="(goal, index) in quest.objectives" :key="index" class="qline">
+                <span>{{ goal.text }}</span>
+                <span>{{ goal.current }}/{{ goal.need }}</span>
+                <span class="qbar"><i :style="{ width: Math.min(100, (goal.current / Math.max(1, goal.need)) * 100) + '%' }" /></span>
+              </div>
             </div>
-          </div>
-          <button class="btn" @click="game.pursue(quest.id); game.panel = ''">前往</button>
-        </article>
+            <button class="btn" @click="game.pursue(quest.id); game.panel = ''">前往</button>
+          </article>
+        </section>
         <h3>可以去接</h3>
         <p v-if="!game.profile.available?.length" class="empty">暂时没有新的委托。先把身上的做完，或者再升一级。</p>
-        <div v-for="quest in game.profile.available ?? []" :key="quest.id" class="item">
-          <div>
-            <b>{{ quest.name }}</b>
-            <small>{{ quest.kind === 'main' ? '主线' : '支线' }} · 去找 {{ quest.giver }} 对话</small>
+        <section v-for="lane in questLanes(game.profile.available)" :key="'open-' + lane.id" class="quest-lane" :class="lane.id">
+          <h3><em>{{ lane.label }}</em></h3>
+          <div v-for="quest in lane.rows" :key="quest.id" class="item quest-card" :class="lane.id">
+            <div>
+              <b>{{ quest.name }}</b>
+              <small>{{ lane.label }} · 去找 {{ quest.giver }} 对话</small>
+            </div>
+            <button class="btn light" @click="goNpc(quest.giverId)">找人</button>
           </div>
-          <button class="btn light" @click="goNpc(quest.giverId)">找人</button>
-        </div>
+        </section>
       </template>
 
       <template v-else-if="game.panel === 'shop'">

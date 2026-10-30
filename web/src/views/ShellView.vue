@@ -3,6 +3,7 @@
 
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from '../api'
+import { bustOf } from '../game/art'
 import { nearestPacks } from '../game/crowd'
 import { describeQuest, questTracks } from '../game/guide'
 import { useDropFlash } from '../game/motion'
@@ -55,6 +56,8 @@ function castSkill(slot: number | 'pet') {
   castTimer = window.setTimeout(() => {
     castKey.value = ''
   }, 420)
+  const cooling = slot !== 'pet' && (skills.value[slot - 1]?.left ?? 0) > 0
+  if (!cooling) game.noteCast()
   game.send({ type: 'skill', slot })
 }
 
@@ -132,6 +135,14 @@ const dialogChoices = computed(() => {
 })
 /** 判断对话是否包含可接取或可交付任务，决定默认按钮提示。 */
 const hasQuestChoice = computed(() => dialogTopics.value.some((topic: { kind: string }) => topic.kind === 'turnin' || topic.kind === 'accept'))
+/** 当前对话的立绘。没有对应图时只给暖色，界面画剪影。 */
+const bust = computed(() => bustOf(String(game.dialog?.npcId || '')))
+/** 时段和天气只染界面，不改地图或战斗。 */
+const atmoClass = computed(() => {
+  const period = String(game.profile?.period || 'day')
+  const sky = String(game.profile?.weather?.id || 'clear')
+  return ['atmo-' + period, sky === 'clear' ? '' : 'sky-' + sky]
+})
 
 /** 武器技能与灵伴技能模板，客户端只选择技能 ID。 */
 const skills = computed(() => {
@@ -383,7 +394,7 @@ onBeforeUnmount(() => {
   <Transition name="assist">
     <AssistantView v-if="game.mode === 'assistant'" />
   </Transition>
-  <div class="desk" :class="{ tucked: game.mode === 'assistant' }" :inert="game.mode === 'assistant'">
+  <div class="desk" :class="[atmoClass, { tucked: game.mode === 'assistant' }]" :inert="game.mode === 'assistant'">
     <header class="mast">
       <img class="mark" src="/art/fi-ui-emblem.jpg?v=q2" alt="" />
       <b class="brand">浮岛旅团</b>
@@ -435,8 +446,8 @@ onBeforeUnmount(() => {
       <SceneBoard v-else />
       <aside class="roster">
         <div v-if="tracked.length" class="quest-track">
-          <button v-for="row in tracked" :key="row.id" :class="{ ready: row.ready }" @click="followQuest(row.id)">
-            <b>{{ row.kind === 'main' ? '主' : '支' }} {{ row.name }}</b>
+          <button v-for="row in tracked" :key="row.id" :class="[row.kind === 'main' ? 'main' : 'side', { ready: row.ready }]" @click="followQuest(row.id)">
+            <b><em class="lane">{{ row.kind === 'main' ? '主线' : '支线' }}</em>{{ row.name }}</b>
             <small>{{ row.line }}</small>
           </button>
         </div>
@@ -485,41 +496,52 @@ onBeforeUnmount(() => {
         <button v-if="game.panel" class="scrim" aria-label="关闭窗口" @click="game.panel = ''" />
       </Transition>
       <Transition name="sheet">
-      <div v-if="game.dialog" class="dialog" role="dialog" :aria-label="game.dialog.name">
-        <header>
-          <b>{{ game.dialog.name }}<small> · {{ game.dialog.title }}</small></b>
-          <button class="btn slim" type="button" @click="game.dialog = null">离开</button>
-        </header>
-        <div class="dialog-body">
-          <p class="say">{{ game.dialog.text }}</p>
-          <template v-if="Array.isArray(game.dialog.topics)">
-            <article v-for="topic in dialogTopics" :key="topic.id" class="topic" :class="topic.kind === 'progress' ? 'pending' : topic.kind">
-              <div>
-                <b>
-                  <em v-if="choiceNo(topic.id)">{{ choiceNo(topic.id) }}</em>
-                  {{ topic.name }}
-                  <small>{{ topicKind(topic.kind) }}</small>
-                </b>
-                <p>{{ topic.desc }}</p>
-                <p v-if="topic.detail" class="hint">{{ topic.detail }}</p>
-                <p v-if="topic.reward" class="reward">{{ topic.kind === 'progress' ? '做完可得 ' : '奖励 ' }}{{ topic.reward }}</p>
+      <div v-if="game.dialog" class="dialog stage" role="dialog" :aria-label="game.dialog.name">
+        <aside class="bust">
+          <div class="bust-frame" :style="{ '--hue': bust.hue }">
+            <img v-if="bust.src" :src="bust.src" alt="" />
+            <span v-else class="bust-sil" aria-hidden="true"><i class="head" /><i class="body" /></span>
+          </div>
+          <b class="bust-name">{{ game.dialog.name }}</b>
+          <small>{{ game.dialog.title }}</small>
+        </aside>
+        <div class="dialog-col">
+          <header>
+            <b>对话</b>
+            <button class="btn slim" type="button" @click="game.dialog = null">离开</button>
+          </header>
+          <div class="dialog-body">
+            <p class="say">{{ game.dialog.text }}</p>
+            <template v-if="Array.isArray(game.dialog.topics)">
+              <article v-for="topic in dialogTopics" :key="topic.id" class="topic" :class="topic.kind === 'progress' ? 'pending' : topic.kind">
+                <div>
+                  <b>
+                    {{ topic.name }}
+                    <small>{{ topicKind(topic.kind) }}</small>
+                  </b>
+                  <p>{{ topic.desc }}</p>
+                  <p v-if="topic.detail" class="hint">{{ topic.detail }}</p>
+                  <p v-if="topic.reward" class="reward">{{ topic.kind === 'progress' ? '做完可得 ' : '奖励 ' }}{{ topic.reward }}</p>
+                </div>
+              </article>
+              <div class="talk-choices">
+                <button v-for="topic in dialogTopics.filter((item) => item.kind !== 'progress')" :key="'c' + topic.id" class="talk-choice" :class="{ lantern: topic.kind === 'turnin' }" type="button" @click="chooseDialog(topic.id)">
+                  <em v-if="choiceNo(topic.id)" class="key">{{ choiceNo(topic.id) }}</em>
+                  <span>{{ topic.kind === 'turnin' ? '交付' : '接受' }} · {{ topic.name }}</span>
+                </button>
+                <button v-for="action in dialogServices" :key="action.id" class="talk-choice" type="button" @click="chooseDialog(action.id)">
+                  <em v-if="choiceNo(action.id)" class="key">{{ choiceNo(action.id) }}</em>
+                  <span>{{ action.label }}</span>
+                </button>
+                <button class="talk-choice leave" type="button" @click="game.dialog = null"><span>离开</span></button>
               </div>
-              <button v-if="topic.kind !== 'progress'" class="btn" :class="{ lantern: topic.kind === 'turnin' }" type="button" @click="chooseDialog(topic.id)">
-                {{ topic.kind === 'turnin' ? '交付' : '接受' }}
-              </button>
-            </article>
-            <div class="row">
-              <button v-for="action in dialogServices" :key="action.id" class="btn" type="button" @click="chooseDialog(action.id)">
-                <template v-if="choiceNo(action.id)">{{ choiceNo(action.id) }} </template>{{ action.label }}
-              </button>
-              <button class="btn light" type="button" @click="game.dialog = null">离开</button>
+              <p v-if="hasQuestChoice" class="hint">数字键选上面的事，Enter 交付或接受，Esc 离开。</p>
+              <p v-else-if="dialogServices.length" class="hint">数字键打开功能，Esc 离开。</p>
+            </template>
+            <div v-else class="talk-choices">
+              <button v-for="action in game.dialog.actions" :key="action.id" class="talk-choice" type="button" @click="chooseDialog(action.id)"><span>{{ action.label }}</span></button>
+              <button class="talk-choice leave" type="button" @click="game.dialog = null"><span>离开</span></button>
             </div>
-            <p v-if="hasQuestChoice" class="hint">数字键选上面的事，Enter 交付或接受，Esc 离开。</p>
-            <p v-else-if="dialogServices.length" class="hint">数字键打开功能，Esc 离开。</p>
-          </template>
-          <div v-else class="row">
-            <button v-for="action in game.dialog.actions" :key="action.id" class="btn" type="button" @click="chooseDialog(action.id)">{{ action.label }}</button>
-            <button class="btn light" type="button" @click="game.dialog = null">离开</button>
           </div>
         </div>
       </div>
@@ -528,8 +550,8 @@ onBeforeUnmount(() => {
       <section v-if="help" class="note">
         <header><b>怎么玩</b><button @click="help = false">关闭</button></header>
         <p>木框里的地名是你现在站的地方。点地面会走过去，点名字也一样，红字会走进另一张地图。右上角小地图框着这一带，左下角是坐标。顶上三条是生命、法力和经验。</p>
-        <p>和人说话、采集，走近按 E，或点名字后面的按钮。问号是可以交差，叹号是有任务。右边的任务追踪点一下就会过去。对话打开后，数字键选事项，Enter 交付或接受，Esc 离开。</p>
-        <p>点怪物会走近并开战。开战之后按速度轮流出手。轮到你时，中间的动作会亮起来，出手顺序里高亮的是当前这一手。可以攻击、放技能、吃药、防御或逃跑。G 在回合里是防御，平时仍是守势。连招会在轮到你时自动攻击。打到三成血以下，再点「契约」。</p>
+        <p>和人说话时，左边是立绘框，台词在羊皮纸上。数字键选事项，Enter 交付或接受，Esc 离开。走近按 E，或点名字后面的按钮。问号是可以交差，叹号是有任务。右边的任务追踪分主线和支线，点一下就会过去。</p>
+        <p>点怪物会走近并开战。开战之后按速度轮流出手。出手顺序是一排头像，轮到你时中间会亮出「请出手」，当前目标也更醒目。可以攻击、放技能、吃药、防御或逃跑。放技能时脚下会闪一圈，底栏的「光效」可以关掉。胜负会闪一条横幅，不挡返回地图。G 在回合里是防御，平时仍是守势。连招会在轮到你时自动攻击。打到三成血以下，再点「契约」。</p>
         <p>战斗时如果想先看地图，点「返回地图」。镜头跟着你走过相邻的地块，走到门外就进下一片，不会被拉回入口。副本仍是单独一张。摆摊和当面交易都要站在旁边，成交扣和拍卖一样的旅税。</p>
         <p>点自己的名字，或下面的「角色」，可以看属性和换技能。技能栏一次放 4 个：先点栏位，再点要换上的技能。</p>
         <p>下面一排还有任务、道具、宠物、跳市和工会。聊天选区域、世界或工会。点别的旅人「交谈」，会在区域频道叫他。</p>
@@ -549,28 +571,37 @@ onBeforeUnmount(() => {
     </div>
 
     <footer class="hotbar">
-      <button
-        v-for="skill in skills"
-        :key="skill.index"
-        class="skill"
-        :class="{ cooling: skill.left > 0, cast: castKey === String(skill.index) }"
-        :style="skill.left > 0 ? { '--cd': skill.ratio } : undefined"
-        :title="skill.desc + (skill.mp ? ' · 法力 ' + skill.mp : '')"
-        :disabled="skill.left > 0"
-        @click="castSkill(skill.index)"
-      >
-        <small>{{ skill.index }}<template v-if="skill.mp"> · {{ skill.mp }}</template></small>
-        <span>{{ skill.name }}</span>
-        <b v-if="skill.left > 0" class="cd">{{ Math.ceil(skill.left / 1000) }}</b>
-      </button>
-      <button class="skill" :class="{ cast: castKey === 'pet' }" title="灵伴技" @click="castSkill('pet')"><small>F</small><span>灵伴</span></button>
-      <button class="skill guard" :class="{ on: (self?.guard ?? 0) > 0 }" title="这一拍少挨打，也暂不出手" @click="game.guard()"><small>G</small><span>守势</span></button>
-      <button class="skill" :class="{ on: game.autoFight }" title="轮到你时自动攻击" @click="game.setAuto(!game.autoFight)"><small>连</small><span>{{ game.autoFight ? '连招中' : '连招' }}</span></button>
-      <button v-for="item in quickItems" :key="item.id" class="skill drink" :title="'使用 ' + item.name" @click="game.act('/api/use', { itemId: item.id })">
-        <small>×{{ item.count }}</small>
-        <span>{{ item.name }}</span>
-      </button>
-      <p class="hint hot-hint">快捷栏：点图标，或按 1–4。先在右边选中怪物。</p>
+      <div class="hot-skills">
+        <button
+          v-for="skill in skills"
+          :key="skill.index"
+          class="skill"
+          :class="{ cooling: skill.left > 0, cast: castKey === String(skill.index) }"
+          :style="skill.left > 0 ? { '--cd': skill.ratio } : undefined"
+          :title="skill.index + ' · ' + skill.desc + (skill.mp ? ' · 法力 ' + skill.mp : '')"
+          :disabled="skill.left > 0"
+          @click="castSkill(skill.index)"
+        >
+          <small>{{ skill.index }}<template v-if="skill.mp"> · {{ skill.mp }}</template></small>
+          <span>{{ skill.name }}</span>
+          <b v-if="skill.left > 0" class="cd">{{ Math.ceil(skill.left / 1000) }}</b>
+        </button>
+        <button class="skill" :class="{ cast: castKey === 'pet' }" title="F 灵伴技" @click="castSkill('pet')"><small>F</small><span>灵伴</span></button>
+        <button class="skill guard" :class="{ on: (self?.guard ?? 0) > 0 }" title="G 这一拍少挨打，也暂不出手" @click="game.guard()"><small>G</small><span>守势</span></button>
+        <button class="skill" :class="{ on: game.autoFight }" title="轮到你时自动攻击" @click="game.setAuto(!game.autoFight)"><small>连</small><span>{{ game.autoFight ? '连招中' : '连招' }}</span></button>
+        <button v-for="item in quickItems" :key="item.id" class="skill drink" :title="'使用 ' + item.name" @click="game.act('/api/use', { itemId: item.id })">
+          <small>×{{ item.count }}</small>
+          <span>{{ item.name }}</span>
+        </button>
+      </div>
+      <p class="hint hot-hint">1–4 技能 · F 灵伴 · G 守势</p>
+      <nav class="hot-quick" aria-label="常用">
+        <button class="skill quick" :class="{ on: game.panel === 'bag' }" title="背包" @click="toggle('bag')"><small>包</small><span>背包</span></button>
+        <button class="skill quick" :class="{ on: game.panel === 'quest' }" title="任务" @click="toggle('quest')"><small>任</small><span>任务</span></button>
+        <button class="skill quick" :class="{ on: game.panel === 'travel' }" title="地图" @click="toggle('travel')"><small>图</small><span>地图</span></button>
+        <button class="skill quick" title="助手" @click="game.setMode('assistant')"><small>助</small><span>助手</span></button>
+        <button class="skill quick" :class="{ on: game.showFx }" title="施法圈，可关" @click="game.setFx(!game.showFx)"><small>光</small><span>{{ game.showFx ? '光效' : '光关' }}</span></button>
+      </nav>
     </footer>
 
     <form class="talk" @submit.prevent="sendChat">

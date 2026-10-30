@@ -698,7 +698,7 @@ func (a *App) snapshot(l *Live, t float64) M {
 				continue
 			}
 			s := p.State
-			entities = append(entities, M{"id": id, "kind": "player", "templateId": s["weaponType"], "name": s["name"], "x": s["x"], "y": s["y"], "hp": s["hp"], "maxHp": p.Stats["maxHp"], "alive": true, "tint": "#f2d48a", "role": "player", "radius": 14, "stalling": str(s["stallId"]) != ""})
+			entities = append(entities, M{"id": id, "kind": "player", "templateId": s["weaponType"], "name": s["name"], "level": s["level"], "x": s["x"], "y": s["y"], "hp": s["hp"], "maxHp": p.Stats["maxHp"], "alive": true, "tint": "#f2d48a", "role": "player", "radius": 14, "stalling": str(s["stallId"]) != ""})
 		}
 		for _, stall := range a.rows("SELECT s.*, p.name AS owner_name FROM stalls s JOIN players p ON p.id=s.player_id WHERE s.open=1 AND s.map_id=?", i.MapID) {
 			entities = append(entities, M{"id": "stall:" + str(stall["id"]), "kind": "stall", "stallId": stall["id"], "name": stall["title"], "owner": stall["owner_name"], "x": stall["x"], "y": stall["y"], "alive": true})

@@ -710,7 +710,21 @@ func (a *App) boutView(b *Bout, pid string) M {
 		for _, ef := range b.Effects[actor.ID] {
 			effects = append(effects, M{"id": ef.ID, "name": ef.Name, "rounds": ef.Rounds})
 		}
-		order = append(order, M{"id": actor.ID, "kind": actor.Kind, "name": actor.Name, "speed": actor.Speed, "hp": hp, "maxHp": maxHp, "alive": alive, "effects": effects, "companion": actor.Kind == "player" && b.Leader != "" && actor.ID != b.Leader})
+		mark := ""
+		level := 0.
+		if actor.Kind == "player" {
+			mark = "hero"
+			if l := a.live[actor.ID]; l != nil {
+				level = num(l.State["level"])
+			}
+		} else if m := a.boutMonster(b, actor.ID); m != nil {
+			mark = str(m["templateId"])
+			if d := a.def("monsters", mark); d != nil {
+				level = num(d["level"])
+			}
+		}
+		// mark、level 只给出手条画头像和小标，不参与回合结算。
+		order = append(order, M{"id": actor.ID, "kind": actor.Kind, "name": actor.Name, "speed": actor.Speed, "hp": hp, "maxHp": maxHp, "alive": alive, "effects": effects, "companion": actor.Kind == "player" && b.Leader != "" && actor.ID != b.Leader, "mark": mark, "level": level})
 	}
 	awaitName := ""
 	for _, actor := range b.Order {

@@ -359,7 +359,7 @@ func (a *App) seamEntities(l *Live) []M {
 					continue
 				}
 				x, y := project(src, dst, p.State)
-				out = append(out, M{"id": id, "kind": "player", "name": p.State["name"], "x": x, "y": y, "hp": p.State["hp"], "maxHp": p.Stats["maxHp"], "alive": true, "seam": true, "mapId": to})
+				out = append(out, M{"id": id, "kind": "player", "name": p.State["name"], "level": p.State["level"], "x": x, "y": y, "hp": p.State["hp"], "maxHp": p.Stats["maxHp"], "alive": true, "seam": true, "mapId": to})
 			}
 		}
 		for _, stall := range a.rows("SELECT s.*, p.name AS owner_name FROM stalls s JOIN players p ON p.id=s.player_id WHERE s.open=1 AND s.map_id=?", to) {
@@ -476,7 +476,7 @@ func (a *App) afarEntities(l *Live) []M {
 			if math.Hypot(wx-px, wy-py) > 1600 {
 				continue
 			}
-			out = append(out, M{"id": id, "kind": "player", "name": p.State["name"], "x": p.State["x"], "y": p.State["y"], "hp": p.State["hp"], "maxHp": p.Stats["maxHp"], "alive": true, "mapId": to, "afar": true})
+			out = append(out, M{"id": id, "kind": "player", "name": p.State["name"], "level": p.State["level"], "x": p.State["x"], "y": p.State["y"], "hp": p.State["hp"], "maxHp": p.Stats["maxHp"], "alive": true, "mapId": to, "afar": true})
 		}
 		for _, stall := range a.rows("SELECT s.*, p.name AS owner_name FROM stalls s JOIN players p ON p.id=s.player_id WHERE s.open=1 AND s.map_id=?", to) {
 			wx, wy := a.worldPos(to, num(stall["x"]), num(stall["y"]))

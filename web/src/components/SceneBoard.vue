@@ -15,8 +15,11 @@ const board = ref<HTMLElement | null>(null)
 const view = ref({ w: 960, h: 540 })
 /** 点地后的一圈反馈，只记屏幕位置，镜头仍跟着人。 */
 const clickFx = ref<{ x: number; y: number; id: number } | null>(null)
+/** 技能出手时，自己脚下闪一圈。光效关掉时不会触发。 */
+const casting = ref(false)
 let observer: ResizeObserver | null = null
 let clickTimer = 0
+let castFxTimer = 0
 
 onMounted(() => {
   const el = board.value
@@ -32,6 +35,7 @@ onUnmounted(() => {
   observer?.disconnect()
   window.clearTimeout(clickTimer)
   window.clearTimeout(veilTimer)
+  window.clearTimeout(castFxTimer)
 })
 
 const mapId = computed(() => game.snap?.mapId || game.profile?.mapId || 'town_starfall')
@@ -42,6 +46,16 @@ const hpPct = computed(() => (self.value.maxHp ? Math.max(0, (self.value.hp / se
 const hpHurt = useDropFlash(() => Number(self.value?.hp))
 const mpPct = computed(() => (self.value.maxMp ? Math.max(0, (self.value.mp / self.value.maxMp) * 100) : 0))
 const expPct = computed(() => (game.profile?.expMax ? Math.max(0, (Number(game.profile.exp) / Number(game.profile.expMax)) * 100) : 0))
+const periodId = computed(() => String(game.profile?.period || 'day'))
+const weatherId = computed(() => String(game.profile?.weather?.id || 'clear'))
+watch(() => game.castSeq, (n) => {
+  if (!n) return
+  casting.value = true
+  window.clearTimeout(castFxTimer)
+  castFxTimer = window.setTimeout(() => {
+    casting.value = false
+  }, 520)
+})
 
 const chunks = computed<Chunk[]>(() => {
   const raw = game.snap?.chunks
@@ -138,11 +152,36 @@ interface Spot {
   x: number
   y: number
   mapId: string
+  badge: string
   id?: string
   focus?: string
   stallId?: string
   count?: number
   npc?: { id: string; name: string }
+}
+
+/** 名字牌左侧的小标：等级、职责或类型，不另占一行。 */
+function roleBadge(role: string | undefined, templateId: string) {
+  const row = game.config?.monsters?.find((item: { id: string; level?: number }) => item.id === templateId)
+  const level = row?.level ? String(row.level) : ''
+  if (role === 'boss') return level ? `首${level}` : '首'
+  if (role === 'elite') return level ? `精${level}` : '精'
+  if (role === 'world') return level ? `稀${level}` : '稀'
+  return level || '怪'
+}
+function shortTitle(title?: string) {
+  const text = String(title || '').trim()
+  if (!text) return '人'
+  return [...text].slice(0, 2).join('')
+}
+function plateBadge(kind: string, extra: { role?: string; templateId?: string; level?: unknown; title?: string }) {
+  if (kind === 'portal') return '门'
+  if (kind === 'node') return '采'
+  if (kind === 'stall') return '摊'
+  if (kind === 'npc') return shortTitle(extra.title)
+  if (kind === 'player') return extra.level ? String(extra.level) : '旅'
+  if (kind === 'pack' || kind === 'monster') return roleBadge(extra.role, extra.templateId || '')
+  return ''
 }
 
 const spots = computed<Spot[]>(() => {
@@ -155,33 +194,33 @@ const spots = computed<Spot[]>(() => {
     if (!cfg) continue
     for (const portal of cfg.portals ?? []) {
       const world = worldOf(chunk.id, portal.x, portal.y)
-      add({ key: chunk.id === mapId.value ? `p:${portal.label}` : `p:${chunk.id}:${portal.label}`, kind: 'portal', name: portal.label, wx: world.x, wy: world.y, x: portal.x, y: portal.y, mapId: chunk.id, focus: portalFocus(portal.x, portal.y) })
+      add({ key: chunk.id === mapId.value ? `p:${portal.label}` : `p:${chunk.id}:${portal.label}`, kind: 'portal', name: portal.label, badge: '门', wx: world.x, wy: world.y, x: portal.x, y: portal.y, mapId: chunk.id, focus: portalFocus(portal.x, portal.y) })
     }
     for (const node of cfg.nodes ?? []) {
       const world = worldOf(chunk.id, node.x, node.y)
-      add({ key: node.id, kind: 'node', name: node.name, wx: world.x, wy: world.y, x: node.x, y: node.y, mapId: chunk.id, focus: nodeFocus(node.id) })
+      add({ key: node.id, kind: 'node', name: node.name, badge: '采', wx: world.x, wy: world.y, x: node.x, y: node.y, mapId: chunk.id, focus: nodeFocus(node.id) })
     }
   }
   for (const npc of game.config?.npcs ?? []) {
     if (!chunks.value.some((chunk) => chunk.id === npc.mapId)) continue
     const world = worldOf(npc.mapId, npc.x, npc.y)
-    add({ key: npc.id, kind: 'npc', name: npc.name, wx: world.x, wy: world.y, x: npc.x, y: npc.y, mapId: npc.mapId, focus: npcFocus(npc.id), npc })
+    add({ key: npc.id, kind: 'npc', name: npc.name, badge: shortTitle(npc.title), wx: world.x, wy: world.y, x: npc.x, y: npc.y, mapId: npc.mapId, focus: npcFocus(npc.id), npc })
   }
   for (const pack of packs.value) {
     const world = worldOf(mapId.value, pack.x, pack.y)
-    add({ key: pack.templateId, kind: 'pack', name: pack.name, wx: world.x, wy: world.y, x: pack.x, y: pack.y, mapId: mapId.value, id: pack.id, count: pack.count })
+    add({ key: pack.templateId, kind: 'pack', name: pack.name, badge: roleBadge(pack.role, pack.templateId), wx: world.x, wy: world.y, x: pack.x, y: pack.y, mapId: mapId.value, id: pack.id, count: pack.count })
   }
   for (const person of people.value) {
     const world = person.worldX != null ? { x: Number(person.worldX), y: Number(person.worldY) } : worldOf(mapId.value, person.x, person.y)
-    add({ key: 'who:' + person.id, kind: 'player', name: person.name, wx: world.x, wy: world.y, x: person.x, y: person.y, mapId: mapId.value, id: person.id })
+    add({ key: 'who:' + person.id, kind: 'player', name: person.name, badge: person.level ? String(person.level) : '旅', wx: world.x, wy: world.y, x: person.x, y: person.y, mapId: mapId.value, id: person.id })
   }
   for (const stall of stalls.value) {
     const world = stall.worldX != null ? { x: Number(stall.worldX), y: Number(stall.worldY) } : worldOf(mapId.value, stall.x, stall.y)
-    add({ key: stall.id, kind: 'stall', name: stall.name, wx: world.x, wy: world.y, x: stall.x, y: stall.y, mapId: mapId.value, stallId: stall.stallId })
+    add({ key: stall.id, kind: 'stall', name: stall.name, badge: '摊', wx: world.x, wy: world.y, x: stall.x, y: stall.y, mapId: mapId.value, stallId: stall.stallId })
   }
   for (const mark of afar.value) {
     const world = mark.worldX != null ? { x: Number(mark.worldX), y: Number(mark.worldY) } : worldOf(mark.mapId, mark.x, mark.y)
-    add({ key: 'afar:' + mark.id, kind: mark.kind, name: mark.name, wx: world.x, wy: world.y, x: mark.x, y: mark.y, mapId: mark.mapId, id: mark.id, stallId: mark.stallId })
+    add({ key: 'afar:' + mark.id, kind: mark.kind, name: mark.name, badge: plateBadge(mark.kind, mark), wx: world.x, wy: world.y, x: mark.x, y: mark.y, mapId: mark.mapId, id: mark.id, stallId: mark.stallId })
   }
   return list
 })
@@ -291,7 +330,7 @@ function openSpot(spot: Spot) {
   }
 }
 
-/** 靠近本图的门时提示下一片，远了就不挡画面。 */
+/** 靠近本图的门时提示下一片。再近一点就改成按键提示。 */
 const gateHint = computed(() => {
   let best: Spot | null = null
   let bestDistance = 220
@@ -303,7 +342,8 @@ const gateHint = computed(() => {
       best = spot
     }
   }
-  return best
+  if (!best) return null
+  return { name: best.name, close: bestDistance < 96 }
 })
 
 function walk(ev: MouseEvent) {
@@ -346,6 +386,7 @@ const floats = computed(() => {
       alt=""
       :style="chunkBox(chunk)"
     />
+    <div class="atmo" :class="['atmo-' + periodId, weatherId === 'clear' ? '' : 'sky-' + weatherId]" />
     <div class="hud-plate">
       <img :src="portrait('hero')" alt="" />
       <div>
@@ -369,10 +410,13 @@ const floats = computed(() => {
       <b>{{ map.name }}</b>
     </div>
     <div class="coords">{{ Math.round(self.x) }} , {{ Math.round(self.y) }}<small>世界 {{ Math.round(selfWorld.x) }} , {{ Math.round(selfWorld.y) }}</small></div>
-    <div v-if="gateHint" class="gate-banner">走近「{{ gateHint.name }}」就会进入下一片</div>
+    <div v-if="gateHint" class="gate-banner" :class="{ close: gateHint.close }">
+      <em>门</em>
+      <span>{{ gateHint.close ? '按 E 进入' : '再走近' }}「{{ gateHint.name }}」</span>
+    </div>
     <span v-if="clickFx" :key="clickFx.id" class="click-fx" :style="{ left: clickFx.x + 'px', top: clickFx.y + 'px' }" />
     <div v-if="veilKey" :key="veilKey" class="map-veil" />
-    <div class="pin you" :class="['face-' + facing, { step: walking }]" :style="pinWorld(selfWorld.x, selfWorld.y)"><i class="face" aria-hidden="true" />你</div>
+    <div class="pin you" :class="['face-' + facing, { step: walking, cast: casting }]" :style="pinWorld(selfWorld.x, selfWorld.y)"><i class="face" aria-hidden="true" /><em class="badge">{{ game.profile?.level }}</em><span>你</span></div>
     <div v-if="dest" class="pin dest" :style="pinWorld(dest.x, dest.y)">去</div>
     <span
       v-for="hit in floats"
@@ -384,10 +428,11 @@ const floats = computed(() => {
     <button
       v-for="spot in spots"
       :key="spot.key"
-      class="tag"
+      class="tag plate"
       :class="{
         exit: spot.kind === 'portal',
         foe: spot.kind === 'pack' || spot.kind === 'monster',
+        mate: spot.kind === 'player',
         here: hereId === spot.key,
         goal: guideKey === spot.key,
         turnin: spot.npc && markOf(spot.npc) === 'turnin',
@@ -399,7 +444,8 @@ const floats = computed(() => {
     >
       <i v-if="spot.npc && markOf(spot.npc) === 'turnin'" class="qmark">?</i>
       <i v-else-if="spot.npc && (markOf(spot.npc) === 'offer' || markOf(spot.npc) === 'talk')" class="qmark">!</i>
-      {{ spot.name }}<template v-if="spot.count && spot.count > 1"> ×{{ spot.count }}</template><small v-if="spot.kind === 'player'">交易</small><small v-else-if="spot.kind === 'stall'">摊</small><small v-else-if="spot.kind === 'portal'">{{ spot.mapId === mapId ? '进入' : '邻门' }}</small><small v-else-if="spot.mapId !== mapId">界外</small>
+      <em v-if="spot.badge" class="badge">{{ spot.badge }}</em>
+      <span class="plate-name">{{ spot.name }}<template v-if="spot.count && spot.count > 1"> ×{{ spot.count }}</template></span><small v-if="spot.kind === 'player'">交易</small><small v-else-if="spot.kind === 'stall'">摊</small><small v-else-if="spot.kind === 'portal'">{{ spot.mapId === mapId ? '进入' : '邻门' }}</small><small v-else-if="spot.mapId !== mapId">界外</small>
     </button>
   </div>
   <div v-else class="scene empty-scene">地图还在加载</div>

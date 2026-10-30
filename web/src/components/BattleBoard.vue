@@ -31,7 +31,13 @@ const selfHurt = useDropFlash(() => Number(self.value?.hp))
 const foeHurt = ref(false)
 let foeTimer = 0
 let engageTimer = 0
+let bannerTimer = 0
+let castFxTimer = 0
 const engage = ref(false)
+/** 胜负横幅。点得穿，过一会儿自己消失，不挡返回和再开战。 */
+const banner = ref('')
+/** 这一下技能的施法圈。光效关掉时 castSeq 不会涨。 */
+const casting = ref(false)
 /** 将自身当前法力换算成法力条显示百分比。 */
 const mpPct = computed(() => (self.value ? Math.max(0, (self.value.mp / self.value.maxMp) * 100) : 0))
 /** 将目标当前生命换算成目标血条百分比。 */
@@ -109,9 +115,30 @@ watch(bout, (next, prev) => {
     }, 680)
   }
 })
+watch(() => bout.value?.phase, (phase) => {
+  if (phase === 'victory' || phase === 'defeat') {
+    banner.value = phase
+    window.clearTimeout(bannerTimer)
+    bannerTimer = window.setTimeout(() => {
+      banner.value = ''
+    }, 2600)
+    return
+  }
+  if (phase === 'choose') banner.value = ''
+})
+watch(() => game.castSeq, (n) => {
+  if (!n) return
+  casting.value = true
+  window.clearTimeout(castFxTimer)
+  castFxTimer = window.setTimeout(() => {
+    casting.value = false
+  }, 520)
+})
 onUnmounted(() => {
   window.clearTimeout(foeTimer)
   window.clearTimeout(engageTimer)
+  window.clearTimeout(bannerTimer)
+  window.clearTimeout(castFxTimer)
 })
 
 /** 回合提示：轮到谁，或这一场已经怎么结束。 */
@@ -141,13 +168,24 @@ function fxKind(id: string) {
   if (id === 'wound' || id === 'burn' || id === 'numb' || id === 'gust') return 'dot'
   return ''
 }
+
+/** 出手条上的头像。怪物用现有立绘，自己用旅人，同伴用暖色块。 */
+function chipFace(actor: { id: string; kind: string; mark?: string; name?: string }) {
+  if (actor.id === game.profile?.id) return { backgroundImage: `url("${portrait('hero')}")` }
+  if (actor.kind === 'monster' && actor.mark) return { backgroundImage: `url("${portrait(actor.mark)}")` }
+  const name = actor.name || actor.id
+  const hue = [...name].reduce((n, ch) => n + ch.charCodeAt(0), 18) % 36 + 14
+  return { background: `linear-gradient(180deg, hsl(${hue} 42% 64%), hsl(${hue} 30% 32%))` }
+}
 </script>
 
 <template>
   <!-- 战斗界面：展示服务器目标、生命法力、主战灵伴与契约入口，客户端仅提交动作。 -->
   <div class="battle" :class="{ live: !!bout, yours, engage }">
     <img class="scene-bg dim" :src="mapThumb(mapId)" alt="" />
+    <div v-if="banner" class="outcome" :class="banner">{{ banner === 'victory' ? '胜利' : '战败' }}</div>
     <div class="fighter" :class="{ acting: bout && bout.await === game.profile?.id, hurt: selfHurt }">
+      <div v-if="casting" class="cast-ring" aria-hidden="true"><i /><i /><b /></div>
       <IconMedal class="portrait" :src="portrait('hero')" />
       <b>{{ game.profile?.name }}</b>
       <small>{{ game.profile?.weaponName }} · Lv.{{ game.profile?.level }}</small>
@@ -170,8 +208,12 @@ function fxKind(id: string) {
           <span
             v-for="actor in order"
             :key="actor.id"
+            class="order-chip"
             :class="{ now: actor.id === bout.await, down: actor.alive === false, self: actor.id === game.profile?.id, foe: actor.kind === 'monster', mate: actor.companion }"
-          >{{ actor.name }}</span>
+          >
+            <i class="chip-face" :style="chipFace(actor)" />
+            <b>{{ actor.name }}</b>
+          </span>
         </div>
         <p class="turn-line">
           <b>{{ turnText }}</b>

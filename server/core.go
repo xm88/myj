@@ -23,7 +23,7 @@ import (
 const devJWTSecret = "dev-float-island-change-me"
 
 // gameVersion 是这一版对外的切片号。健康检查和公开配置都读它。
-const gameVersion = "0.1.6"
+const gameVersion = "0.1.7"
 
 // maxGold 防止异常金额把 float64 金币打成 Inf 后写进存档。
 const maxGold = 1000000000

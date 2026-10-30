@@ -92,6 +92,10 @@ export const useGame = defineStore('game', {
     displaced: false,
     // 连招打开后，轮到自己时自动普攻。记在本机，不进存档。
     autoFight: localStorage.getItem('float_auto') === '1',
+    // 施法圈开关。只影响画面上那一下闪光，不进存档。
+    showFx: localStorage.getItem('float_fx') !== '0',
+    // 每次放技能加一，战斗和场景用来闪一下施法圈。
+    castSeq: 0,
     // 飘字。只活大约一秒，用来在场景和战斗画面上标伤害。
     floats: [] as { id: number; text: string; kind: string; crit: boolean; guarded: boolean; x: number; y: number; entityId: string; at: number }[],
     // 飘字编号。
@@ -335,6 +339,16 @@ export const useGame = defineStore('game', {
       localStorage.setItem('float_auto', on ? '1' : '0')
       this.toast(on ? '连招开了。轮到你时会自动攻击' : '连招关了')
     },
+    /** 开关施法圈。关掉之后技能仍照常发出。 */
+    setFx(on: boolean) {
+      this.showFx = on
+      localStorage.setItem('float_fx', on ? '1' : '0')
+    },
+    /** 记一笔技能出手，给施法圈用。关闭光效时什么都不做。 */
+    noteCast() {
+      if (!this.showFx) return
+      this.castSeq += 1
+    },
     /** 摆出守势。回合战斗里这是防御；平时仍是少挨打的那一拍。 */
     guard() {
       if (this.snap?.bout?.yours) this.send({ type: 'bout', action: 'defend' })
@@ -342,6 +356,7 @@ export const useGame = defineStore('game', {
     },
     /** 提交当前回合的动作。 */
     bout(action: string, extra: Record<string, unknown> = {}) {
+      if (action === 'skill') this.noteCast()
       this.send({ type: 'bout', action, ...extra })
     },
     /** 按一条任务或当前主步骤走过去。找不到落点就打开任务窗口。 */

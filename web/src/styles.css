@@ -1660,8 +1660,8 @@ button.item { width: 100%; text-align: left; color: inherit; }
 .actor {
   position: relative;
   display: block;
-  width: 52px;
-  height: 66px;
+  width: 58px;
+  height: 74px;
   flex: none;
   transform-origin: 50% 100%;
   filter:

@@ -128,6 +128,8 @@ func (a *App) route(r *http.Request, b M) any {
 			return a.stallDetail(id, r.URL.Query().Get("id"))
 		case "/api/trade":
 			return M{"trade": a.tradeView(id)}
+		case "/api/album":
+			return a.album(id)
 		}
 	}
 	if method == "POST" {

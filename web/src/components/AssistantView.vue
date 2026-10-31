@@ -71,6 +71,10 @@ function remain(endsAt: number) {
           <div class="card-top"><b>拍卖</b><small>跳市</small></div>
           <p>看在售、上架材料。成交仍按原来的旅税结算。</p>
         </button>
+        <button class="phone-card" type="button" @click="game.setMode('play'); game.panel = 'album'">
+          <div class="card-top"><b>旅册</b><small>图鉴</small></div>
+          <p>旅迹、遇见过的异兽、契约过的灵兽，还有踏过的地方。</p>
+        </button>
         <button class="phone-card" type="button" @click="game.setMode('play'); game.panel = 'guild'">
           <div class="card-top"><b>公会</b><small>{{ game.profile?.guild?.name ?? '未加入' }}</small></div>
           <p>{{ game.profile?.guild ? '捐献、公告和成员都在这里。' : '还没有公会。点这里去创建或加入。' }}</p>

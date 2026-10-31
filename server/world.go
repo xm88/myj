@@ -169,6 +169,7 @@ func (a *App) enter(l *Live, mapID string, spawn bool) {
 	inst.EmptySince = 0
 	a.emit(id, M{"type": "enter", "mapId": mapID})
 	a.save(l)
+	a.markMap(id, mapID)
 }
 
 // spawnMonster 按模板生成怪物实例，初始化出生点、血量、冷却与控制状态。
@@ -431,6 +432,7 @@ func (a *App) killMonster(i *Instance, l *Live, m M) {
 		push(l, M{"kind": "loot", "text": fmt.Sprintf("获得 %s x%g", str(tpl["name"]), count), "x": m["x"], "y": m["y"]})
 	}
 	a.emit(id, M{"type": "kill", "monsterId": d["id"]})
+	a.markKill(id, str(d["id"]))
 	a.tell(i, M{"kind": "text", "text": str(d["name"]) + " 被击败", "x": m["x"], "y": m["y"]})
 	a.notify(id)
 	a.onMonsterGone(str(m["id"]))

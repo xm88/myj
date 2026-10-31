@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** 可跳过的三步：进镇、接第一只召唤兽、打第一场。进度记在本机。 */
 
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { primerStep } from '../game/primer'
 import { npcFocus, portalFocus } from '../game/npc'
 import { nearestPacks } from '../game/crowd'
@@ -11,7 +11,7 @@ const game = useGame()
 const skipKey = 'float_primer'
 const foughtKey = 'float_primer_fought'
 
-const skipped = computed(() => localStorage.getItem(skipKey) === 'skip')
+const skipped = ref(localStorage.getItem(skipKey) === 'skip')
 const fought = computed(() => localStorage.getItem(foughtKey) === '1' || Boolean(game.snap?.bout))
 
 const step = computed(() => primerStep({
@@ -47,6 +47,7 @@ const copy: Record<string, { title: string; text: string; cta: string }> = {
 const card = computed(() => (step.value === 'done' ? null : copy[step.value]))
 
 function skip() {
+  skipped.value = true
   localStorage.setItem(skipKey, 'skip')
   game.toast('引导已跳过，可以随时从任务追踪继续')
 }

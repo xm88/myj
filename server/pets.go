@@ -78,6 +78,7 @@ func (a *App) adoptPet(id, tpl, how string) {
 	default:
 		a.toast(id, name+" 加入了旅团")
 	}
+	a.markPet(id, tpl)
 	a.notify(id)
 }
 

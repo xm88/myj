@@ -168,6 +168,7 @@ func (a *App) createCharacter(user, name, weapon, race string) {
 	a.addItem(id, "capture_orb", a.constant("starterOrbs"), nil, "bag")
 	a.addItem(id, "bread", 2, nil, "bag")
 	a.acceptQuest(id, "q_main_01", true)
+	a.touchAlbum(id, nil)
 }
 
 // addGold 以存档金币为依据校验余额，写库后同步在线金币。
@@ -210,6 +211,7 @@ func (a *App) addExp(id string, amount float64) {
 		}
 		a.emit(id, M{"type": "level", "level": level})
 		a.toast(id, fmt.Sprintf("升级了，现在是 %g 级，获得 %d 点属性", level, ups*5))
+		a.touchAlbum(id, nil)
 		a.notify(id)
 	}
 }

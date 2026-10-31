@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/json"
 	"math"
+	"math/rand/v2"
 	"sort"
 )
 
@@ -28,22 +29,27 @@ type BoutActor struct {
 
 // Bout 一场独立的回合战斗。怪物可以在相邻分线，用 Home 找回它所在的实例。
 type Bout struct {
-	ID        string                   `json:"id"`
-	Round     int                      `json:"round"`
-	Index     int                      `json:"index"`
-	Phase     string                   `json:"phase"`
-	Await     string                   `json:"await"`
-	WaitSince float64                  `json:"waitSince"`
-	Ended     float64                  `json:"ended"`
-	Leader    string                   `json:"leader"`
-	Order     []BoutActor              `json:"order"`
-	Players   map[string]bool          `json:"players"`
-	Monsters  map[string]bool          `json:"monsters"`
-	Home      map[string]string        `json:"home"`
-	Down      map[string]bool          `json:"down"`
-	Queued    map[string]M             `json:"queued"`
-	Effects   map[string][]RoundEffect `json:"effects"`
-	Log       []string                 `json:"log"`
+	ID         string                   `json:"id"`
+	Round      int                      `json:"round"`
+	Index      int                      `json:"index"`
+	Phase      string                   `json:"phase"`
+	Await      string                   `json:"await"`
+	WaitSince  float64                  `json:"waitSince"`
+	Ended      float64                  `json:"ended"`
+	Leader     string                   `json:"leader"`
+	Order      []BoutActor              `json:"order"`
+	Players    map[string]bool          `json:"players"`
+	Monsters   map[string]bool          `json:"monsters"`
+	Home       map[string]string        `json:"home"`
+	Down       map[string]bool          `json:"down"`
+	Queued     map[string]M             `json:"queued"`
+	Effects    map[string][]RoundEffect `json:"effects"`
+	Log        []string                 `json:"log"`
+	Beasts     map[string]*BoutBeast    `json:"beasts"`
+	AwaitKind  string                   `json:"awaitKind"`
+	AwaitOwner string                   `json:"awaitOwner"`
+	AwaitBeast string                   `json:"awaitBeast"`
+	Settled    bool                     `json:"settled"`
 }
 
 func cloneBout(b *Bout) *Bout {
@@ -70,6 +76,9 @@ func cloneBout(b *Bout) *Bout {
 	if c.Effects == nil {
 		c.Effects = map[string][]RoundEffect{}
 	}
+	if c.Beasts == nil {
+		c.Beasts = map[string]*BoutBeast{}
+	}
 	return &c
 }
 
@@ -93,6 +102,7 @@ func (a *App) engage(id string) {
 		ID: uid(), Round: 1, Phase: "choose",
 		Players: map[string]bool{}, Monsters: map[string]bool{}, Home: map[string]string{},
 		Down: map[string]bool{}, Queued: map[string]M{}, Effects: map[string][]RoundEffect{},
+		Beasts: map[string]*BoutBeast{},
 	}
 	a.addBoutPlayer(b, l)
 	if party := a.parties[a.playerParty[id]]; party != nil {
@@ -135,6 +145,7 @@ func (a *App) addBoutPlayer(b *Bout, l *Live) {
 	l.State["boutId"] = b.ID
 	a.boutBy[id] = b.ID
 	halt(l, false)
+	a.addBoutBeast(b, l)
 }
 
 func (a *App) addBoutMonster(b *Bout, inst *Instance, m M) {
@@ -170,6 +181,12 @@ func (a *App) boutOrder(b *Bout) []BoutActor {
 		}
 		order = append(order, BoutActor{ID: id, Kind: "monster", Name: str(m["name"]), Speed: 90 + 80000/iv})
 	}
+	for id, beast := range b.Beasts {
+		if beast == nil {
+			continue
+		}
+		order = append(order, BoutActor{ID: id, Kind: "beast", Name: beast.Name, Speed: beast.Speed})
+	}
 	sort.SliceStable(order, func(i, j int) bool {
 		if order[i].Speed == order[j].Speed {
 			return order[i].ID < order[j].ID
@@ -184,6 +201,25 @@ func (a *App) actBout(id string, msg M) {
 	l := a.mustLive(id)
 	b := a.bouts[str(l.State["boutId"])]
 	check(b != nil && b.Phase == "choose", "这场战斗已经结束")
+	if b.AwaitKind == "beast" {
+		check(b.AwaitOwner == id, "还没轮到你的召唤兽")
+		action := str(msg["action"])
+		switch action {
+		case "attack", "skill", "defend":
+		default:
+			fail("召唤兽不能这样做")
+		}
+		bid := b.AwaitBeast
+		b.AwaitKind, b.AwaitOwner, b.AwaitBeast = "", "", ""
+		b.WaitSince = 0
+		a.resolveBeast(b, bid, msg)
+		if b.Phase != "choose" {
+			return
+		}
+		b.Index++
+		a.advance(b)
+		return
+	}
 	check(b.Await == id, "还没轮到你")
 	action := str(msg["action"])
 	switch action {
@@ -201,7 +237,7 @@ func (a *App) actBout(id string, msg M) {
 
 // advance 连续结算怪物和已经提交的动作，直到轮到某个人选择。
 func (a *App) advance(b *Bout) {
-	for n := 0; n < 16; n++ {
+	for n := 0; n < 32; n++ {
 		if b == nil || b.Phase != "choose" {
 			return
 		}
@@ -233,6 +269,27 @@ func (a *App) advance(b *Bout) {
 			b.Index++
 			continue
 		}
+		if actor.Kind == "beast" {
+			beast := b.Beasts[actor.ID]
+			if beast == nil || !beast.Alive {
+				b.Index++
+				continue
+			}
+			if b.Leader != "" && beast.Owner == b.Leader {
+				b.AwaitKind = "beast"
+				b.AwaitOwner = beast.Owner
+				b.AwaitBeast = actor.ID
+				b.Await = ""
+				b.WaitSince = now()
+				return
+			}
+			a.resolveBeast(b, actor.ID, a.beastAuto(b, beast))
+			if b.Phase != "choose" {
+				return
+			}
+			b.Index++
+			continue
+		}
 		if q := b.Queued[actor.ID]; q != nil {
 			delete(b.Queued, actor.ID)
 			a.playerTurn(b, actor.ID, q)
@@ -254,6 +311,10 @@ func (a *App) advance(b *Bout) {
 func (a *App) actorUp(b *Bout, actor BoutActor) bool {
 	if actor.Kind == "player" {
 		return b.Players[actor.ID] && !b.Down[actor.ID] && a.live[actor.ID] != nil
+	}
+	if actor.Kind == "beast" {
+		beast := b.Beasts[actor.ID]
+		return beast != nil && beast.Alive && beast.HP > 0
 	}
 	m := a.boutMonster(b, actor.ID)
 	return m != nil && truth(m["alive"])
@@ -441,6 +502,13 @@ func (a *App) monsterTurn(b *Bout, actor BoutActor) {
 	if foe == nil {
 		return
 	}
+	if beast := a.beastOf(b, str(foe.State["id"])); beast != nil {
+		if beast.Taunt > 0 || rand.Float64() < 0.45 {
+			a.hurtBeast(b, m, beast, 1)
+			a.note(b, str(m["name"])+" 攻击 "+beast.Name)
+			return
+		}
+	}
 	inst := a.instances[foe.InstanceKey]
 	if inst == nil {
 		inst = a.instances[b.Home[actor.ID]]
@@ -509,6 +577,18 @@ func (a *App) endRound(b *Bout) {
 				}
 				continue
 			}
+			if beast := b.Beasts[id]; beast != nil {
+				if beast.Alive {
+					amount := math.Max(1, math.Round(beast.MaxHP*ef.DotPct))
+					beast.HP -= amount
+					if beast.HP <= 0 {
+						beast.HP = 0
+						beast.Alive = false
+						a.note(b, beast.Name+" 倒下了")
+					}
+				}
+				continue
+			}
 			m := a.boutMonster(b, id)
 			if m == nil || !truth(m["alive"]) {
 				continue
@@ -552,6 +632,23 @@ func (a *App) endRound(b *Bout) {
 			}
 		}
 	}
+	for id, beast := range b.Beasts {
+		if beast == nil {
+			continue
+		}
+		still := false
+		for _, ef := range b.Effects[id] {
+			if ef.ID == "guard" {
+				still = true
+			}
+		}
+		if !still {
+			beast.Guard = false
+		}
+		if beast.Taunt > 0 {
+			beast.Taunt--
+		}
+	}
 	if !a.anyMonsterAlive(b) {
 		a.finishBout(b, "victory")
 	} else if !a.anyPlayerUp(b) {
@@ -589,7 +686,9 @@ func (a *App) finishBout(b *Bout, phase string) {
 	}
 	b.Phase = phase
 	b.Await = ""
+	b.AwaitKind, b.AwaitOwner, b.AwaitBeast = "", "", ""
 	b.Ended = now()
+	a.settleBeasts(b, phase)
 	switch phase {
 	case "victory":
 		a.note(b, "胜利。战利品已经进背包")
@@ -663,10 +762,26 @@ func (a *App) forfeitBout(id string) {
 // tickBouts 长时间不操作就交给同伴 AI，结束画面保留一小会儿再拆掉。
 func (a *App) tickBouts(t float64) {
 	for _, b := range a.bouts {
-		if b.Phase == "choose" && b.Await != "" && b.WaitSince > 0 && t-b.WaitSince > 20000 {
-			b.Queued[b.Await] = a.companionAction(b, b.Await)
-			b.Await = ""
-			a.advance(b)
+		if b.Phase == "choose" && b.WaitSince > 0 && t-b.WaitSince > 20000 {
+			if b.AwaitKind == "beast" {
+				beast := b.Beasts[b.AwaitBeast]
+				bid := b.AwaitBeast
+				b.AwaitKind, b.AwaitOwner, b.AwaitBeast = "", "", ""
+				b.WaitSince = 0
+				if beast != nil {
+					a.resolveBeast(b, bid, a.beastAuto(b, beast))
+				}
+				if b.Phase == "choose" {
+					b.Index++
+					a.advance(b)
+				}
+				continue
+			}
+			if b.Await != "" {
+				b.Queued[b.Await] = a.companionAction(b, b.Await)
+				b.Await = ""
+				a.advance(b)
+			}
 			continue
 		}
 		if b.Phase != "choose" && b.Ended > 0 && t-b.Ended > 1600 {
@@ -697,38 +812,50 @@ func (a *App) boutView(b *Bout, pid string) M {
 	for _, actor := range b.Order {
 		hp, maxHp := 0., 1.
 		alive := false
+		mark := ""
+		level := 0.
+		owner := ""
+		skills := []M{}
 		if actor.Kind == "player" {
 			if l := a.live[actor.ID]; l != nil {
 				hp, maxHp = num(l.State["hp"]), num(l.Stats["maxHp"])
 				alive = !b.Down[actor.ID]
+				level = num(l.State["level"])
+			}
+			mark = "hero"
+		} else if actor.Kind == "beast" {
+			if beast := b.Beasts[actor.ID]; beast != nil {
+				hp, maxHp = math.Max(0, beast.HP), beast.MaxHP
+				alive = beast.Alive && beast.HP > 0
+				mark = beast.Template
+				owner = beast.Owner
+				for _, sid := range beast.Skills {
+					sk := a.def("skills", sid)
+					skills = append(skills, M{"id": sid, "name": fallback(sk["name"], sid)})
+				}
 			}
 		} else if m := a.boutMonster(b, actor.ID); m != nil {
 			hp, maxHp = math.Max(0, num(m["hp"])), num(m["maxHp"])
 			alive = truth(m["alive"])
-		}
-		effects := []M{}
-		for _, ef := range b.Effects[actor.ID] {
-			effects = append(effects, M{"id": ef.ID, "name": ef.Name, "rounds": ef.Rounds})
-		}
-		mark := ""
-		level := 0.
-		if actor.Kind == "player" {
-			mark = "hero"
-			if l := a.live[actor.ID]; l != nil {
-				level = num(l.State["level"])
-			}
-		} else if m := a.boutMonster(b, actor.ID); m != nil {
 			mark = str(m["templateId"])
 			if d := a.def("monsters", mark); d != nil {
 				level = num(d["level"])
 			}
 		}
+		effects := []M{}
+		for _, ef := range b.Effects[actor.ID] {
+			effects = append(effects, M{"id": ef.ID, "name": ef.Name, "rounds": ef.Rounds})
+		}
 		// mark、level 只给出手条画头像和小标，不参与回合结算。
-		order = append(order, M{"id": actor.ID, "kind": actor.Kind, "name": actor.Name, "speed": actor.Speed, "hp": hp, "maxHp": maxHp, "alive": alive, "effects": effects, "companion": actor.Kind == "player" && b.Leader != "" && actor.ID != b.Leader, "mark": mark, "level": level})
+		order = append(order, M{"id": actor.ID, "kind": actor.Kind, "name": actor.Name, "speed": actor.Speed, "hp": hp, "maxHp": maxHp, "alive": alive, "effects": effects, "companion": actor.Kind == "player" && b.Leader != "" && actor.ID != b.Leader, "mark": mark, "level": level, "owner": owner, "skills": skills})
+	}
+	awaitID := b.Await
+	if b.AwaitKind == "beast" {
+		awaitID = b.AwaitBeast
 	}
 	awaitName := ""
 	for _, actor := range b.Order {
-		if actor.ID == b.Await {
+		if actor.ID == awaitID {
 			awaitName = actor.Name
 		}
 	}
@@ -736,5 +863,5 @@ func (a *App) boutView(b *Bout, pid string) M {
 	if len(log) > 8 {
 		log = log[len(log)-8:]
 	}
-	return M{"id": b.ID, "round": b.Round, "phase": b.Phase, "yours": b.Await == pid && b.Phase == "choose", "await": b.Await, "awaitName": awaitName, "order": order, "log": log}
+	return M{"id": b.ID, "round": b.Round, "phase": b.Phase, "yours": b.AwaitKind == "" && b.Await == pid && b.Phase == "choose", "yoursBeast": b.AwaitKind == "beast" && b.AwaitOwner == pid && b.Phase == "choose", "await": awaitID, "awaitName": awaitName, "order": order, "log": log}
 }

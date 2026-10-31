@@ -18,7 +18,7 @@ func (a *App) jobs(id string) []M {
 	return a.rows("SELECT * FROM pet_dispatch WHERE player_id=? AND status='running'", id)
 }
 
-// givePet 发放灵伴并处理重复契约；没有主战灵伴时自动出战，稀有契约产生新闻。
+// givePet 发放灵兽并处理重复契约。第一只自动挂上光环；第一只召唤兽同时出战。
 func (a *App) givePet(id, tpl string, capture bool) {
 	def := a.def("pets", tpl)
 	check(def != nil, "没有这种灵伴")
@@ -31,8 +31,19 @@ func (a *App) givePet(id, tpl string, capture bool) {
 		if a.one("SELECT id FROM player_pets WHERE player_id=? AND active=1", id) == nil {
 			active = 1
 		}
-		a.run("INSERT INTO player_pets(id,player_id,template_id,level,exp,active,created_at) VALUES(?,?,?,1,0,?,?)", uid(), id, tpl, active, now())
+		deployed := 0
+		firstBeast := petRole(def) == "beast" && a.beastCount(id, "") == 0
+		if firstBeast && a.one("SELECT id FROM player_pets WHERE player_id=? AND deployed=1", id) == nil {
+			deployed = 1
+		}
+		pid := uid()
+		growth, roots, skills, loyalty, vigor := rollCompanion(def, pid, true)
+		a.run("INSERT INTO player_pets(id,player_id,template_id,level,exp,active,created_at,growth,roots,skills,loyalty,vigor,deployed) VALUES(?,?,?,1,0,?,?,?,?,?,?,?,?)", pid, id, tpl, active, now(), growth, js(roots), js(skills), loyalty, vigor, deployed)
 		a.refresh(id)
+		if firstBeast {
+			a.addItem(id, "beast_grain", 2, nil, "bag")
+			a.addItem(id, "vigor_fruit", 1, nil, "bag")
+		}
 		if str(def["rarity"]) == "epic" {
 			a.pushNews("旅人「" + str(a.player(id)["name"]) + "」与" + str(def["name"]) + "建立了契约。")
 		}
@@ -76,14 +87,18 @@ func (a *App) activePet(id, pet string) {
 	a.notify(id)
 }
 
-// petExp 累计灵伴经验并按等级曲线升级，上限为二十级。
+// petExp 累计经验并按等级曲线升级。召唤兽到 30 级，宠物到 20 级。
 func (a *App) petExp(pet string, amount float64) {
 	p := a.one("SELECT * FROM player_pets WHERE id=?", pet)
-	if p == nil || amount <= 0 || num(p["level"]) >= 20 {
+	if p == nil || amount <= 0 {
+		return
+	}
+	cap := a.levelCap(a.def("pets", str(p["template_id"])))
+	if num(p["level"]) >= cap {
 		return
 	}
 	level, exp := num(p["level"]), num(p["exp"])+amount
-	for level < 20 && exp >= 24+level*18 {
+	for level < cap && exp >= 24+level*18 {
 		exp -= 24 + level*18
 		level++
 	}
@@ -100,7 +115,7 @@ func (a *App) startDispatch(id, pet, node, duration string) {
 	n, d := a.def("dispatchNodes", node), a.def("durations", duration)
 	check(n != nil && d != nil, "没有这条派遣")
 	check(num(p["level"]) >= num(n["unlockLevel"]), fmt.Sprintf("需要 %g 级", num(n["unlockLevel"])))
-	a.run("UPDATE player_pets SET active=0 WHERE id=?", pet)
+	a.run("UPDATE player_pets SET active=0,deployed=0 WHERE id=?", pet)
 	a.refresh(id)
 	t := now()
 	a.run("INSERT INTO pet_dispatch(id,player_id,player_pet_id,node_id,duration_id,started_at,ends_at,status,result,created_at) VALUES(?,?,?,?,?,?,?,'running',NULL,?)", uid(), id, pet, node, duration, t, t+num(d["ms"]), t)

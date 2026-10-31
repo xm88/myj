@@ -33,7 +33,8 @@ const mapId = computed(() => game.snap?.mapId || game.profile?.mapId || '')
 /** 当前地图模板，提供尺寸、背景、资源点与传送门配置。 */
 const map = computed(() => game.config?.maps?.find((item: { id: string }) => item.id === mapId.value))
 /** 角色当前主战灵伴，用于主界面头像与状态显示。 */
-const pet = computed(() => game.profile?.pets?.find((item: { active: boolean }) => item.active) ?? null)
+const deployedBeast = computed(() => game.profile?.pets?.find((item: { deployed?: boolean }) => item.deployed) ?? null)
+const auraPet = computed(() => game.profile?.pets?.find((item: { active: boolean }) => item.active) ?? null)
 /** 将自身当前生命换算成血条显示百分比。 */
 const hpPct = computed(() => (self.value ? Math.max(0, (self.value.hp / self.value.maxHp) * 100) : 0))
 /** 将自身当前法力换算成法力条显示百分比。 */
@@ -166,7 +167,7 @@ const skills = computed(() => {
 const panels = [
   ['quest', '任务'],
   ['bag', '道具'],
-  ['pets', '宠物'],
+  ['pets', '灵兽'],
   ['dispatch', '派遣'],
   ['craft', '制造'],
   ['market', '跳市'],
@@ -445,7 +446,8 @@ onBeforeUnmount(() => {
         <span class="meter xp"><em>经</em><i><b :style="{ width: expPct + '%' }" /></i><small>{{ whole(game.profile?.exp) }}/{{ whole(game.profile?.expMax) }}</small></span>
       </div>
       <div class="map-meta">
-        <span class="status">宠物 {{ pet ? pet.name + ' Lv.' + pet.level : '无' }}</span>
+        <span class="status">出战 {{ deployedBeast ? deployedBeast.name : '无' }}</span>
+        <span class="status">光环 {{ auraPet ? auraPet.name : '无' }}</span>
         <span class="weather">{{ game.profile?.weather?.name }} · {{ game.profile?.periodName }}</span>
         <span class="conn" :class="{ warn: !game.connected }"><i />{{ game.displaced ? '已在其他窗口打开' : game.connected ? '在线' : '重连中' }}</span>
       </div>
@@ -598,7 +600,7 @@ onBeforeUnmount(() => {
           <span>{{ skill.name }}</span>
           <b v-if="skill.left > 0" class="cd">{{ Math.ceil(skill.left / 1000) }}</b>
         </button>
-        <button class="skill" :class="{ cast: castKey === 'pet' }" title="F 灵伴技" @click="castSkill('pet')"><small>F</small><span>灵伴</span></button>
+        <button class="skill" :class="{ cast: castKey === 'pet' }" title="F 携带者的灵技" @click="castSkill('pet')"><small>F</small><span>灵技</span></button>
         <button class="skill guard" :class="{ on: (self?.guard ?? 0) > 0 }" title="G 这一拍少挨打，也暂不出手" @click="game.guard()"><small>G</small><span>守势</span></button>
         <button class="skill" :class="{ on: game.autoFight }" title="轮到你时自动攻击" @click="game.setAuto(!game.autoFight)"><small>连</small><span>{{ game.autoFight ? '连招中' : '连招' }}</span></button>
         <button v-for="item in quickItems" :key="item.id" class="skill drink" :title="'使用 ' + item.name" @click="game.act('/api/use', { itemId: item.id })">
@@ -606,7 +608,7 @@ onBeforeUnmount(() => {
           <span>{{ item.name }}</span>
         </button>
       </div>
-      <p class="hint hot-hint">1–4 技能 · F 灵伴 · G 守势</p>
+      <p class="hint hot-hint">1–4 技能 · F 灵技 · G 守势</p>
       <nav class="hot-quick" aria-label="常用">
         <button class="skill quick" :class="{ on: game.panel === 'bag' }" title="背包" @click="toggle('bag')"><small>包</small><span>背包</span></button>
         <button class="skill quick" :class="{ on: game.panel === 'quest' }" title="任务" @click="toggle('quest')"><small>任</small><span>任务</span></button>

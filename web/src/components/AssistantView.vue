@@ -53,7 +53,7 @@ function remain(endsAt: number) {
         <section class="phone-card">
           <div class="card-top">
             <b>派遣</b>
-            <small>灵伴 {{ game.profile?.pets?.length ?? 0 }} 只</small>
+            <small>灵兽 {{ game.profile?.pets?.length ?? 0 }} 只</small>
           </div>
           <article v-for="job in game.profile?.dispatches ?? []" :key="job.id" class="phone-job">
             <b>{{ job.petName }} · {{ job.nodeName }}</b>
@@ -64,7 +64,7 @@ function remain(endsAt: number) {
               <button class="btn lantern" :disabled="!job.ready" @click="game.act('/api/dispatches/claim', { id: job.id })">领取</button>
             </div>
           </article>
-          <p v-if="!game.profile?.dispatches?.length" class="muted">还没有派遣。回冒险找莎雅，或在派遣面板把灵伴派出去。</p>
+          <p v-if="!game.profile?.dispatches?.length" class="muted">还没有派遣。回冒险找莎雅，或在派遣面板把灵兽派出去。</p>
           <button class="btn" @click="game.setMode('play'); game.panel = 'dispatch'">打开派遣</button>
         </section>
         <button class="phone-card" type="button" @click="game.setMode('play'); game.panel = 'market'">

@@ -572,5 +572,73 @@
     "range": 130,
     "aoe": true,
     "healPct": 0.06
+  },
+  {
+    "id": "beast_pounce",
+    "name": "再扑",
+    "desc": "趁前一击的空档再扑一次，打得轻一些。",
+    "coefficient": 0.75,
+    "element": "physical",
+    "cooldown": 6000,
+    "mp": 0,
+    "range": 160
+  },
+  {
+    "id": "beast_shell",
+    "name": "缩壳",
+    "desc": "把身子缩紧，替主人挡住一阵。",
+    "coefficient": 0,
+    "element": "earth",
+    "cooldown": 8000,
+    "mp": 0,
+    "range": 160,
+    "buff": {
+      "stat": "defPct",
+      "value": 0.12,
+      "ms": 6000
+    }
+  },
+  {
+    "id": "beast_lick",
+    "name": "舔伤",
+    "desc": "用温热的舌头把主人的伤口舔一舔。",
+    "coefficient": 0,
+    "element": "water",
+    "cooldown": 8000,
+    "mp": 0,
+    "range": 160,
+    "healPct": 0.08
+  },
+  {
+    "id": "beast_shriek",
+    "name": "尖啸",
+    "desc": "叫声刺得对面脚步发飘。",
+    "coefficient": 0.55,
+    "element": "wind",
+    "cooldown": 8000,
+    "mp": 0,
+    "range": 160,
+    "slowMs": 3000
+  },
+  {
+    "id": "beast_ember",
+    "name": "燎尾",
+    "desc": "尾巴扫过时带起一小簇火星。",
+    "coefficient": 0.9,
+    "element": "fire",
+    "cooldown": 8000,
+    "mp": 0,
+    "range": 160
+  },
+  {
+    "id": "beast_tide",
+    "name": "潮息",
+    "desc": "把湖边的湿气渡到主人身上。",
+    "coefficient": 0,
+    "element": "water",
+    "cooldown": 8000,
+    "mp": 0,
+    "range": 160,
+    "healPct": 0.12
   }
 ]

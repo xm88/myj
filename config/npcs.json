@@ -48,10 +48,22 @@
       {
         "itemId": "potion_mp",
         "price": 18
+      },
+      {
+        "itemId": "beast_grain",
+        "price": 16
+      },
+      {
+        "itemId": "vigor_fruit",
+        "price": 24
+      },
+      {
+        "itemId": "beast_seal",
+        "price": 48
       }
     ],
     "lines": [
-      "灵契球不保证成功。先把对方打到站不稳，再谈契约。"
+      "灵契球不保证成功。先把对方打到站不稳，再谈契约。兽谷干粮和元息果喂给出战的那只，兽纹印用来刻新招。"
     ]
   },
   {

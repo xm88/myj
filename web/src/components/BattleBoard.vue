@@ -20,8 +20,10 @@ const foe = computed(() => {
   const fromOrder = (game.snap?.bout?.order ?? []).find((actor: { kind: string; alive: boolean }) => actor.kind === 'monster' && actor.alive)
   return (game.snap?.entities ?? []).find((entity: { id: string }) => entity.id === (id || fromOrder?.id)) ?? fromOrder ?? null
 })
-/** 角色当前设为主战的灵伴，用于战斗搭档展示。 */
+/** 携带中的灵兽，负责光环，不单独占出手位。 */
 const pet = computed(() => game.profile?.pets?.find((item: { active: boolean }) => item.active) ?? null)
+/** 档案里正在出战的召唤兽。开战前也能在战斗栏看见。 */
+const deployed = computed(() => game.profile?.pets?.find((item: { deployed?: boolean }) => item.deployed) ?? null)
 /** 服务器推送的自身战斗快照，缺失时部分视图使用档案坐标。 */
 const self = computed(() => game.snap?.self)
 /** 本场回合。没有时界面退回原来的出手拍。 */
@@ -60,8 +62,9 @@ const readyPct = computed(() => {
 const guarding = computed(() => Number(self.value?.guard) > 0 || Boolean(bout.value?.order?.find((actor: { id: string; effects?: { id: string }[] }) => actor.id === game.profile?.id && actor.effects?.some((ef) => ef.id === 'guard'))))
 /** 这一场已经打出的普通攻击拍数。 */
 const beats = computed(() => Number(self.value?.beats) || 0)
-/** 轮到自己时才能点动作。 */
+/** 轮到自己时才能点动作。召唤兽的回合用另一套按钮。 */
 const yours = computed(() => Boolean(bout.value?.yours))
+const yoursBeast = computed(() => Boolean(bout.value?.yoursBeast))
 /** 出手顺序，用来标出当前是谁。 */
 const order = computed(() => bout.value?.order ?? [])
 /** 被拉进这场的队友由服务器选动作，本人的回合仍要点。 */
@@ -107,7 +110,7 @@ watch(() => (foe.value?.id ? `${foe.value.id}:${foe.value.hp}` : ''), (next, pre
   }, 320)
 })
 watch(bout, (next, prev) => {
-  if (!next?.yours) menu.value = ''
+  if (!next?.yours && !next?.yoursBeast) menu.value = ''
   if (next && !prev) {
     engage.value = true
     window.clearTimeout(engageTimer)
@@ -148,6 +151,7 @@ const turnText = computed(() => {
   if (bout.value.phase === 'victory') return `第 ${bout.value.round} 回合 · 胜利`
   if (bout.value.phase === 'defeat') return `第 ${bout.value.round} 回合 · 战败`
   if (bout.value.phase === 'fled') return `第 ${bout.value.round} 回合 · 已脱身`
+  if (bout.value.yoursBeast) return `第 ${bout.value.round} 回合 · 轮到${bout.value.awaitName || '召唤兽'}`
   if (bout.value.yours) return `第 ${bout.value.round} 回合 · 轮到你`
   return `第 ${bout.value.round} 回合 · ${bout.value.awaitName || '对方'} 行动`
 })
@@ -158,7 +162,7 @@ function whole(value: unknown) {
 }
 
 function act(action: string, extra: Record<string, unknown> = {}) {
-  if (!yours.value) return
+  if (!yours.value && !yoursBeast.value) return
   menu.value = ''
   game.bout(action, extra)
 }
@@ -180,6 +184,7 @@ function monsterRow(id?: string) {
 function actorLook(actor: { id?: string; kind?: string; mark?: string; templateId?: string; role?: string; tint?: string }): Look {
   if (actor.id && actor.id === game.profile?.id) return lookForSelf(game.profile?.weaponType)
   const templateId = actor.templateId || (actor.mark && actor.mark !== 'hero' ? actor.mark : '') || ''
+  if (actor.kind === 'beast') return lookForPet(templateId)
   if (actor.kind === 'monster') {
     const row = monsterRow(templateId)
     return lookForMonster(templateId, actor.role || row?.role, actor.tint || row?.tint)
@@ -198,6 +203,19 @@ const foeLook = computed(() => actorLook({
   mark: foe.value?.mark,
 }))
 const petLook = computed(() => (pet.value ? lookForPet(pet.value.templateId) : null))
+const allyBeast = computed(() => (bout.value?.order ?? []).find((actor: { kind?: string; owner?: string }) => actor.kind === 'beast' && (!actor.owner || actor.owner === game.profile?.id)) ?? null)
+const shownBeast = computed(() => {
+  if (allyBeast.value) return allyBeast.value
+  const row = deployed.value
+  if (!row) return null
+  return { id: row.id, name: row.name, hp: row.panel?.hp, maxHp: row.panel?.hp, alive: true, mark: row.templateId, templateId: row.templateId }
+})
+const beastLook = computed(() => (shownBeast.value ? lookForPet(String(shownBeast.value.templateId || shownBeast.value.mark || '')) : null))
+const beastPct = computed(() => (shownBeast.value?.maxHp ? Math.max(0, (shownBeast.value.hp / shownBeast.value.maxHp) * 100) : 0))
+const beastSkills = computed(() => {
+  const actor = (bout.value?.order ?? []).find((item: { kind?: string; id?: string }) => item.kind === 'beast' && item.id === bout.value?.await)
+  return actor?.skills ?? []
+})
 </script>
 
 <template>
@@ -217,11 +235,23 @@ const petLook = computed(() => (pet.value ? lookForPet(pet.value.templateId) : n
       <div v-if="selfEffects.length" class="effects">
         <em v-for="ef in selfEffects" :key="ef.id" class="fx" :class="fxKind(ef.id)"><b>{{ ef.name }}</b><small>{{ ef.rounds }}</small></em>
       </div>
-      <div v-if="pet" class="pet-row">
+      <div v-if="pet && pet.id !== shownBeast?.id" class="pet-row">
         <ActorFigure v-if="petLook" class="pet-fig" :look="petLook" />
-        <span>{{ pet.name }}<small>主战</small></span>
+        <span>{{ pet.name }}<small>{{ pet.role === 'pet' ? '携带' : '光环' }}</small></span>
       </div>
-      <p v-else class="hint">还没有主战灵伴</p>
+      <p v-else class="hint">没有携带中的光环</p>
+    </div>
+    <div class="fighter beast-side" :class="{ acting: bout && shownBeast && bout.await === shownBeast.id, down: shownBeast && shownBeast.alive === false }">
+      <template v-if="shownBeast && beastLook">
+        <small class="role-flag">召唤兽</small>
+        <ActorFigure class="portrait" :look="beastLook" />
+        <b>{{ shownBeast.name }}</b>
+        <small>{{ shownBeast.alive === false ? '倒下了' : '出战' }}</small>
+        <div class="bar"><i class="hp" :style="{ width: beastPct + '%' }" /></div>
+        <small>{{ whole(shownBeast.hp) }} / {{ whole(shownBeast.maxHp) }}</small>
+        <span v-for="hit in hits(shownBeast.id)" :key="hit.id" class="float" :class="{ crit: hit.crit, heal: hit.kind === 'heal' }">{{ hit.text }}</span>
+      </template>
+      <p v-else class="hint">没有出战的召唤兽</p>
     </div>
     <div class="battle-mid">
       <div v-if="bout" class="turnbar" :class="{ yours, over: bout.phase !== 'choose' }">
@@ -230,7 +260,7 @@ const petLook = computed(() => (pet.value ? lookForPet(pet.value.templateId) : n
             v-for="actor in order"
             :key="actor.id"
             class="order-chip"
-            :class="{ now: actor.id === bout.await, down: actor.alive === false, self: actor.id === game.profile?.id, foe: actor.kind === 'monster', mate: actor.companion }"
+            :class="{ now: actor.id === bout.await, down: actor.alive === false, self: actor.id === game.profile?.id, foe: actor.kind === 'monster', mate: actor.companion, ally: actor.kind === 'beast' }"
           >
             <i class="chip-face" :class="'rank-' + actorLook(actor).rank"><ActorFigure :look="actorLook(actor)" /></i>
             <b>{{ actor.name }}</b>
@@ -238,7 +268,7 @@ const petLook = computed(() => (pet.value ? lookForPet(pet.value.templateId) : n
         </div>
         <p class="turn-line">
           <b>{{ turnText }}</b>
-          <span v-if="yours" class="your-turn">请出手</span>
+          <span v-if="yours || yoursBeast" class="your-turn">请出手</span>
           <small v-if="game.autoFight">连招</small>
           <small v-if="companions">队友由同伴决定</small>
         </p>
@@ -250,7 +280,7 @@ const petLook = computed(() => (pet.value ? lookForPet(pet.value.templateId) : n
         <small>{{ guarding ? '守势' : (beats ? '第 ' + beats + ' 拍' : '等待出手') }}{{ game.autoFight ? ' · 连招' : '' }}</small>
       </div>
       <div class="battle-log">
-        <p v-if="bout">{{ yours ? '轮到你了。选一个动作。' : (bout.phase === 'choose' ? '等待这一手结束。' : turnText) }}</p>
+        <p v-if="bout">{{ yours ? '轮到你了。选一个动作。' : yoursBeast ? '轮到召唤兽了。选攻击、兽技或防御。' : (bout.phase === 'choose' ? '等待这一手结束。' : turnText) }}</p>
         <p v-else-if="chasing">正在靠近{{ foe?.name ? ' ' + foe.name : '' }}。走进距离后会排成回合。</p>
         <p v-else-if="won">{{ lastName ? lastName + ' 已被击败。' : '战斗结束。' }}</p>
         <p v-for="(line, index) in (bout?.log ?? []).slice().reverse()" :key="'b' + index">{{ line }}</p>
@@ -263,10 +293,19 @@ const petLook = computed(() => (pet.value ? lookForPet(pet.value.templateId) : n
         <button class="cmd" :class="{ hold: guarding }" @click="act('defend')">防御</button>
         <button class="cmd danger" @click="act('flee')">逃跑</button>
       </div>
-      <div v-if="menu === 'skill'" class="cmd-pop">
+      <div v-if="bout && yoursBeast" class="bout-actions">
+        <button class="cmd atk" @click="act('attack')">攻击</button>
+        <button class="cmd" :class="{ on: menu === 'skill' }" @click="menu = menu === 'skill' ? '' : 'skill'">兽技</button>
+        <button class="cmd" @click="act('defend')">防御</button>
+      </div>
+      <div v-if="menu === 'skill' && yours" class="cmd-pop">
         <button v-for="skill in skills" :key="skill.slot" class="cmd" @click="act('skill', { slot: skill.slot })">{{ skill.name }}<small v-if="skill.mp"> {{ skill.mp }}</small></button>
       </div>
-      <div v-if="menu === 'item'" class="cmd-pop">
+      <div v-if="menu === 'skill' && yoursBeast" class="cmd-pop">
+        <button v-for="skill in beastSkills" :key="skill.id" class="cmd" @click="act('skill', { skillId: skill.id })">{{ skill.name }}</button>
+        <p v-if="!beastSkills.length" class="hint">它还没有兽技。</p>
+      </div>
+      <div v-if="menu === 'item' && yours" class="cmd-pop">
         <button v-for="item in drinks" :key="item.id" class="cmd" @click="act('item', { itemId: item.id })">{{ item.name }} ×{{ item.count }}</button>
         <p v-if="!drinks.length" class="hint">背包里没有能在战斗中用的药。</p>
       </div>

@@ -52,9 +52,9 @@ func (a *App) profile(id string) M {
 	pets := []M{}
 	petNames := map[string]string{}
 	for _, p := range a.rows("SELECT * FROM player_pets WHERE player_id=?", id) {
-		d := a.def("pets", str(p["template_id"]))
-		petNames[str(p["id"])] = fallback(d["name"], "灵伴")
-		pets = append(pets, M{"id": p["id"], "templateId": p["template_id"], "name": d["name"], "rarity": d["rarity"], "battle": d["battle"], "work": d["work"], "desc": d["desc"], "level": p["level"], "exp": p["exp"], "expMax": 24 + num(p["level"])*18, "active": truth(p["active"]), "busy": a.busy(str(p["id"]))})
+		view := a.viewPet(p)
+		petNames[str(p["id"])] = fallback(view["name"], "灵兽")
+		pets = append(pets, view)
 	}
 	jobs := []M{}
 	for _, j := range a.jobs(id) {

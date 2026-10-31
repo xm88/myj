@@ -3,11 +3,13 @@
 
 import { computed, ref, watch } from 'vue'
 import { api } from '../api'
+import ActorFigure from './ActorFigure.vue'
 import IconMedal from './IconMedal.vue'
 import WorldMap from './WorldMap.vue'
 import StallBoard from './StallBoard.vue'
 import TradeBoard from './TradeBoard.vue'
 import { itemIcon, portrait, weaponIcon } from '../game/art'
+import { lookForPet } from '../game/look'
 import { npcFocus, portalFocus } from '../game/npc'
 import { useGame } from '../stores/game'
 
@@ -49,6 +51,8 @@ const marketTab = ref<'browse' | 'sell'>('browse')
 const infoTab = ref<'sheet' | 'skill' | 'log'>('sheet')
 /** 当前待替换的技能栏索引，成功选择后自动移到下一栏。 */
 const skillSlot = ref(0)
+/** 灵兽列表按召唤兽、宠物或全部来看。 */
+const petLane = ref<'all' | 'beast' | 'pet'>('all')
 
 /** 装备部位的固定展示顺序。 */
 const slotOrder = ['weapon', 'head', 'chest', 'gloves', 'boots', 'ring'] as const
@@ -58,7 +62,7 @@ const slotNames: Record<string, string> = { weapon: '武器', head: '头', chest
 /** 功能面板 ID 到窗口标题的映射。 */
 const titles: Record<string, string> = {
   bag: '道具',
-  pets: '宠物',
+  pets: '召唤兽与宠物',
   dispatch: '派遣',
   craft: '制造',
   market: '跳市',
@@ -78,6 +82,7 @@ const title = computed(() => titles[game.panel] ?? '窗口')
 const kicker = computed(() => {
   const lines: Record<string, string> = {
     bag: '装备、背包和仓库',
+    pets: '召唤兽出战进回合，宠物携带给光环',
     quest: '点「前往」会带你走过去',
     stall: '买家支付标价，旅税从卖家手里扣',
     trade: '两边锁定之后才能确认',
@@ -233,8 +238,10 @@ watch(() => game.panel, (panel) => {
   pickedId.value = null
   if (panel === 'info') infoTab.value = 'sheet'
   if (panel === 'pets') {
-    const active = game.profile?.pets?.find((pet: any) => pet.active)
-    pickedId.value = active?.id ?? game.profile?.pets?.[0]?.id ?? null
+    const pets = game.profile?.pets ?? []
+    const deployed = pets.find((pet: any) => pet.deployed)
+    const active = pets.find((pet: any) => pet.active)
+    pickedId.value = deployed?.id ?? active?.id ?? pets[0]?.id ?? null
   }
   void loadSide()
 })
@@ -304,8 +311,25 @@ const weaponShift = computed(() => {
   return '换上后，技能会改成这把武器的套路'
 })
 
-/** 根据当前选中 ID 查找角色拥有的灵伴实例。 */
+/** 根据当前选中 ID 查找角色拥有的灵兽实例。 */
 const pickedPet = computed(() => game.profile?.pets?.find((pet: any) => pet.id === pickedId.value) ?? null)
+const deployedBeast = computed(() => game.profile?.pets?.find((pet: any) => pet.role === 'beast' && pet.deployed) ?? null)
+const carriedPet = computed(() => game.profile?.pets?.find((pet: any) => pet.active) ?? null)
+const shownPets = computed(() => {
+  const pets = game.profile?.pets ?? []
+  if (petLane.value === 'all') return pets
+  return pets.filter((pet: any) => pet.role === petLane.value)
+})
+function bagOf(templateId: string) {
+  return (game.profile?.bag ?? []).find((item: { templateId: string }) => item.templateId === templateId)
+}
+function petMark(pet: { busy?: boolean; deployed?: boolean; active?: boolean; role?: string; level?: number }) {
+  if (pet.busy) return '派遣中'
+  if (pet.deployed) return '出战'
+  if (pet.active && pet.role === 'pet') return '携带'
+  if (pet.active) return '光环'
+  return 'Lv.' + pet.level
+}
 
 /** 上架时的旅税和到手金币。标价是整单，不是单价。 */
 const listTax = computed(() => {
@@ -449,18 +473,48 @@ function pick(id: string) {
       </template>
 
       <template v-else-if="game.panel === 'pets'">
-        <p v-if="!game.profile.pets.length" class="empty">还没有灵伴。到翠叶森林把森林猫打到残血，再按契约。</p>
+        <div class="deploy-bar">
+          <div class="deploy-slot">
+            <small>出战召唤兽</small>
+            <div v-if="deployedBeast" class="deploy-who">
+              <ActorFigure class="mini-fig" :look="lookForPet(deployedBeast.templateId)" />
+              <span>
+                <b>{{ deployedBeast.name }}</b>
+                <small>Lv.{{ deployedBeast.level }} · 元息 {{ deployedBeast.vigor }}/{{ deployedBeast.vigorMax }}</small>
+              </span>
+            </div>
+            <p v-else class="empty">空着。选一只召唤兽，再按出战。</p>
+          </div>
+          <div class="deploy-slot">
+            <small>携带光环</small>
+            <div v-if="carriedPet" class="deploy-who">
+              <ActorFigure class="mini-fig" :look="lookForPet(carriedPet.templateId)" />
+              <span>
+                <b>{{ carriedPet.name }}</b>
+                <small>{{ carriedPet.roleName }} · Lv.{{ carriedPet.level }}</small>
+              </span>
+            </div>
+            <p v-else class="empty">还没携带。宠物会给光环，召唤兽也可以顶上。</p>
+          </div>
+        </div>
+        <div class="choice">
+          <button type="button" :class="{ on: petLane === 'all' }" @click="petLane = 'all'">全部</button>
+          <button type="button" :class="{ on: petLane === 'beast' }" @click="petLane = 'beast'">召唤兽</button>
+          <button type="button" :class="{ on: petLane === 'pet' }" @click="petLane = 'pet'">宠物</button>
+        </div>
+        <p v-if="!game.profile.pets.length" class="empty">还没有灵兽。到翠叶森林把森林猫打到残血，再契约。猫会作为召唤兽出战。</p>
+        <p v-else-if="!shownPets.length" class="empty">这一栏是空的。</p>
         <div v-else class="bag-grid">
           <button
-            v-for="pet in game.profile.pets"
+            v-for="pet in shownPets"
             :key="pet.id"
             class="slot pet"
-            :class="{ on: pickedId === pet.id, busy: pet.busy }"
+            :class="{ on: pickedId === pet.id, busy: pet.busy, beast: pet.role === 'beast', companion: pet.role === 'pet' }"
             @click="pick(pet.id)"
           >
-            <IconMedal :src="portrait(pet.templateId)" />
+            <ActorFigure class="mini-fig" :look="lookForPet(pet.templateId)" />
             <span class="slot-name">{{ pet.name }}</span>
-            <small>{{ pet.busy ? '派遣中' : pet.active ? '出战中' : 'Lv.' + pet.level }}</small>
+            <small>{{ pet.roleName }} · {{ petMark(pet) }}</small>
           </button>
         </div>
       </template>
@@ -802,13 +856,38 @@ function pick(id: string) {
     </div>
 
     <div v-else-if="game.panel === 'pets' && pickedPet" class="detail">
-      <b>{{ pickedPet.name }} · Lv.{{ pickedPet.level }}</b>
-      <small>{{ pickedPet.battle }} · 派遣 {{ pickedPet.work }}</small>
+      <div class="deploy-who">
+        <ActorFigure class="detail-fig" :look="lookForPet(pickedPet.templateId)" />
+        <div>
+          <b>{{ pickedPet.name }} · Lv.{{ pickedPet.level }}/{{ pickedPet.levelCap }}</b>
+          <small>{{ pickedPet.roleName }} · {{ pickedPet.battle }} · 派遣 {{ pickedPet.work }}</small>
+          <small>长势 {{ Number(pickedPet.growth).toFixed(2) }} · 信赖 {{ pickedPet.loyalty }} · 元息 {{ pickedPet.vigor }}/{{ pickedPet.vigorMax }}</small>
+        </div>
+      </div>
       <p>{{ pickedPet.desc }}</p>
       <div class="qbar light"><i :style="{ width: (pickedPet.expMax ? Math.min(100, (pickedPet.exp / pickedPet.expMax) * 100) : 0) + '%' }" /></div>
+      <div v-if="pickedPet.roots?.length" class="roots">
+        <div v-for="root in pickedPet.roots" :key="root.key" class="root-line">
+          <span>{{ root.name }}</span>
+          <i class="track"><b :style="{ width: Math.min(100, (root.value / 80) * 100) + '%' }" /></i>
+          <em>{{ root.value }}</em>
+        </div>
+      </div>
+      <small v-if="pickedPet.panel">生命 {{ pickedPet.panel.hp }} · 爪击 {{ pickedPet.panel.atk }} · 甲 {{ pickedPet.panel.def }} · 灵息 {{ pickedPet.panel.spell }} · 身法 {{ pickedPet.panel.speed }}</small>
+      <div class="skill-pills">
+        <em v-for="skill in pickedPet.skills" :key="skill.id" :title="skill.desc">{{ skill.name }}</em>
+        <em v-if="!pickedPet.skills?.length">还没有兽技</em>
+      </div>
       <div class="row">
-        <button v-if="!pickedPet.active" class="btn lantern" :disabled="pickedPet.busy" @click="game.act('/api/pets/active', { petId: pickedPet.id })">出战</button>
-        <button v-else class="btn light" @click="game.act('/api/pets/active', { petId: null })">收回</button>
+        <template v-if="pickedPet.role === 'beast'">
+          <button v-if="!pickedPet.deployed" class="btn lantern" :disabled="pickedPet.busy || pickedPet.vigor < 1 || pickedPet.loyalty < 15" @click="game.act('/api/pets/deploy', { petId: pickedPet.id })">出战</button>
+          <button v-else class="btn light" @click="game.act('/api/pets/rest', { petId: pickedPet.id })">休息</button>
+        </template>
+        <button v-if="!pickedPet.active" class="btn" :disabled="pickedPet.busy" @click="game.act('/api/pets/active', { petId: pickedPet.id })">携带</button>
+        <button v-else class="btn light" @click="game.act('/api/pets/active', { petId: null })">卸下光环</button>
+        <button class="btn" :disabled="!bagOf('beast_grain')" @click="bagOf('beast_grain') && game.act('/api/pets/feed', { petId: pickedPet.id, itemId: bagOf('beast_grain').id })">喂干粮</button>
+        <button class="btn" :disabled="!bagOf('vigor_fruit')" @click="bagOf('vigor_fruit') && game.act('/api/pets/feed', { petId: pickedPet.id, itemId: bagOf('vigor_fruit').id })">喂元息果</button>
+        <button v-if="pickedPet.role === 'beast'" class="btn" :disabled="!bagOf('beast_seal') || pickedPet.skills.length >= pickedPet.slots" @click="bagOf('beast_seal') && game.act('/api/pets/teach', { petId: pickedPet.id, itemId: bagOf('beast_seal').id })">刻印</button>
       </div>
     </div>
 

@@ -16,7 +16,8 @@
     },
     "weather": {
       "rain": 0.2
-    }
+    },
+    "role": "beast"
   },
   {
     "id": "mine_rat",
@@ -32,7 +33,8 @@
     "dispatch": {
       "ore": 0.35,
       "thunder_ore": 0.15
-    }
+    },
+    "role": "pet"
   },
   {
     "id": "fire_fox",
@@ -53,7 +55,8 @@
     },
     "weather": {
       "clear": 0.1
-    }
+    },
+    "role": "beast"
   },
   {
     "id": "otter",
@@ -69,7 +72,8 @@
     },
     "dispatch": {
       "fish": 0.32
-    }
+    },
+    "role": "pet"
   },
   {
     "id": "thunder_cat",
@@ -90,7 +94,8 @@
     },
     "weather": {
       "storm": 0.25
-    }
+    },
+    "role": "beast"
   },
   {
     "id": "dog_knight",
@@ -106,7 +111,8 @@
     },
     "dispatch": {
       "escort": 0.34
-    }
+    },
+    "role": "beast"
   },
   {
     "id": "slime_pet",
@@ -121,7 +127,8 @@
     },
     "dispatch": {
       "versatile": 0.12
-    }
+    },
+    "role": "pet"
   },
   {
     "id": "shroom_spirit",
@@ -138,7 +145,8 @@
     },
     "dispatch": {
       "herb": 0.22
-    }
+    },
+    "role": "pet"
   },
   {
     "id": "boar_cub",
@@ -155,7 +163,8 @@
     "dispatch": {
       "ore": 0.12,
       "wood": 0.18
-    }
+    },
+    "role": "beast"
   },
   {
     "id": "wolf_pup",
@@ -172,7 +181,8 @@
     "dispatch": {
       "explore": 0.12,
       "escort": 0.12
-    }
+    },
+    "role": "beast"
   },
   {
     "id": "moon_cat",
@@ -195,7 +205,8 @@
     "weather": {
       "clear": 0.08,
       "fog": 0.08
-    }
+    },
+    "role": "beast"
   },
   {
     "id": "koi",
@@ -212,7 +223,8 @@
     "dispatch": {
       "fish": 0.28,
       "explore": 0.08
-    }
+    },
+    "role": "pet"
   },
   {
     "id": "rock_golem",
@@ -228,7 +240,8 @@
     },
     "dispatch": {
       "ore": 0.26
-    }
+    },
+    "role": "beast"
   },
   {
     "id": "storm_bird",
@@ -248,7 +261,8 @@
     },
     "weather": {
       "wind": 0.15
-    }
+    },
+    "role": "beast"
   },
   {
     "id": "bat",
@@ -264,7 +278,8 @@
     "dispatch": {
       "ore": 0.16,
       "explore": 0.08
-    }
+    },
+    "role": "pet"
   },
   {
     "id": "flower_spirit",
@@ -279,7 +294,8 @@
     },
     "dispatch": {
       "herb": 0.3
-    }
+    },
+    "role": "pet"
   },
   {
     "id": "ember_lizard",
@@ -297,7 +313,8 @@
     },
     "dispatch": {
       "ore": 0.14
-    }
+    },
+    "role": "beast"
   },
   {
     "id": "mist_fox",
@@ -316,7 +333,8 @@
     },
     "weather": {
       "fog": 0.22
-    }
+    },
+    "role": "beast"
   },
   {
     "id": "ancient_sprite",
@@ -335,7 +353,8 @@
     },
     "dispatch": {
       "explore": 0.18
-    }
+    },
+    "role": "beast"
   },
   {
     "id": "gold_slime",
@@ -352,6 +371,7 @@
     },
     "dispatch": {
       "versatile": 0.18
-    }
+    },
+    "role": "beast"
   }
 ]

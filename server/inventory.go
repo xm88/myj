@@ -9,6 +9,49 @@ import (
 	"strings"
 )
 
+// temperCap 一件装备最多淬炼的层数。失败不掉层，也不毁掉装备。
+const temperCap = 6
+
+// temperOf 读取装备上已经淬上的层数。旧档没有这个字段时是 0。
+func temperOf(ex M) int {
+	n := int(math.Floor(num(ex["temper"])))
+	if n < 0 {
+		return 0
+	}
+	if n > temperCap {
+		return temperCap
+	}
+	return n
+}
+
+// temperNeed 当前层数再淬一层要的火砂和金币。层数越高，砂和钱都多一点。
+func temperNeed(level int) (float64, float64) {
+	if level < 0 {
+		level = 0
+	}
+	return float64(1 + level/2), float64(8 + level*6)
+}
+
+// temperChance 成功率随层数下降，制造熟练每级拉回 2%。夹在 28% 到 94%。
+func temperChance(level int, craft float64) float64 {
+	return clamp(0.9-float64(level)*0.1+(craft-1)*0.02, 0.28, 0.94)
+}
+
+// temperSteps 按这一抽决定升几层。大成且还有空位时一次升两层，到顶就停。
+func temperSteps(level, cap int, hit, spark bool) int {
+	if !hit || level >= cap {
+		return 0
+	}
+	gain := 1
+	if spark && level+1 < cap {
+		gain = 2
+	}
+	if level+gain > cap {
+		return cap - level
+	}
+	return gain
+}
+
 // equipmentExtra 按装备品质抽取不重复词条，并生成适合存档的随机数值。
 func (a *App) equipmentExtra(q string) M {
 	pool := append([]M{}, objects(a.data["affixes"])...)
@@ -282,6 +325,7 @@ func (a *App) stats(id string, level float64, weapon string, buffs any) M {
 		if mul == 0 {
 			mul = 1
 		}
+		temper := temperOf(ex)
 		for _, k := range []string{"hp", "mp", "atk", "def", "critRate", "critDmg", "speed"} {
 			target := k
 			if k == "hp" {
@@ -295,6 +339,14 @@ func (a *App) stats(id string, level float64, weapon string, buffs any) M {
 				v = math.Round(v)
 			}
 			s[target] = num(s[target]) + v
+			// 淬炼只抬攻击、防御、生命和法力，按品质后的基础值每层加 8%。没淬过的装备和以前一样。
+			if temper > 0 && (k == "atk" || k == "def" || k == "hp" || k == "mp") && num(base[k]) != 0 {
+				bonus := num(base[k]) * mul * 0.08 * float64(temper)
+				if k == "hp" || k == "mp" {
+					bonus = math.Round(bonus)
+				}
+				s[target] = num(s[target]) + bonus
+			}
 		}
 		for _, aff := range objects(ex["affixes"]) {
 			k := str(aff["stat"])
@@ -391,8 +443,43 @@ func (a *App) addBuff(l *Live, id string, b M) {
 	l.State["buffs"] = out
 }
 
+// temper 给背包或身上的装备淬一层。火砂和金币先扣；失败装备还在，层数不变。
+func (a *App) temper(id, item string) {
+	r := a.takeItem(id, item)
+	tpl := a.def("items", str(r["template_id"]))
+	check(tpl != nil && str(tpl["kind"]) == "equipment", "只有装备能淬炼")
+	loc := str(r["location"])
+	check(loc == "bag" || loc == "equipped", "先从仓库取出来")
+	ex := extra(r["extra"])
+	level := temperOf(ex)
+	check(level < temperCap, "这件已经淬满了")
+	grit, gold := temperNeed(level)
+	craft := num(a.track(id, "life:craft")["level"])
+	a.addGold(id, -gold)
+	a.consumeTemplate(id, "temper_grit", grit)
+	a.trackExp(id, "life:craft", 6+float64(level)*2, false)
+	gain := temperSteps(level, temperCap, rand.Float64() < temperChance(level, craft), rand.Float64() < 0.12)
+	name := str(tpl["name"])
+	if gain == 0 {
+		a.toast(id, name+" 火候差了一点，火砂散了。装备还在，层数没变。")
+		a.notify(id)
+		return
+	}
+	ex["temper"] = level + gain
+	a.run("UPDATE player_items SET extra=? WHERE id=?", js(ex), item)
+	if loc == "equipped" {
+		a.refresh(id)
+	}
+	if gain >= 2 {
+		a.toast(id, fmt.Sprintf("%s 火候正好，一次淬到 %d 层。", name, level+gain))
+	} else {
+		a.toast(id, fmt.Sprintf("%s 淬到 %d 层。攻击、防御和生命按这一层抬高。", name, level+gain))
+	}
+	a.notify(id)
+}
+
 // viewItem 把数据库物品与模板、品质、词条合并成网页可用的物品视图。
-func (a *App) viewItem(r M) M {
+func (a *App) viewItem(r M, craft float64) M {
 	t := a.def("items", str(r["template_id"]))
 	ex := M{}
 	var q any
@@ -402,7 +489,19 @@ func (a *App) viewItem(r M) M {
 		q = ex["quality"]
 		aff = objects(ex["affixes"])
 	}
-	return M{"id": r["id"], "templateId": r["template_id"], "name": fallback(t["name"], str(r["template_id"])), "desc": fallback(t["desc"], ""), "kind": fallback(t["kind"], "material"), "count": r["count"], "location": r["location"], "slot": t["slot"], "weaponType": t["weaponType"], "bound": truth(t["bound"]), "sell": num(t["sell"]), "quality": q, "affixes": aff, "lines": gearLines(t, ex)}
+	view := M{"id": r["id"], "templateId": r["template_id"], "name": fallback(t["name"], str(r["template_id"])), "desc": fallback(t["desc"], ""), "kind": fallback(t["kind"], "material"), "count": r["count"], "location": r["location"], "slot": t["slot"], "weaponType": t["weaponType"], "bound": truth(t["bound"]), "sell": num(t["sell"]), "quality": q, "affixes": aff, "lines": gearLines(t, ex)}
+	if str(t["kind"]) == "equipment" {
+		level := temperOf(ex)
+		view["temper"] = level
+		view["temperMax"] = temperCap
+		if level < temperCap {
+			grit, gold := temperNeed(level)
+			view["temperGrit"] = grit
+			view["temperGold"] = gold
+			view["temperChance"] = math.Round(temperChance(level, craft) * 100)
+		}
+	}
+	return view
 }
 
 // gearLines 把装备基础属性和词条整理成可对比的行。品质只乘基础值，词条按原值另列。
@@ -414,8 +513,18 @@ func gearLines(tpl, ex M) []M {
 		mul = 1
 	}
 	labels := map[string]string{"atk": "攻击", "def": "防御", "hp": "生命", "mp": "法力", "speed": "速度", "critRate": "暴击", "critDmg": "暴伤"}
+	temper := temperOf(ex)
 	for _, k := range []string{"atk", "def", "hp", "mp", "speed", "critRate", "critDmg"} {
 		v := math.Round(num(base[k])*mul*10) / 10
+		if temper > 0 && (k == "atk" || k == "def" || k == "hp" || k == "mp") && num(base[k]) != 0 {
+			bonus := num(base[k]) * mul * 0.08 * float64(temper)
+			if k == "hp" || k == "mp" {
+				bonus = math.Round(bonus)
+			} else {
+				bonus = math.Round(bonus*10) / 10
+			}
+			v = math.Round((v+bonus)*10) / 10
+		}
 		if v == 0 {
 			continue
 		}

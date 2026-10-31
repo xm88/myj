@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"strings"
 )
 
 // profile 组装完整角色档案；位置与战斗状态优先读在线状态，背包和任务读数据库。
@@ -37,8 +38,9 @@ func (a *App) profile(id string) M {
 	// 物品按装备部位、背包和仓库分别输出，词条与品质由实例存档解析。
 	equipment := M{"weapon": nil, "head": nil, "chest": nil, "gloves": nil, "boots": nil, "ring": nil}
 	bag, bank := []M{}, []M{}
+	craftLevel := num(a.track(id, "life:craft")["level"])
 	for _, r := range a.items(id, "") {
-		v := a.viewItem(r)
+		v := a.viewItem(r, craftLevel)
 		switch str(r["location"]) {
 		case "equipped":
 			equipment[str(v["slot"])] = v
@@ -75,11 +77,11 @@ func (a *App) profile(id string) M {
 			}
 			goals = append(goals, M{"text": g["text"], "current": cur, "need": need(g), "type": g["type"], "target": goalTarget(g)})
 		}
-		quests = append(quests, M{"id": r["quest_id"], "name": q["name"], "desc": q["desc"], "kind": q["kind"], "turnin": a.def("npcs", str(q["turnin"]))["name"], "turninId": q["turnin"], "objectives": goals})
+		quests = append(quests, M{"id": r["quest_id"], "name": q["name"], "desc": q["desc"], "kind": q["kind"], "turnin": a.def("npcs", str(q["turnin"]))["name"], "turninId": q["turnin"], "objectives": goals, "reward": a.rewardBrief(q)})
 	}
 	for _, q := range objects(a.data["quests"]) {
 		if a.canAccept(r, q) {
-			available = append(available, M{"id": q["id"], "name": q["name"], "desc": q["desc"], "kind": q["kind"], "giver": a.def("npcs", str(q["giver"]))["name"], "giverId": q["giver"], "minLevel": q["minLevel"]})
+			available = append(available, M{"id": q["id"], "name": q["name"], "desc": q["desc"], "kind": q["kind"], "giver": a.def("npcs", str(q["giver"]))["name"], "giverId": q["giver"], "minLevel": q["minLevel"], "reward": a.rewardBrief(q)})
 		}
 	}
 	s["quests"], s["available"] = quests, available
@@ -107,6 +109,11 @@ func (a *App) profile(id string) M {
 	s["weather"] = a.def("weathers", str(a.weather["id"]))
 	s["period"] = a.period
 	s["periodName"] = periodLabels[a.period]
+	s["weatherUntil"] = num(a.weather["until"])
+	s["weatherNext"] = a.nextWeatherName()
+	order := a.companionOrder(id)
+	s["companionOrder"] = order
+	s["companionOrderName"] = companionOrderName[order]
 	s["flags"] = obj(parse(str(r["flags"])))
 	// 潜力余额仅扣自行分配点数，属性展示行还包含种族逐级自动成长。
 	race := raceID(str(r["race"]))
@@ -146,6 +153,26 @@ func (a *App) profile(id string) M {
 	s["attributeRows"] = rows
 	s["stall"] = a.myStallView(id)
 	return s
+}
+
+// rewardBrief 把任务报酬收成一行，给任务日志直接读。
+func (a *App) rewardBrief(q M) string {
+	rw := obj(q["rewards"])
+	bits := []string{}
+	if n := num(rw["exp"]); n > 0 {
+		bits = append(bits, fmt.Sprintf("经验 %g", n))
+	}
+	if n := num(rw["gold"]); n > 0 {
+		bits = append(bits, fmt.Sprintf("%g 金币", n))
+	}
+	for _, it := range objects(rw["items"]) {
+		name := str(a.def("items", str(it["itemId"]))["name"])
+		if name == "" {
+			name = str(it["itemId"])
+		}
+		bits = append(bits, fmt.Sprintf("%s×%g", name, num(it["count"])))
+	}
+	return strings.Join(bits, "，")
 }
 
 // publicConfig 输出客户端显示与操作需要的配置，怪物列表省略服务器战斗结算细节。

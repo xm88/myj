@@ -5,6 +5,7 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 import ActorFigure from './ActorFigure.vue'
 import { mapThumb } from '../game/art'
 import { lookForMonster, lookForPet, lookForSelf, lookForTraveler, type Look } from '../game/look'
+import { companionOrders } from '../game/orders'
 import { useDropFlash } from '../game/motion'
 import { useGame } from '../stores/game'
 
@@ -295,8 +296,11 @@ watch(() => game.floats.at(-1)?.id, () => {
           <b>{{ turnText }}</b>
           <span v-if="yours || yoursBeast" class="your-turn">请出手</span>
           <small v-if="game.autoFight">连招</small>
-          <small v-if="companions">队友由同伴决定</small>
+          <small v-if="companions">队友听「{{ game.profile?.companionOrderName || '稳打' }}」</small>
         </p>
+        <div class="order-picks battle">
+          <button v-for="order in companionOrders" :key="order.id" type="button" :class="{ on: (game.profile?.companionOrder || 'steady') === order.id }" :title="order.hint" @click="game.act('/api/party/order', { order: order.id })">{{ order.name }}</button>
+        </div>
       </div>
       <div v-else class="cadence">
         <div class="swing" :title="guarding ? '守势中，这一拍少挨打' : '普通攻击的出手节奏'">

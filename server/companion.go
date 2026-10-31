@@ -5,30 +5,90 @@ package main
 
 import "math"
 
+// companionOrderName 号令标识和战斗日志里的短名。
+var companionOrderName = map[string]string{"steady": "稳打", "press": "猛攻", "cover": "照应", "focus": "集火"}
+
+// companionOrder 读取这个人当前的同伴号令。旧档没有记过时按稳打，和原来的 45% 吃药线一样。
+func (a *App) companionOrder(id string) string {
+	r := a.player(id)
+	if r == nil {
+		return "steady"
+	}
+	order := str(obj(parse(str(r["flags"])))["companionOrder"])
+	if companionOrderName[order] == "" {
+		return "steady"
+	}
+	return order
+}
+
+// setCompanionOrder 把号令写进角色标记。下一手同伴和超时自动都会听这个。
+func (a *App) setCompanionOrder(id, order string) {
+	check(companionOrderName[order] != "", "没有这种号令")
+	r := a.player(id)
+	flags := obj(parse(str(r["flags"])))
+	flags["companionOrder"] = order
+	a.run("UPDATE players SET flags=?,updated_at=? WHERE id=?", js(flags), now(), id)
+	a.toast(id, "号令换成「"+companionOrderName[order]+"」")
+	a.notify(id)
+}
+
+// orderHealLine 不同号令开始考虑喝药、治疗或守势的血量线。
+func orderHealLine(order string) float64 {
+	switch order {
+	case "press":
+		return 0.18
+	case "cover":
+		return 0.70
+	default:
+		return 0.45
+	}
+}
+
 // companionAction 给一个参战的人挑一个合法动作。不会选逃跑，避免把整场带走。
 func (a *App) companionAction(b *Bout, id string) M {
+	order := a.companionOrder(id)
+	msg := M{"order": order, "orderName": companionOrderName[order]}
+	if order == "focus" && b != nil && b.Leader != "" {
+		if lead := a.live[b.Leader]; lead != nil {
+			if target := str(lead.State["targetId"]); target != "" {
+				msg["focusId"] = target
+			}
+		}
+	}
 	l := a.live[id]
 	if l == nil {
-		return M{"action": "attack"}
+		msg["action"] = "attack"
+		return msg
 	}
 	maxHp := num(l.Stats["maxHp"])
 	if maxHp < 1 {
 		maxHp = 1
 	}
 	ratio := num(l.State["hp"]) / maxHp
-	if ratio < 0.45 && !hasBoutEffect(b, id, "guard") {
+	if ratio < orderHealLine(order) && !hasBoutEffect(b, id, "guard") {
 		if item := a.companionItem(id); item != "" {
-			return M{"action": "item", "itemId": item}
+			msg["action"] = "item"
+			msg["itemId"] = item
+			return msg
 		}
 		if slot := a.companionSlot(l, true); slot > 0 {
-			return M{"action": "skill", "slot": float64(slot)}
+			msg["action"] = "skill"
+			msg["slot"] = float64(slot)
+			return msg
 		}
-		return M{"action": "defend"}
+		// 猛攻缺药时继续打。稳打和照应才会转守势。
+		if order != "press" {
+			msg["action"] = "defend"
+			return msg
+		}
 	}
 	if slot := a.companionSlot(l, false); slot > 0 {
-		return M{"action": "skill", "slot": float64(slot)}
+		msg["action"] = "skill"
+		msg["slot"] = float64(slot)
+		return msg
 	}
-	return M{"action": "attack"}
+	msg["action"] = "attack"
+	return msg
 }
 
 func hasBoutEffect(b *Bout, id, effect string) bool {

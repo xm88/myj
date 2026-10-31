@@ -166,6 +166,10 @@ func (a *App) route(r *http.Request, b M) any {
 			a.finishDispatch(id, s("id"))
 		case "/api/craft":
 			a.craft(id, s("recipeId"))
+		case "/api/temper":
+			a.temper(id, s("itemId"))
+		case "/api/party/order":
+			a.setCompanionOrder(id, s("order"))
 		case "/api/shop/buy":
 			a.buyShop(id, s("npcId"), s("itemId"), n("count", 1))
 		case "/api/shop/sell":

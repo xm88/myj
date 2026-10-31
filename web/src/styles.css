@@ -2247,6 +2247,72 @@ button.item { width: 100%; text-align: left; color: inherit; }
 .skill-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 .skill-pills em { padding: 1px 7px; border: 1px solid #e2c27a; border-radius: 99px; background: #fff8ea; }
 
+.panel-body .seg { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.panel-body .seg button { flex: 1 1 4.5em; }
+.temper-mark {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  padding: 0 4px;
+  border-radius: 99px;
+  background: #6b4423;
+  color: #fff4d4;
+  font-size: 10px;
+  line-height: 1.4;
+}
+.slot { position: relative; }
+.temper-line, .qreward { color: #8a4e16; }
+.qdesc, .qreward { display: block; }
+.ings .short, .item.short small { color: #9a3b2f; }
+.item.flash { box-shadow: inset 0 0 0 1px #c9a15a, 0 0 0 2px rgba(201, 161, 90, 0.35); }
+.quest-card.pinned { background: linear-gradient(180deg, #fff8e4, #f3e2b8); }
+.order-picks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 4px 0 8px; }
+.order-picks button {
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid #c9ae78;
+  background: linear-gradient(180deg, #fffaf0, #f6edd6);
+  color: var(--ink);
+}
+.order-picks button small { display: block; color: var(--ink-soft); font-weight: 600; }
+.order-picks button.on {
+  border-color: #6b3010;
+  background: linear-gradient(180deg, #ffe7a8, #e4b86a);
+  box-shadow: inset 3px 0 0 #6b3010;
+}
+.order-picks button.on b { color: #6b3010; }
+.order-picks.battle { grid-template-columns: repeat(4, 1fr); margin: 6px 0 0; }
+.order-picks.battle button { text-align: center; padding: 4px 2px; font-size: 12px; }
+.weather { display: inline-flex; align-items: center; gap: 4px; }
+.weather small { opacity: 0.85; }
+.sky-orb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(90, 50, 20, 0.4);
+  background: radial-gradient(circle at 35% 35%, #fff6d2, #e0a24a);
+}
+.sky-orb.morning { background: radial-gradient(circle at 35% 35%, #fff8e4, #e8b15a); }
+.sky-orb.dusk { background: radial-gradient(circle at 35% 35%, #ffd0a8, #c45a32); }
+.sky-orb.night, .sky-orb.late { background: radial-gradient(circle at 35% 35%, #f4f0ff, #6d7cb8); }
+.motes { position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; }
+.motes i {
+  position: absolute;
+  top: -10%;
+  width: 2px;
+  height: 12px;
+  background: rgba(226, 236, 244, 0.75);
+  animation: mote-fall 1.6s linear infinite;
+}
+.motes.snow i { width: 4px; height: 4px; border-radius: 50%; background: rgba(255, 255, 255, 0.9); animation-duration: 3.4s; }
+.motes.wind i { width: 16px; height: 2px; background: rgba(214, 232, 220, 0.7); animation-duration: 0.95s; }
+@keyframes mote-fall {
+  from { transform: translateY(0); }
+  to { transform: translateY(120vh); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .motes { display: none; }
+}
 /* V0.2.0：站位、出手读条、任务条、摊市和三步引导。名册避让沿用细金边那一版的内边距。 */
 .lane-self { margin-bottom: 18px; }
 .lane-foe { margin-bottom: 18px; }

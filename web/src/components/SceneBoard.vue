@@ -2,10 +2,12 @@
 /** 自由镜头：当前地块和相邻地块按世界原点铺开，镜头跟着人走。副本仍只有自己这一张。 */
 
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import ActorFigure from './ActorFigure.vue'
 import { nearestPacks } from '../game/crowd'
 import { questGuide } from '../game/guide'
-import { mapThumb, portrait } from '../game/art'
-import { useDropFlash } from '../game/motion'
+import { mapThumb } from '../game/art'
+import { lookForMonster, lookForNpc, lookForPet, lookForSelf, lookForTraveler, type Face } from '../game/look'
+import { useDropFlash, useGait } from '../game/motion'
 import { chunkAt, frameOf, screenToWorld, worldToScreen, type Chunk } from '../game/camera'
 import { nodeFocus, npcFocus, npcMark, portalFocus } from '../game/npc'
 import { useGame } from '../stores/game'
@@ -87,8 +89,8 @@ const selfWorld = computed(() => {
   const origin = hereChunk.value
   return { x: (origin?.originX ?? 0) + Number(self.value.x), y: (origin?.originY ?? 0) + Number(self.value.y) }
 })
-/** 走路时箭头跟着位移转，镜头计算不动。 */
-const facing = ref('down')
+/** 走路时造型跟着位移转，镜头计算不动。 */
+const facing = ref<Face>('down')
 const walking = computed(() => {
   const kind = game.intent?.kind
   return kind === 'move' || kind === 'fight' || kind === 'capture'
@@ -140,6 +142,34 @@ const people = computed(() => (game.snap?.entities ?? []).filter((entity: { kind
 const stalls = computed(() => (game.snap?.entities ?? []).filter((entity: { kind: string; seam?: boolean; afar?: boolean; mapId?: string }) => entity.kind === 'stall' && !entity.seam && !entity.afar && (!entity.mapId || entity.mapId === mapId.value)))
 const packs = computed(() => nearestPacks(monsters.value, self.value))
 const guideKey = computed(() => questGuide(game.profile?.quests ?? [], game.config, mapId.value, packs.value)?.key ?? '')
+const selfLook = computed(() => lookForSelf(game.profile?.weaponType))
+/** 怪物和旁边的旅人走路时换朝向。自己仍看点击后的位移。 */
+const gait = useGait(() => {
+  const list: { id: string; x: number; y: number }[] = []
+  for (const pack of packs.value) list.push({ id: pack.templateId, x: pack.x, y: pack.y })
+  for (const person of people.value) list.push({ id: String(person.id), x: Number(person.x), y: Number(person.y) })
+  return list
+})
+function tintOf(id?: string) {
+  if (!id) return undefined
+  return game.config?.monsters?.find((item: { id: string; tint?: string }) => item.id === id)?.tint as string | undefined
+}
+function actorLook(spot: Spot) {
+  if (spot.kind === 'npc' && spot.npc) return lookForNpc(spot.npc.id, spot.npc.title, spot.npc.panels)
+  if (spot.kind === 'player') return lookForTraveler(spot.id || spot.name, spot.weapon)
+  return lookForMonster(spot.templateId || '', spot.role, tintOf(spot.templateId))
+}
+function actorFace(spot: Spot): Face {
+  const key = spot.kind === 'player' ? spot.id || '' : spot.templateId || spot.key
+  return gait.value[key]?.face || (spot.kind === 'npc' ? 'down' : 'right')
+}
+function actorStep(spot: Spot) {
+  const key = spot.kind === 'player' ? spot.id || '' : spot.templateId || spot.key
+  return Boolean(gait.value[key]?.step)
+}
+function figured(kind: string) {
+  return kind === 'npc' || kind === 'pack' || kind === 'monster' || kind === 'player'
+}
 
 const configOf = (id: string) => game.config?.maps?.find((item: { id: string }) => item.id === id)
 
@@ -157,7 +187,10 @@ interface Spot {
   focus?: string
   stallId?: string
   count?: number
-  npc?: { id: string; name: string }
+  npc?: { id: string; name: string; title?: string; panels?: string[] }
+  templateId?: string
+  role?: string
+  weapon?: string
 }
 
 /** 名字牌左侧的小标：等级、职责或类型，不另占一行。 */
@@ -208,11 +241,11 @@ const spots = computed<Spot[]>(() => {
   }
   for (const pack of packs.value) {
     const world = worldOf(mapId.value, pack.x, pack.y)
-    add({ key: pack.templateId, kind: 'pack', name: pack.name, badge: roleBadge(pack.role, pack.templateId), wx: world.x, wy: world.y, x: pack.x, y: pack.y, mapId: mapId.value, id: pack.id, count: pack.count })
+    add({ key: pack.templateId, kind: 'pack', name: pack.name, badge: roleBadge(pack.role, pack.templateId), wx: world.x, wy: world.y, x: pack.x, y: pack.y, mapId: mapId.value, id: pack.id, count: pack.count, templateId: pack.templateId, role: pack.role })
   }
   for (const person of people.value) {
     const world = person.worldX != null ? { x: Number(person.worldX), y: Number(person.worldY) } : worldOf(mapId.value, person.x, person.y)
-    add({ key: 'who:' + person.id, kind: 'player', name: person.name, badge: person.level ? String(person.level) : '旅', wx: world.x, wy: world.y, x: person.x, y: person.y, mapId: mapId.value, id: person.id })
+    add({ key: 'who:' + person.id, kind: 'player', name: person.name, badge: person.level ? String(person.level) : '旅', wx: world.x, wy: world.y, x: person.x, y: person.y, mapId: mapId.value, id: person.id, weapon: person.templateId })
   }
   for (const stall of stalls.value) {
     const world = stall.worldX != null ? { x: Number(stall.worldX), y: Number(stall.worldY) } : worldOf(mapId.value, stall.x, stall.y)
@@ -220,7 +253,7 @@ const spots = computed<Spot[]>(() => {
   }
   for (const mark of afar.value) {
     const world = mark.worldX != null ? { x: Number(mark.worldX), y: Number(mark.worldY) } : worldOf(mark.mapId, mark.x, mark.y)
-    add({ key: 'afar:' + mark.id, kind: mark.kind, name: mark.name, badge: plateBadge(mark.kind, mark), wx: world.x, wy: world.y, x: mark.x, y: mark.y, mapId: mark.mapId, id: mark.id, stallId: mark.stallId })
+    add({ key: 'afar:' + mark.id, kind: mark.kind, name: mark.name, badge: plateBadge(mark.kind, mark), wx: world.x, wy: world.y, x: mark.x, y: mark.y, mapId: mark.mapId, id: mark.id, stallId: mark.stallId, templateId: mark.templateId, role: mark.role, weapon: mark.kind === 'player' ? mark.templateId : undefined })
   }
   return list
 })
@@ -388,7 +421,7 @@ const floats = computed(() => {
     />
     <div class="atmo" :class="['atmo-' + periodId, weatherId === 'clear' ? '' : 'sky-' + weatherId]" />
     <div class="hud-plate">
-      <img :src="portrait('hero')" alt="" />
+      <ActorFigure class="hud-fig" :look="selfLook" />
       <div>
         <b>{{ game.profile?.name }} <small>Lv.{{ game.profile?.level }}</small></b>
         <div class="hud-meters">
@@ -398,7 +431,7 @@ const floats = computed(() => {
         </div>
       </div>
       <div v-if="pet" class="hud-pet" :title="pet.name">
-        <img :src="portrait(pet.templateId)" alt="" />
+        <ActorFigure class="hud-fig" :look="lookForPet(pet.templateId)" />
         <small>{{ pet.name }}</small>
       </div>
     </div>
@@ -416,7 +449,10 @@ const floats = computed(() => {
     </div>
     <span v-if="clickFx" :key="clickFx.id" class="click-fx" :style="{ left: clickFx.x + 'px', top: clickFx.y + 'px' }" />
     <div v-if="veilKey" :key="veilKey" class="map-veil" />
-    <div class="pin you" :class="['face-' + facing, { step: walking, cast: casting }]" :style="pinWorld(selfWorld.x, selfWorld.y)"><i class="face" aria-hidden="true" /><em class="badge">{{ game.profile?.level }}</em><span>你</span></div>
+    <div class="pin you" :class="{ step: walking, cast: casting }" :style="pinWorld(selfWorld.x, selfWorld.y)">
+      <span class="plate-line"><em class="badge">{{ game.profile?.level }}</em><span>你</span></span>
+      <ActorFigure :look="selfLook" :facing="facing" :step="walking" />
+    </div>
     <div v-if="dest" class="pin dest" :style="pinWorld(dest.x, dest.y)">去</div>
     <span
       v-for="hit in floats"
@@ -433,6 +469,8 @@ const floats = computed(() => {
         exit: spot.kind === 'portal',
         foe: spot.kind === 'pack' || spot.kind === 'monster',
         mate: spot.kind === 'player',
+        figure: figured(spot.kind),
+        ['rank-' + (spot.role || '')]: spot.role === 'elite' || spot.role === 'boss' || spot.role === 'world',
         here: hereId === spot.key,
         goal: guideKey === spot.key,
         turnin: spot.npc && markOf(spot.npc) === 'turnin',
@@ -442,10 +480,14 @@ const floats = computed(() => {
       :style="at(spot.key)"
       @click="openSpot(spot)"
     >
-      <i v-if="spot.npc && markOf(spot.npc) === 'turnin'" class="qmark">?</i>
-      <i v-else-if="spot.npc && (markOf(spot.npc) === 'offer' || markOf(spot.npc) === 'talk')" class="qmark">!</i>
-      <em v-if="spot.badge" class="badge">{{ spot.badge }}</em>
-      <span class="plate-name">{{ spot.name }}<template v-if="spot.count && spot.count > 1"> ×{{ spot.count }}</template></span><small v-if="spot.kind === 'player'">交易</small><small v-else-if="spot.kind === 'stall'">摊</small><small v-else-if="spot.kind === 'portal'">{{ spot.mapId === mapId ? '进入' : '邻门' }}</small><small v-else-if="spot.mapId !== mapId">界外</small>
+      <span class="plate-line">
+        <i v-if="spot.npc && markOf(spot.npc) === 'turnin'" class="qmark">?</i>
+        <i v-else-if="spot.npc && (markOf(spot.npc) === 'offer' || markOf(spot.npc) === 'talk')" class="qmark">!</i>
+        <em v-if="spot.badge" class="badge">{{ spot.badge }}</em>
+        <span class="plate-name">{{ spot.name }}<template v-if="spot.count && spot.count > 1"> ×{{ spot.count }}</template></span>
+        <small v-if="spot.kind === 'player'">交易</small><small v-else-if="spot.kind === 'stall'">摊</small><small v-else-if="spot.kind === 'portal'">{{ spot.mapId === mapId ? '进入' : '邻门' }}</small><small v-else-if="spot.mapId !== mapId">界外</small>
+      </span>
+      <ActorFigure v-if="figured(spot.kind)" :look="actorLook(spot)" :facing="actorFace(spot)" :step="actorStep(spot)" :pip="spot.role === 'elite' || spot.role === 'boss' || spot.role === 'world'" />
     </button>
   </div>
   <div v-else class="scene empty-scene">地图还在加载</div>

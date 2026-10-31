@@ -238,22 +238,8 @@ export function mapThumb(mapId: string): string {
   return key ? files[key] : files.town
 }
 
-/** 查找角色或怪物头像地址，未知模板使用史莱姆素材。 */
+/** 查找角色或怪物头像地址，未知模板使用史莱姆素材。背包和灵伴名册仍用这些图。 */
 export function portrait(templateId: string): string {
   const key = actorArt[templateId] ?? 'slime'
   return files[key]
-}
-
-/** 对话立绘：镇长和铁匠用现有立绘，其余用暖色剪影，不另引图。 */
-const npcBust: Record<string, ArtKey> = {
-  npc_elder: 'elder',
-  npc_smith: 'smith',
-}
-
-/** 按 NPC 给出立绘地址和一圈暖色。没有立绘时界面只画剪影。 */
-export function bustOf(npcId: string) {
-  const key = npcBust[npcId]
-  let hue = 24
-  for (let i = 0; i < npcId.length; i++) hue = (hue * 33 + npcId.charCodeAt(i)) % 48
-  return { src: key ? files[key] : '', hue: 12 + hue }
 }

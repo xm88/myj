@@ -3,7 +3,8 @@
 
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from '../api'
-import { bustOf } from '../game/art'
+import ActorFigure from '../components/ActorFigure.vue'
+import { lookForMonster, lookForNpc, lookForTraveler } from '../game/look'
 import { nearestPacks } from '../game/crowd'
 import { describeQuest, questTracks } from '../game/guide'
 import { useDropFlash } from '../game/motion'
@@ -135,8 +136,12 @@ const dialogChoices = computed(() => {
 })
 /** 判断对话是否包含可接取或可交付任务，决定默认按钮提示。 */
 const hasQuestChoice = computed(() => dialogTopics.value.some((topic: { kind: string }) => topic.kind === 'turnin' || topic.kind === 'accept'))
-/** 当前对话的立绘。没有对应图时只给暖色，界面画剪影。 */
-const bust = computed(() => bustOf(String(game.dialog?.npcId || '')))
+/** 当前对话的造型，和地图上是同一套颜色和部件。 */
+const bust = computed(() => {
+  const id = String(game.dialog?.npcId || '')
+  const row = (game.config?.npcs ?? []).find((npc: { id: string }) => npc.id === id)
+  return lookForNpc(id, row?.title || game.dialog?.title || '', row?.panels ?? [])
+})
 /** 时段和天气只染界面，不改地图或战斗。 */
 const atmoClass = computed(() => {
   const period = String(game.profile?.period || 'day')
@@ -208,6 +213,11 @@ function roleName(role: string) {
 /** 从怪物模板查询等级，供附近名册显示。 */
 function mobLevel(templateId: string) {
   return game.config?.monsters?.find((item: { id: string }) => item.id === templateId)?.level
+}
+
+/** 名册上的怪物和地图用同一种主色。 */
+function mobTint(templateId: string) {
+  return game.config?.monsters?.find((item: { id: string; tint?: string }) => item.id === templateId)?.tint as string | undefined
 }
 
 /** 选中聊天呼叫对象并切换到当前地图频道。 */
@@ -459,6 +469,7 @@ onBeforeUnmount(() => {
         <template v-if="rosterTab === 'people'">
           <p v-if="!npcs.length && !nodes.length" class="hint">这里没有可以对话的人。</p>
           <div v-for="npc in people" :key="npc.id" class="who">
+            <ActorFigure class="roster-fig" :pip="false" :look="lookForNpc(npc.id, npc.title, npc.panels)" />
             <span>
               <b><i v-if="mark(npc) === 'turnin'" class="qmark">?</i><i v-else-if="mark(npc) === 'offer' || mark(npc) === 'talk'" class="qmark">!</i>{{ npc.name }}</b>
               <small>{{ npcHint(npc, game.profile) }}</small>
@@ -473,6 +484,7 @@ onBeforeUnmount(() => {
         <template v-else-if="rosterTab === 'mobs'">
           <p v-if="!packs.length" class="hint">这片地方现在没有怪物。</p>
           <div v-for="pack in packs" :key="pack.templateId" class="who">
+            <ActorFigure class="roster-fig" :pip="false" :look="lookForMonster(pack.templateId, pack.role, mobTint(pack.templateId))" />
             <span>
               <b>{{ pack.name }}<template v-if="pack.count > 1"> ×{{ pack.count }}</template></b>
               <small>{{ [roleName(pack.role || ''), (mobLevel(pack.templateId) ?? '?') + '级'].filter(Boolean).join(' ') }}</small>
@@ -485,6 +497,7 @@ onBeforeUnmount(() => {
         <template v-else>
           <p v-if="!players.length" class="hint">旁边没有别的旅人。</p>
           <div v-for="player in players" :key="player.id" class="who">
+            <ActorFigure class="roster-fig" :pip="false" :look="lookForTraveler(player.id, player.templateId)" />
             <span><b>{{ player.name }}</b></span>
             <button @click="call(player.name)">交谈</button>
             <button @click="game.act('/api/party/invite', { name: player.name })">组队</button>
@@ -498,9 +511,8 @@ onBeforeUnmount(() => {
       <Transition name="sheet">
       <div v-if="game.dialog" class="dialog stage" role="dialog" :aria-label="game.dialog.name">
         <aside class="bust">
-          <div class="bust-frame" :style="{ '--hue': bust.hue }">
-            <img v-if="bust.src" :src="bust.src" alt="" />
-            <span v-else class="bust-sil" aria-hidden="true"><i class="head" /><i class="body" /></span>
+          <div class="bust-frame" :style="{ '--wash': bust.coat }">
+            <ActorFigure :look="bust" />
           </div>
           <b class="bust-name">{{ game.dialog.name }}</b>
           <small>{{ game.dialog.title }}</small>

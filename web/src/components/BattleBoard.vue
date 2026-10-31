@@ -2,8 +2,9 @@
 /** 战斗界面：没开战时仍显示出手拍；开战后面板改成回合、出手顺序和动作。 */
 
 import { computed, onUnmounted, ref, watch } from 'vue'
-import IconMedal from './IconMedal.vue'
-import { mapThumb, portrait } from '../game/art'
+import ActorFigure from './ActorFigure.vue'
+import { mapThumb } from '../game/art'
+import { lookForMonster, lookForPet, lookForSelf, lookForTraveler, type Look } from '../game/look'
 import { useDropFlash } from '../game/motion'
 import { useGame } from '../stores/game'
 
@@ -169,14 +170,34 @@ function fxKind(id: string) {
   return ''
 }
 
-/** 出手条上的头像。怪物用现有立绘，自己用旅人，同伴用暖色块。 */
-function chipFace(actor: { id: string; kind: string; mark?: string; name?: string }) {
-  if (actor.id === game.profile?.id) return { backgroundImage: `url("${portrait('hero')}")` }
-  if (actor.kind === 'monster' && actor.mark) return { backgroundImage: `url("${portrait(actor.mark)}")` }
-  const name = actor.name || actor.id
-  const hue = [...name].reduce((n, ch) => n + ch.charCodeAt(0), 18) % 36 + 14
-  return { background: `linear-gradient(180deg, hsl(${hue} 42% 64%), hsl(${hue} 30% 32%))` }
+/** 怪物模板上的表现色和品级。只给头像用。 */
+function monsterRow(id?: string) {
+  if (!id) return undefined
+  return game.config?.monsters?.find((item: { id: string; role?: string; tint?: string }) => item.id === id)
 }
+
+/** 出手条和战斗立绘用地图上的同一套造型。 */
+function actorLook(actor: { id?: string; kind?: string; mark?: string; templateId?: string; role?: string; tint?: string }): Look {
+  if (actor.id && actor.id === game.profile?.id) return lookForSelf(game.profile?.weaponType)
+  const templateId = actor.templateId || (actor.mark && actor.mark !== 'hero' ? actor.mark : '') || ''
+  if (actor.kind === 'monster') {
+    const row = monsterRow(templateId)
+    return lookForMonster(templateId, actor.role || row?.role, actor.tint || row?.tint)
+  }
+  return lookForTraveler(actor.id || actor.mark || '', templateId || undefined)
+}
+
+const selfLook = computed(() => lookForSelf(game.profile?.weaponType))
+const foeId = computed(() => String(foe.value?.templateId || foe.value?.mark || ''))
+const foeLook = computed(() => actorLook({
+  id: foe.value?.id,
+  kind: 'monster',
+  templateId: foeId.value,
+  role: foe.value?.role,
+  tint: foe.value?.tint,
+  mark: foe.value?.mark,
+}))
+const petLook = computed(() => (pet.value ? lookForPet(pet.value.templateId) : null))
 </script>
 
 <template>
@@ -186,7 +207,7 @@ function chipFace(actor: { id: string; kind: string; mark?: string; name?: strin
     <div v-if="banner" class="outcome" :class="banner">{{ banner === 'victory' ? '胜利' : '战败' }}</div>
     <div class="fighter" :class="{ acting: bout && bout.await === game.profile?.id, hurt: selfHurt }">
       <div v-if="casting" class="cast-ring" aria-hidden="true"><i /><i /><b /></div>
-      <IconMedal class="portrait" :src="portrait('hero')" />
+      <ActorFigure class="portrait" :look="selfLook" />
       <b>{{ game.profile?.name }}</b>
       <small>{{ game.profile?.weaponName }} · Lv.{{ game.profile?.level }}</small>
       <div class="bar" :class="{ hurt: selfHurt }"><i class="hp" :style="{ width: hpPct + '%' }" /></div>
@@ -197,7 +218,7 @@ function chipFace(actor: { id: string; kind: string; mark?: string; name?: strin
         <em v-for="ef in selfEffects" :key="ef.id" class="fx" :class="fxKind(ef.id)"><b>{{ ef.name }}</b><small>{{ ef.rounds }}</small></em>
       </div>
       <div v-if="pet" class="pet-row">
-        <IconMedal :src="portrait(pet.templateId)" />
+        <ActorFigure v-if="petLook" class="pet-fig" :look="petLook" />
         <span>{{ pet.name }}<small>主战</small></span>
       </div>
       <p v-else class="hint">还没有主战灵伴</p>
@@ -211,7 +232,7 @@ function chipFace(actor: { id: string; kind: string; mark?: string; name?: strin
             class="order-chip"
             :class="{ now: actor.id === bout.await, down: actor.alive === false, self: actor.id === game.profile?.id, foe: actor.kind === 'monster', mate: actor.companion }"
           >
-            <i class="chip-face" :style="chipFace(actor)" />
+            <i class="chip-face" :class="'rank-' + actorLook(actor).rank"><ActorFigure :look="actorLook(actor)" /></i>
             <b>{{ actor.name }}</b>
           </span>
         </div>
@@ -260,7 +281,7 @@ function chipFace(actor: { id: string; kind: string; mark?: string; name?: strin
     <div class="fighter" :class="{ acting: bout && foe && bout.await === foe.id, marked: yours && foe, hurt: foeHurt }">
       <template v-if="foe">
         <small v-if="yours" class="target-flag">当前目标</small>
-        <IconMedal class="portrait" :src="portrait(foe.templateId || 'slime')" />
+        <ActorFigure class="portrait" pip :look="foeLook" />
         <b>{{ foe.name }}</b>
         <small>{{ foeLevel ? foeLevel + '级 · ' : '' }}{{ foe.alive === false ? '已被击败' : (foe.capturable ? '可以契约' : '战斗中') }}</small>
         <div class="bar" :class="{ hurt: foeHurt }"><i class="hp foe" :style="{ width: foePct + '%' }" /></div>

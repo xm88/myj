@@ -5,6 +5,8 @@ export type Hat = 'none' | 'cap' | 'wide' | 'hood' | 'helm' | 'straw' | 'band' |
 export type Tool = 'none' | 'sword' | 'great' | 'hammer' | 'staff' | 'bow' | 'book' | 'pack' | 'rod' | 'pick' | 'lantern'
 export type Ears = 'none' | 'round' | 'point' | 'long' | 'horn' | 'fin'
 export type Bulk = 'slim' | 'normal' | 'wide'
+export type Hairdo = 'short' | 'bun' | 'bald' | 'pony' | 'grey'
+export type Beard = 'none' | 'chin' | 'full'
 export type Rank = 'normal' | 'elite' | 'boss' | 'world'
 export type Face = 'up' | 'down' | 'left' | 'right'
 
@@ -20,6 +22,9 @@ export interface Look {
   tool: Tool
   ears: Ears
   bulk: Bulk
+  hairdo: Hairdo
+  beard: Beard
+  blush: boolean
   tail: boolean
   fluff: boolean
   snout: 'short' | 'long'
@@ -47,6 +52,9 @@ function look(partial: Partial<Look> & Pick<Look, 'body' | 'coat'>): Look {
     tool: 'none',
     ears: 'none',
     bulk: 'normal',
+    hairdo: 'short',
+    beard: 'none',
+    blush: false,
     tail: false,
     fluff: false,
     snout: 'short',
@@ -92,20 +100,20 @@ export function lookForTraveler(seed = '', weaponType?: string): Look {
   })
 }
 
-/** 星落镇和沿线的人。每人一套帽子、工具和颜色，不靠随机色点区分。 */
+/** 星落镇和沿线的人。圆头短袍，每人头发、胡子、帽子和手里的东西都不一样。 */
 const npcLooks: Record<string, Look> = {
-  npc_elder: look({ body: 'human', coat: '#3d4f86', trim: '#e7c56a', skin: '#f3d2b0', hair: '#d9d3c6', hat: 'wide', cape: true, tool: 'staff', bulk: 'slim' }),
-  npc_smith: look({ body: 'human', coat: '#6b4632', trim: '#c47a45', skin: '#e0b090', hair: '#2a2112', hat: 'band', tool: 'hammer', bulk: 'wide' }),
-  npc_shop: look({ body: 'human', coat: '#e7a15a', trim: '#fff6ea', skin: '#f6d2b8', hair: '#8a3e2a', hat: 'straw', tool: 'pack', bulk: 'slim' }),
-  npc_auction: look({ body: 'human', coat: '#7a3e62', trim: '#e7c56a', skin: '#f0d0b4', hair: '#2a1820', hat: 'tall', tool: 'book' }),
-  npc_dispatch: look({ body: 'human', coat: '#2f6d62', trim: '#f3e2b8', skin: '#f0c8a4', hair: '#1c2e28', hat: 'officer', cape: true, tool: 'sword' }),
-  npc_guild: look({ body: 'human', coat: '#243656', trim: '#a33b2b', skin: '#e8c2a4', hair: '#1a1e28', hat: 'cap', cape: true }),
-  npc_bank: look({ body: 'human', coat: '#8a7560', trim: '#3d6b45', skin: '#e4c2a0', hair: '#3a3028', hat: 'cap', tool: 'pack', bulk: 'wide' }),
-  npc_travel: look({ body: 'human', coat: '#3d6f8a', trim: '#f0d48a', skin: '#f0d2b4', hair: '#243848', hat: 'hood', cape: true, tool: 'lantern' }),
-  npc_ranger: look({ body: 'human', coat: '#2f5a38', trim: '#c4d4a4', skin: '#e8c4a4', hair: '#243024', hat: 'hood', cape: true, tool: 'bow' }),
-  npc_verge: look({ body: 'human', coat: '#d7b15a', trim: '#5f8f3e', skin: '#f3d0b0', hair: '#5c3a22', bulk: 'slim' }),
-  npc_fisher: look({ body: 'human', coat: '#5c7380', trim: '#d7e2ea', skin: '#e8c8a8', hair: '#6a6a6a', hat: 'straw', tool: 'rod' }),
-  npc_miner: look({ body: 'human', coat: '#a85a32', trim: '#8d949c', skin: '#e0b090', hair: '#2a2112', hat: 'helm', tool: 'pick', bulk: 'wide' }),
+  npc_elder: look({ body: 'human', coat: '#3d4f86', trim: '#e7c56a', skin: '#f6d7b8', hair: '#e4e0d4', hat: 'wide', cape: true, tool: 'staff', bulk: 'slim', hairdo: 'grey', beard: 'full' }),
+  npc_smith: look({ body: 'human', coat: '#6b4632', trim: '#e08a45', skin: '#e7b48a', hair: '#2a1810', hat: 'band', tool: 'hammer', bulk: 'wide', hairdo: 'bald', beard: 'chin' }),
+  npc_shop: look({ body: 'human', coat: '#e7a15a', trim: '#fff6ea', skin: '#f8d0b4', hair: '#8a3e2a', hat: 'straw', tool: 'pack', bulk: 'slim', hairdo: 'bun', blush: true }),
+  npc_auction: look({ body: 'human', coat: '#7a3e62', trim: '#e7c56a', skin: '#f3d0b6', hair: '#2a1820', hat: 'tall', tool: 'book', hairdo: 'short' }),
+  npc_dispatch: look({ body: 'human', coat: '#2f6d62', trim: '#f6e7c0', skin: '#f3d0b4', hair: '#1c2e28', hat: 'officer', cape: true, tool: 'sword', hairdo: 'bun' }),
+  npc_guild: look({ body: 'human', coat: '#243656', trim: '#c4483a', skin: '#e8c2a4', hair: '#1a1e28', hat: 'cap', cape: true, hairdo: 'short', beard: 'chin' }),
+  npc_bank: look({ body: 'human', coat: '#8a7560', trim: '#3d6b45', skin: '#e8c4a4', hair: '#4a3a28', hat: 'cap', tool: 'pack', bulk: 'wide', hairdo: 'bald', beard: 'chin' }),
+  npc_travel: look({ body: 'human', coat: '#3d6f8a', trim: '#f0d48a', skin: '#f3d2b4', hair: '#243848', hat: 'hood', cape: true, tool: 'lantern', hairdo: 'short' }),
+  npc_ranger: look({ body: 'human', coat: '#2f5a38', trim: '#d7e7b0', skin: '#e8c4a4', hair: '#243024', hat: 'hood', cape: true, tool: 'bow', hairdo: 'pony' }),
+  npc_verge: look({ body: 'human', coat: '#e6c15a', trim: '#5f8f3e', skin: '#f6d2b2', hair: '#6a3a22', bulk: 'slim', hairdo: 'pony', blush: true }),
+  npc_fisher: look({ body: 'human', coat: '#5c7380', trim: '#d7e2ea', skin: '#e8c8a8', hair: '#d5d0c8', hat: 'straw', tool: 'rod', hairdo: 'grey', beard: 'full' }),
+  npc_miner: look({ body: 'human', coat: '#c4622e', trim: '#d7dde4', skin: '#e0b090', hair: '#2a2112', hat: 'helm', tool: 'pick', bulk: 'wide', hairdo: 'short', beard: 'chin' }),
 }
 
 const villager = look({ body: 'human', coat: '#7aaa55', trim: '#f3e2b8', hat: 'none' })

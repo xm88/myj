@@ -67,7 +67,7 @@ func (a *App) attach(id string, p *Peer) {
 	l := a.live[id]
 	if l == nil {
 		r := a.player(id)
-		s := M{"id": id, "userId": r["user_id"], "name": r["name"], "level": r["level"], "exp": r["exp"], "gold": r["gold"], "mapId": r["map_id"], "x": r["x"], "y": r["y"], "hp": r["hp"], "mp": r["mp"], "weaponType": r["weapon_type"], "loadout": arr(parse(str(r["skill_loadout"]))), "buffs": objects(parse(str(r["buffs"]))), "safe": false, "armed": a.hasWeapon(id), "inputX": 0, "inputY": 0, "destX": nil, "destY": nil, "targetId": nil, "shield": 0, "invulnUntil": 0, "attackAt": 0, "lastCombatAt": 0, "chatAt": 0, "disconnectAt": 0, "eventSeq": 1}
+		s := M{"id": id, "userId": r["user_id"], "name": r["name"], "level": r["level"], "exp": r["exp"], "gold": r["gold"], "mapId": r["map_id"], "x": r["x"], "y": r["y"], "hp": r["hp"], "mp": r["mp"], "weaponType": r["weapon_type"], "loadout": arr(parse(str(r["skill_loadout"]))), "buffs": objects(parse(str(r["buffs"]))), "mount": str(r["mount_preview"]), "safe": false, "armed": a.hasWeapon(id), "inputX": 0, "inputY": 0, "destX": nil, "destY": nil, "targetId": nil, "shield": 0, "invulnUntil": 0, "attackAt": 0, "lastCombatAt": 0, "chatAt": 0, "disconnectAt": 0, "eventSeq": 1}
 		stats := a.stats(id, num(r["level"]), str(r["weapon_type"]), s["buffs"])
 		s["hp"] = clamp(num(s["hp"]), 1, num(stats["maxHp"]))
 		s["mp"] = clamp(num(s["mp"]), 0, num(stats["maxMp"]))
@@ -720,7 +720,7 @@ func (a *App) snapshot(l *Live, t float64) M {
 				continue
 			}
 			s := p.State
-			entities = append(entities, M{"id": id, "kind": "player", "templateId": s["weaponType"], "name": s["name"], "level": s["level"], "x": s["x"], "y": s["y"], "hp": s["hp"], "maxHp": p.Stats["maxHp"], "alive": true, "tint": "#f2d48a", "role": "player", "radius": 14, "stalling": str(s["stallId"]) != ""})
+			entities = append(entities, M{"id": id, "kind": "player", "templateId": s["weaponType"], "name": s["name"], "level": s["level"], "x": s["x"], "y": s["y"], "hp": s["hp"], "maxHp": p.Stats["maxHp"], "alive": true, "tint": "#f2d48a", "role": "player", "radius": 14, "stalling": str(s["stallId"]) != "", "mount": str(s["mount"])})
 		}
 		for _, stall := range a.rows("SELECT s.*, p.name AS owner_name FROM stalls s JOIN players p ON p.id=s.player_id WHERE s.open=1 AND s.map_id=?", i.MapID) {
 			entities = append(entities, M{"id": "stall:" + str(stall["id"]), "kind": "stall", "stallId": stall["id"], "name": stall["title"], "owner": stall["owner_name"], "x": stall["x"], "y": stall["y"], "alive": true})
@@ -753,7 +753,7 @@ func (a *App) snapshot(l *Live, t float64) M {
 		e["worldX"], e["worldY"] = wx, wy
 	}
 	self := M{}
-	for _, k := range []string{"x", "y", "hp", "mp", "level", "exp", "gold", "targetId", "shield", "weaponType", "safe"} {
+	for _, k := range []string{"x", "y", "hp", "mp", "level", "exp", "gold", "targetId", "shield", "weaponType", "safe", "mount"} {
 		self[k] = l.State[k]
 	}
 	self["maxHp"], self["maxMp"], self["expMax"] = l.Stats["maxHp"], l.Stats["maxMp"], expNext(num(l.State["level"]))

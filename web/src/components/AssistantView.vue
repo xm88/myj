@@ -73,7 +73,15 @@ function remain(endsAt: number) {
         </button>
         <button class="phone-card" type="button" @click="game.setMode('play'); game.panel = 'guild'">
           <div class="card-top"><b>公会</b><small>{{ game.profile?.guild?.name ?? '未加入' }}</small></div>
-          <p>{{ game.profile?.guild ? '捐献、公告和成员都在这里。' : '还没有公会。点这里去创建或加入。' }}</p>
+          <p>{{ game.profile?.guild ? '点卯、公告和捐献都在堂口。' : '还没有公会。点这里去创建或加入。' }}</p>
+        </button>
+        <button class="phone-card" type="button" @click="game.setMode('play'); game.panel = 'mount'">
+          <div class="card-top"><b>坐骑</b><small>{{ game.profile?.mount ? '预览亮着' : '还没亮出' }}</small></div>
+          <p>四匹都是看着的。亮出来不改步子。</p>
+        </button>
+        <button class="phone-card" type="button" @click="game.setMode('play'); game.panel = 'dungeon'">
+          <div class="card-top"><b>遗迹</b><small>门槛</small></div>
+          <p>先看等级、线路和会遇见谁，再决定进不进。</p>
         </button>
       </div>
       <div class="phone-row">

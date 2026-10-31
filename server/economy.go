@@ -202,9 +202,10 @@ func (a *App) donateGuild(id string, gold float64) {
 	r := a.one("SELECT guild_id FROM guild_members WHERE player_id=?", id)
 	check(r != nil, "你不在公会里")
 	a.addGold(id, -gold)
+	a.run("UPDATE guild_members SET contrib=contrib+? WHERE player_id=?", gold, id)
 	g := a.one("SELECT exp FROM guilds WHERE id=?", r["guild_id"])
 	exp := num(g["exp"]) + gold
-	a.run("UPDATE guilds SET exp=?,level=? WHERE id=?", exp, math.Min(10, 1+math.Floor(exp/500)), r["guild_id"])
+	a.run("UPDATE guilds SET exp=?,level=? WHERE id=?", exp, guildLevel(exp), r["guild_id"])
 	a.emit(id, M{"type": "donate"})
 	a.notify(id)
 }

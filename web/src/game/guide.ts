@@ -81,6 +81,12 @@ export interface QuestTrack {
   ready: boolean
   /** 一行进度。 */
   line: string
+  /** 当前目标进度，交付时视为已满。 */
+  current: number
+  /** 当前目标需求。 */
+  need: number
+  /** 0 到 1，给追踪条用。 */
+  ratio: number
 }
 
 /** 把进行中的任务收成追踪列表。主线排在前面，钉上的那条再提前，最多四条。 */
@@ -95,12 +101,17 @@ export function questTracks(quests: Array<QuestRow & { kind?: string }>, pin?: s
   }
   return ordered.slice(0, 4).map((quest): QuestTrack => {
     const goal = quest.objectives?.find((item) => item.current < item.need)
+    const current = goal ? goal.current : 1
+    const need = goal ? Math.max(1, goal.need) : 1
     return {
       id: quest.id || quest.name,
       name: quest.name,
       kind: quest.kind,
       ready: !goal,
       line: goal ? `${goal.current}/${goal.need} ${goal.text}` : `交给${quest.turnin || '委托人'}`,
+      current,
+      need,
+      ratio: goal ? Math.max(0, Math.min(1, current / need)) : 1,
     }
   })
 }

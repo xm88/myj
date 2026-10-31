@@ -64,10 +64,38 @@
       {
         "itemId": "temper_grit",
         "price": 12
+      },
+      {
+        "itemId": "wild_snare",
+        "price": 32
+      },
+      {
+        "itemId": "slip_pounce",
+        "price": 56
+      },
+      {
+        "itemId": "slip_shell",
+        "price": 56
+      },
+      {
+        "itemId": "slip_lick",
+        "price": 56
+      },
+      {
+        "itemId": "slip_shriek",
+        "price": 56
+      },
+      {
+        "itemId": "slip_ember",
+        "price": 56
+      },
+      {
+        "itemId": "slip_tide",
+        "price": 56
       }
     ],
     "lines": [
-      "灵契球不保证成功。先把对方打到站不稳，再谈契约。火砂拿去淬装备，一层一层来。"
+      "灵契球要打到三成血。捕兽索七成血就能试，但更不容易套住。兽纹帖指定一招，栏满了可以覆掉旧的。两只召唤兽可以合灵。火砂拿去淬装备，一层一层来。"
     ]
   },
   {

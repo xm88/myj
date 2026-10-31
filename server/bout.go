@@ -360,7 +360,7 @@ func (a *App) playerTurn(b *Bout, id string, msg M) {
 		l.State["guardUntil"] = now() + 30000
 		a.addEffect(b, id, RoundEffect{ID: "guard", Name: "守势", Rounds: 1, Taken: 0.55})
 		a.note(b, str(l.State["name"])+" 守势")
-		push(l, M{"kind": "text", "text": "守势", "x": l.State["x"], "y": l.State["y"], "entityId": id})
+		flare(l, "text", "守势", id)
 	case "flee":
 		if a.tryFlee(b, l) {
 			return
@@ -386,6 +386,7 @@ func (a *App) boutAttack(b *Bout, l *Live, prefer string) {
 	inst := a.instances[b.Home[mid]]
 	a.hurtMonster(inst, l, m, 1, "physical", false)
 	a.note(b, str(l.State["name"])+" 攻击 "+str(m["name"]))
+	flare(l, "swing", "攻击", str(l.State["id"]))
 	l.State["beats"] = num(l.State["beats"]) + 1
 	l.State["attackAt"] = now() + num(l.Stats["attackInterval"])
 }
@@ -468,6 +469,7 @@ func (a *App) boutSkill(b *Bout, l *Live, slot float64, prefer string) {
 		}
 	}
 	a.note(b, str(s["name"])+" 施放 "+str(skill["name"]))
+	flare(l, "cast", str(skill["name"]), str(s["id"]))
 	s["lastCombatAt"] = t
 }
 
@@ -510,12 +512,18 @@ func (a *App) monsterTurn(b *Bout, actor BoutActor) {
 		if beast.Taunt > 0 || rand.Float64() < 0.45 {
 			a.hurtBeast(b, m, beast, 1)
 			a.note(b, str(m["name"])+" 攻击 "+beast.Name)
+			if inst := a.instances[b.Home[actor.ID]]; inst != nil {
+				a.tell(inst, M{"kind": "swing", "text": "扑上", "entityId": actor.ID, "x": m["x"], "y": m["y"]})
+			}
 			return
 		}
 	}
 	inst := a.instances[foe.InstanceKey]
 	if inst == nil {
 		inst = a.instances[b.Home[actor.ID]]
+	}
+	if inst != nil {
+		a.tell(inst, M{"kind": "swing", "text": "攻击", "entityId": actor.ID, "x": m["x"], "y": m["y"]})
 	}
 	if a.hurtPlayer(inst, m, foe, 1) {
 		b.Down[str(foe.State["id"])] = true
@@ -682,6 +690,14 @@ func (a *App) boutKiller(b *Bout) *Live {
 		}
 	}
 	return nil
+}
+
+// flare 给出手的人推一条短飘字。结算公式不动，只多一个画面用的事件。
+func flare(l *Live, kind, text, entity string) {
+	if l == nil || text == "" {
+		return
+	}
+	push(l, M{"kind": kind, "text": text, "x": l.State["x"], "y": l.State["y"], "entityId": entity})
 }
 
 func (a *App) note(b *Bout, text string) {

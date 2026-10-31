@@ -26,6 +26,7 @@ export type Intent =
   | { kind: 'move'; x: number; y: number; act?: 'interact'; focus?: string; worldX?: number; worldY?: number; mapId?: string }
   | { kind: 'fight'; id: string }
   | { kind: 'capture'; id: string }
+  | { kind: 'snare'; id: string }
 
 /** 全网页共用的 Pinia 状态仓库，协调登录、REST 档案与 WebSocket 快照。 */
 export const useGame = defineStore('game', {
@@ -466,6 +467,22 @@ export const useGame = defineStore('game', {
       this.noteBattle('靠近后尝试契约')
       this.send({ type: 'target', id })
     },
+    /** 靠近后用捕兽索。已经贴在身边就直接套，不必再绕一圈。 */
+    snare(id: string) {
+      this.dialog = null
+      this.view = 'battle'
+      const self = this.snap?.self
+      const mob = (this.snap?.entities ?? []).find((entity: { id: string }) => entity.id === id)
+      this.send({ type: 'target', id })
+      if (self && mob && Math.hypot(self.x - mob.x, self.y - mob.y) <= 90) {
+        this.intent = null
+        this.send({ type: 'snare' })
+        this.noteBattle('抛出捕兽索')
+        return
+      }
+      this.intent = { kind: 'snare', id }
+      this.noteBattle('靠近后尝试野捕')
+    },
     /** 取消攻击目标，优先移动到回镇门或地图入口并更新战斗提示。 */
     flee() {
       if (this.snap?.bout?.phase === 'choose') {
@@ -541,9 +558,9 @@ export const useGame = defineStore('game', {
       if (!sameMap) {
         const wd = Math.hypot((self.worldX ?? self.x) - (mob.worldX ?? mob.x), (self.worldY ?? self.y) - (mob.worldY ?? mob.y))
         if (wd <= 80) {
-          if (intent.kind === 'capture') {
+          if (intent.kind === 'capture' || intent.kind === 'snare') {
             this.intent = null
-            this.send({ type: 'capture' })
+            this.send({ type: intent.kind })
             return
           }
           if (this.engaging !== intent.id) {
@@ -571,9 +588,9 @@ export const useGame = defineStore('game', {
         }
         return
       }
-      if (intent.kind === 'capture') {
+      if (intent.kind === 'capture' || intent.kind === 'snare') {
         this.intent = null
-        this.send({ type: 'capture' })
+        this.send({ type: intent.kind })
         return
       }
       if (this.engaging !== intent.id) {

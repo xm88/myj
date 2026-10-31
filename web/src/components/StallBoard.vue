@@ -139,7 +139,7 @@ async function buy(id: string) {
     <button v-for="stall in stalls" :key="stall.id" class="item as-btn" @click="openDetail(stall.id)">
       <div>
         <b>{{ stall.title }}</b>
-        <small>{{ stall.owner }}<template v-if="stall.seam"> · 界外</template><template v-if="stall.mine"> · 我的</template></small>
+        <small>{{ stall.owner }}<template v-if="stall.seam"> · 界外</template><template v-if="stall.mine"> · 我的</template> · {{ stall.listed ? stall.listed + ' 件' : '空摊' }}<template v-if="stall.sample"> · {{ stall.sample }}</template></small>
       </div>
     </button>
     <section v-if="detail && !detail.mine">

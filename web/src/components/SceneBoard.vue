@@ -460,6 +460,14 @@ const floats = computed(() => {
       <i class="dot you" :style="mm(selfWorld.x, selfWorld.y)" />
       <i v-if="dest" class="dot dest" :style="mm(dest.x, dest.y)" />
       <i v-for="spot in spots.filter((item) => item.kind === 'portal')" :key="'m' + spot.key" class="dot exit" :style="mm(spot.wx, spot.wy)" />
+      <i v-for="spot in spots.filter((item) => item.kind === 'stall')" :key="'s' + spot.key" class="dot stall" :style="mm(spot.wx, spot.wy)" />
+      <i v-for="spot in spots.filter((item) => item.key === guideKey)" :key="'g' + spot.key" class="dot goal" :style="mm(spot.wx, spot.wy)" />
+      <ul class="mm-key">
+        <li><i class="dot you" />你</li>
+        <li><i class="dot exit" />门</li>
+        <li><i class="dot stall" />摊</li>
+        <li><i class="dot goal" />任务</li>
+      </ul>
       <b>{{ map.name }}</b>
     </div>
     <div class="coords">{{ Math.round(self.x) }} , {{ Math.round(self.y) }}<small>世界 {{ Math.round(selfWorld.x) }} , {{ Math.round(selfWorld.y) }}</small></div>

@@ -155,7 +155,9 @@ func (a *App) route(r *http.Request, b M) any {
 		case "/api/pets/feed":
 			a.feedPet(id, s("petId"), s("itemId"))
 		case "/api/pets/teach":
-			a.teachPet(id, s("petId"), s("itemId"))
+			a.teachPet(id, s("petId"), s("itemId"), s("cover"))
+		case "/api/pets/fuse":
+			a.fusePets(id, s("keepId"), s("offerId"))
 		case "/api/dispatches":
 			a.startDispatch(id, s("petId"), s("nodeId"), s("durationId"))
 		case "/api/dispatches/claim":

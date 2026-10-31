@@ -12,6 +12,7 @@ import { closestSpot, focusReach, nodeFocus, npcAction, npcFocus, npcHint, npcMa
 import AssistantView from '../components/AssistantView.vue'
 import BattleBoard from '../components/BattleBoard.vue'
 import Panels from '../components/Panels.vue'
+import PrimerCard from '../components/PrimerCard.vue'
 import SceneBoard from '../components/SceneBoard.vue'
 import { useGame } from '../stores/game'
 
@@ -192,6 +193,7 @@ const notice = computed(() => {
 const moving = computed(() => {
   if (game.intent?.kind === 'fight') return '正在靠近目标'
   if (game.intent?.kind === 'capture') return '正在靠近，准备契约'
+  if (game.intent?.kind === 'snare') return '正在靠近，准备野捕'
   if (game.intent?.kind === 'move' && game.intent.act === 'interact') return '正在走过去'
   if (game.intent?.kind === 'move') return '赶路中'
   return ''
@@ -458,9 +460,11 @@ onBeforeUnmount(() => {
       <SceneBoard v-else />
       <aside class="roster">
         <div v-if="tracked.length" class="quest-track">
+          <b class="track-title">任务</b>
           <button v-for="row in tracked" :key="row.id" :class="[row.kind === 'main' ? 'main' : 'side', { ready: row.ready }]" @click="followQuest(row.id)">
             <b><em class="lane">{{ row.kind === 'main' ? '主线' : '支线' }}</em>{{ row.name }}</b>
             <small>{{ row.line }}</small>
+            <i class="qtrack"><b :style="{ width: Math.round(row.ratio * 100) + '%' }" /></i>
           </button>
         </div>
         <div class="roster-tabs">
@@ -489,11 +493,14 @@ onBeforeUnmount(() => {
             <ActorFigure class="roster-fig" :pip="false" :look="lookForMonster(pack.templateId, pack.role, mobTint(pack.templateId))" />
             <span>
               <b>{{ pack.name }}<template v-if="pack.count > 1"> ×{{ pack.count }}</template></b>
-              <small>{{ [roleName(pack.role || ''), (mobLevel(pack.templateId) ?? '?') + '级'].filter(Boolean).join(' ') }}</small>
+              <small>{{ [roleName(pack.role || ''), (mobLevel(pack.templateId) ?? '?') + '级', pack.capturable ? '可契约' : ''].filter(Boolean).join(' · ') }}</small>
               <i v-if="pack.maxHp" class="hpbar"><b :style="{ width: Math.max(0, ((pack.hp ?? 0) / pack.maxHp) * 100) + '%' }" /></i>
             </span>
-            <button class="fight" @click="game.fight(pack.id)">战斗</button>
-            <button v-if="pack.capturable" @click="game.capture(pack.id)">契约</button>
+            <span class="acts">
+              <button class="fight" @click="game.fight(pack.id)">战斗</button>
+              <button v-if="pack.capturable" @click="game.capture(pack.id)">契约</button>
+              <button v-if="pack.capturable" @click="game.snare(pack.id)">野捕</button>
+            </span>
           </div>
         </template>
         <template v-else>
@@ -565,12 +572,13 @@ onBeforeUnmount(() => {
         <header><b>怎么玩</b><button @click="help = false">关闭</button></header>
         <p>画面铺满这一带。左上是你的头像、生命和法力，右上是小地图。点地面会走过去，点名字也一样。地图名和任务在上头，附近的人收在右边的名册里。技能在底下中间，聊天在左下。</p>
         <p>和人说话时，左边是立绘框，台词在羊皮纸上。数字键选事项，Enter 交付或接受，Esc 离开。走近按 E，或点名字后面的按钮。问号是可以交差，叹号是有任务。右边的任务追踪分主线和支线，点一下就会过去。</p>
-        <p>点怪物会走近并开战。开战之后按速度轮流出手。出手顺序是一排头像，轮到你时中间会亮出「请出手」，当前目标也更醒目。可以攻击、放技能、吃药、防御或逃跑。放技能时脚下会闪一圈，底栏的「光效」可以关掉。胜负会闪一条横幅，不挡返回地图。G 在回合里是防御，平时仍是守势。连招会在轮到你时自动攻击。打到三成血以下，再点「契约」。</p>
+        <p>点怪物会走近并开战。开战之后按速度轮流出手。旅人、召唤兽和对手分成三列，出手时有飘字和一条短读条。轮到你时中间会亮出「请出手」。可以攻击、放技能、吃药、防御或逃跑。打到七成血可以野捕，三成血再用契约。召唤兽能刻兽纹帖，两只可以合灵。左下角的三步引导可以跳过。</p>
         <p>战斗时如果想先看地图，点「返回地图」。镜头跟着你走过相邻的地块，走到门外就进下一片，不会被拉回入口。副本仍是单独一张。摆摊和当面交易都要站在旁边，成交扣和拍卖一样的旅税。</p>
         <p>点自己的名字，或下面的「角色」，可以看属性和换技能。技能栏一次放 4 个：先点栏位，再点要换上的技能。</p>
         <p>下面一排还有任务、道具、宠物、跳市和工会。聊天选区域、世界或工会。点别的旅人「交谈」，会在区域频道叫他。</p>
       </section>
       </Transition>
+      <PrimerCard />
       <Panels />
       <TransitionGroup name="toast" tag="div" class="toasts">
         <div v-for="item in game.toasts" :key="item.id" class="toast">{{ item.text }}</div>

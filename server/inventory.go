@@ -219,6 +219,8 @@ func (a *App) useItem(id, item string) {
 	check(str(tpl["kind"]) == "consumable", "这件不能直接使用")
 	check(str(tpl["id"]) != "capture_orb", "把目标打到残血后，用捕捉键契约")
 	check(str(tpl["id"]) != "beast_grain" && str(tpl["id"]) != "vigor_fruit" && str(tpl["id"]) != "beast_seal", "在灵兽面板里喂给它，或给召唤兽刻印")
+	check(str(tpl["teach"]) == "", "在灵兽面板里把这道兽纹刻上去")
+	check(str(tpl["id"]) != "wild_snare", "靠近能契约的目标，再用野捕")
 	effect := obj(tpl["effect"])
 	if str(effect["grantPet"]) != "" {
 		a.consume(r, 1)

@@ -16,7 +16,7 @@ var rootNames = map[string]string{
 	"claw": "爪骨", "plate": "甲骨", "blood": "血骨", "mind": "灵骨", "step": "步骨",
 }
 
-// 刻印池。栏位没满时随机学会一招，不替换已有技能。合灵留到以后。
+// 刻印池。兽纹印在空栏里随机学会一招。兽纹帖指定一招，栏满时可以覆掉选定的旧招。
 var beastTeach = []string{"beast_pounce", "beast_shell", "beast_lick", "beast_shriek", "beast_ember", "beast_tide"}
 
 // BoutBeast 是这一场里出战召唤兽的血量和出手资料，不写进世界怪物表。
@@ -233,8 +233,43 @@ func (a *App) viewPet(p M) M {
 		"role": role, "roleName": roleLabel(role), "growth": num(p["growth"]),
 		"roots": rootRows, "skills": skills, "slots": skillSlots(role),
 		"loyalty": num(p["loyalty"]), "vigor": num(p["vigor"]), "vigorMax": 80,
+		"mood": moodID(num(p["loyalty"])), "moodName": moodName(num(p["loyalty"])),
 		"panel": M{"hp": hp, "atk": atk, "def": defn, "spell": spell, "speed": speed},
 	}
+}
+
+func moodID(loyalty float64) string {
+	switch {
+	case loyalty >= 80:
+		return "close"
+	case loyalty >= 40:
+		return "steady"
+	case loyalty >= 15:
+		return "wary"
+	default:
+		return "refuse"
+	}
+}
+
+func moodName(loyalty float64) string {
+	switch moodID(loyalty) {
+	case "close":
+		return "亲近"
+	case "steady":
+		return "寻常"
+	case "wary":
+		return "疏离"
+	default:
+		return "抗拒"
+	}
+}
+
+func signed(v float64) string {
+	v = math.Round(v)
+	if v > 0 {
+		return fmt.Sprintf("+%g", v)
+	}
+	return fmt.Sprintf("%g", v)
 }
 
 func (a *App) inBout(id string) bool {
@@ -286,18 +321,19 @@ func (a *App) feedPet(id, pet, item string) {
 		loyalty = clamp(loyalty+6, 0, 100)
 		a.run("UPDATE player_pets SET loyalty=? WHERE id=?", loyalty, pet)
 		a.petExp(pet, 14)
-		a.toast(id, "它吃下了兽谷干粮")
+		a.toast(id, fmt.Sprintf("兽谷干粮：信赖 +6（%g · %s）", loyalty, moodName(loyalty)))
 	} else {
+		before := vigor
 		vigor = math.Min(80, vigor+28)
 		loyalty = clamp(loyalty+2, 0, 100)
 		a.run("UPDATE player_pets SET loyalty=?,vigor=? WHERE id=?", loyalty, vigor, pet)
-		a.toast(id, "元息回来了一点")
+		a.toast(id, fmt.Sprintf("元息果：元息 %s（%g），信赖 +2（%g · %s）", signed(vigor-before), vigor, loyalty, moodName(loyalty)))
 	}
 	a.notify(id)
 }
 
-// teachPet 在空技能栏刻上一招旅团兽技。栏满了不覆盖。
-func (a *App) teachPet(id, pet, item string) {
+// teachPet 用兽纹印往空栏随机刻一招，或用兽纹帖刻指定的一招。栏满时只有兽纹帖能覆掉选定的旧招。
+func (a *App) teachPet(id, pet, item, cover string) {
 	check(!a.inBout(id), "等这场打完再刻印")
 	p := a.ensurePet(a.one("SELECT * FROM player_pets WHERE id=? AND player_id=?", pet, id))
 	check(p != nil, "没有这只灵兽")
@@ -305,26 +341,154 @@ func (a *App) teachPet(id, pet, item string) {
 	check(petRole(def) == "beast", "宠物学不会这种兽技")
 	row := a.takeItem(id, item)
 	check(str(row["location"]) == "bag", "只能用背包里的东西")
-	check(str(row["template_id"]) == "beast_seal", "这不是兽纹印")
+	tpl := a.def("items", str(row["template_id"]))
+	taught := str(tpl["teach"])
 	skills := arr(parse(str(p["skills"])))
-	check(len(skills) < skillSlots("beast"), "技能栏满了。合灵还没开放，空不出位置")
 	have := map[string]bool{}
 	for _, s := range skills {
 		have[str(s)] = true
 	}
-	pool := []string{}
-	for _, sid := range beastTeach {
-		if !have[sid] {
-			pool = append(pool, sid)
+	var pick string
+	replaced := false
+	if taught != "" {
+		check(a.def("skills", taught) != nil, "没有这道兽纹")
+		check(!have[taught], "它已经会这一招")
+		if len(skills) < skillSlots("beast") {
+			skills = append(skills, taught)
+		} else {
+			check(cover != "" && have[cover], "技能栏满了。选一招覆掉")
+			next := []any{}
+			for _, s := range skills {
+				if str(s) == cover {
+					next = append(next, taught)
+					replaced = true
+				} else {
+					next = append(next, s)
+				}
+			}
+			check(replaced, "它没有这一招可以覆")
+			skills = next
 		}
+		pick = taught
+	} else {
+		check(str(row["template_id"]) == "beast_seal", "这不是兽纹印")
+		check(len(skills) < skillSlots("beast"), "技能栏满了。兽纹帖可以覆掉旧招")
+		pool := []string{}
+		for _, sid := range beastTeach {
+			if !have[sid] {
+				pool = append(pool, sid)
+			}
+		}
+		check(len(pool) > 0, "它已经会这些兽技了")
+		pick = pool[int(rand.Float64()*float64(len(pool)))%len(pool)]
+		skills = append(skills, pick)
 	}
-	check(len(pool) > 0, "它已经会这些兽技了")
-	pick := pool[int(rand.Float64()*float64(len(pool)))%len(pool)]
-	skills = append(skills, pick)
 	a.consume(row, 1)
 	a.run("UPDATE player_pets SET skills=? WHERE id=?", js(skills), pet)
-	a.toast(id, str(def["name"])+" 学会了"+fallback(a.def("skills", pick)["name"], pick))
+	verb := "学会了"
+	if replaced {
+		verb = "覆上了"
+	}
+	a.toast(id, str(def["name"])+" "+verb+fallback(a.def("skills", pick)["name"], pick))
 	a.notify(id)
+}
+
+// fusePets 把献上的召唤兽合进留下的那只。根骨和长势取较高的一侧，空着的技能栏抄一招，献上的那只离开。
+func (a *App) fusePets(id, keepID, offerID string) {
+	check(!a.inBout(id), "这场还没打完")
+	check(keepID != "" && offerID != "" && keepID != offerID, "要选出留下的和献上的")
+	keep := a.ensurePet(a.one("SELECT * FROM player_pets WHERE id=? AND player_id=?", keepID, id))
+	offer := a.ensurePet(a.one("SELECT * FROM player_pets WHERE id=? AND player_id=?", offerID, id))
+	check(keep != nil && offer != nil, "没有这两只灵兽")
+	kd := a.def("pets", str(keep["template_id"]))
+	od := a.def("pets", str(offer["template_id"]))
+	check(petRole(kd) == "beast" && petRole(od) == "beast", "只有召唤兽能合灵")
+	check(!a.busy(keepID) && !a.busy(offerID), "派遣中的不能合灵")
+	_, hi, _, ghi := rootBands(str(kd["rarity"]))
+	capRoot := hi + 8
+	nextRoots := M{}
+	kr, orr := obj(parse(str(keep["roots"]))), obj(parse(str(offer["roots"])))
+	for _, k := range rootKeys {
+		v := math.Max(num(kr[k]), num(orr[k]))
+		if v > capRoot {
+			v = capRoot
+		}
+		nextRoots[k] = v
+	}
+	growth := math.Max(num(keep["growth"]), num(offer["growth"])) + 0.02
+	if growth > ghi+0.06 {
+		growth = ghi + 0.06
+	}
+	growth = math.Round(growth*100) / 100
+	skills := arr(parse(str(keep["skills"])))
+	have := map[string]bool{}
+	for _, s := range skills {
+		have[str(s)] = true
+	}
+	learned := ""
+	if len(skills) < skillSlots("beast") {
+		for _, s := range arr(parse(str(offer["skills"]))) {
+			sid := str(s)
+			if sid != "" && !have[sid] {
+				skills = append(skills, sid)
+				learned = sid
+				break
+			}
+		}
+	}
+	loyalty := clamp(math.Round((num(keep["loyalty"])+num(offer["loyalty"]))/2), 0, 100)
+	a.run("UPDATE player_pets SET growth=?,roots=?,skills=?,loyalty=? WHERE id=?", growth, js(nextRoots), js(skills), loyalty, keepID)
+	if truth(offer["active"]) && !truth(keep["active"]) {
+		a.run("UPDATE player_pets SET active=0 WHERE player_id=?", id)
+		a.run("UPDATE player_pets SET active=1 WHERE id=?", keepID)
+	}
+	if truth(offer["deployed"]) && !truth(keep["deployed"]) && num(keep["vigor"]) >= 1 && loyalty >= 15 {
+		a.run("UPDATE player_pets SET deployed=0 WHERE player_id=?", id)
+		a.run("UPDATE player_pets SET deployed=1 WHERE id=?", keepID)
+	}
+	a.run("DELETE FROM player_pets WHERE id=? AND player_id=?", offerID, id)
+	a.refresh(id)
+	extra := ""
+	if learned != "" {
+		extra = "，学会了" + fallback(a.def("skills", learned)["name"], learned)
+	}
+	a.toast(id, fmt.Sprintf("%s 合入了%s。长势 %g，信赖 %g（%s）%s", str(kd["name"]), str(od["name"]), growth, loyalty, moodName(loyalty), extra))
+	a.notify(id)
+}
+
+// snareChance 野捕比契约更早能试，上限也更低。血越低越容易套住。
+func snareChance(base, hpRatio float64) float64 {
+	return clamp(base*0.45+(0.7-hpRatio)*0.2, 0.05, 0.46)
+}
+
+// snare 用捕兽索套野外还能契约的目标。七成血以下就能试，成功后的兽更野。
+func (a *App) snare(id string) {
+	l := a.mustLive(id)
+	check(!truth(l.State["safe"]), "助手模式下不能野捕")
+	i := a.instances[l.InstanceKey]
+	check(i != nil, "先进入世界")
+	m := i.Monsters[str(l.State["targetId"])]
+	check(truth(m["alive"]), "先选中目标")
+	d := a.def("monsters", str(m["templateId"]))
+	check(str(d["petId"]) != "" && d["captureBase"] != nil, "这只不能野捕")
+	hp := num(m["hp"]) / math.Max(1, num(m["maxHp"]))
+	check(hp <= 0.7, "先打到七成血以下，再用捕兽索")
+	check(d["captureTime"] == nil || contains(d["captureTime"], a.period), "这个时辰它不会停下")
+	check(dist(l.State, m) <= 90, "再靠近一点")
+	a.consumeTemplate(id, "wild_snare", 1)
+	if rand.Float64() > snareChance(num(d["captureBase"]), hp) {
+		a.toast(id, "野捕失败，捕兽索断了")
+		a.notify(id)
+		push(l, M{"kind": "text", "text": "挣脱", "x": m["x"], "y": m["y"], "entityId": m["id"]})
+		return
+	}
+	m["alive"], m["hp"], m["deadAt"], m["respawnAt"] = false, 0, now(), 0
+	if num(d["respawnMs"]) > 0 {
+		m["respawnAt"] = now() + num(d["respawnMs"])
+	}
+	a.onMonsterGone(str(m["id"]))
+	a.adoptPet(id, str(d["petId"]), "snare")
+	push(l, M{"kind": "text", "text": "套住", "x": m["x"], "y": m["y"], "entityId": m["id"]})
 }
 
 func (a *App) addBoutBeast(b *Bout, l *Live) {
@@ -420,6 +584,7 @@ func (a *App) resolveBeast(b *Bout, id string, msg M) {
 	}
 	if beast.Loyalty < 40 && rand.Float64() < 0.3 {
 		a.note(b, beast.Name+" 扭过头，这一手没动")
+		flare(a.live[beast.Owner], "text", "没动", beast.ID)
 		return
 	}
 	switch str(msg["action"]) {
@@ -427,6 +592,7 @@ func (a *App) resolveBeast(b *Bout, id string, msg M) {
 		beast.Guard = true
 		a.addEffect(b, id, RoundEffect{ID: "guard", Name: "守势", Rounds: 1, Taken: 0.55})
 		a.note(b, beast.Name+" 守势")
+		flare(a.live[beast.Owner], "text", "守势", beast.ID)
 	case "skill":
 		a.beastSkill(b, beast, str(msg["skillId"]))
 	default:
@@ -443,6 +609,7 @@ func (a *App) beastAttack(b *Bout, beast *BoutBeast) {
 		return
 	}
 	a.note(b, beast.Name+" 攻击 "+str(m["name"]))
+	flare(a.live[beast.Owner], "swing", "爪击", beast.ID)
 	a.beastStrike(b, beast, m, 1, "physical", false)
 }
 
@@ -462,6 +629,7 @@ func (a *App) beastSkill(b *Bout, beast *BoutBeast, sid string) {
 	check(skill != nil, "没有这个技能")
 	beast.Next[sid] = b.Round + 2
 	a.note(b, beast.Name+" 施放 "+str(skill["name"]))
+	flare(a.live[beast.Owner], "cast", str(skill["name"]), beast.ID)
 	owner := a.live[beast.Owner]
 	if owner != nil && skill["buff"] != nil {
 		a.addBuff(owner, sid, obj(skill["buff"]))
@@ -622,7 +790,16 @@ func (a *App) settleBeasts(b *Bout, phase string) {
 		if exp > 0 {
 			a.petExp(beast.ID, exp)
 		}
-		a.toast(beast.Owner, fmt.Sprintf("%s 这场结束：经验 +%g，信赖 %g，元息 %g", beast.Name, math.Round(exp), nextL, nextV))
+		extra := ""
+		if nextV <= 0 {
+			extra += "，元息耗尽"
+		}
+		if nextL < 15 {
+			extra += "，不愿出战"
+		} else if nextL < 40 {
+			extra += "，出手会犹豫"
+		}
+		a.toast(beast.Owner, fmt.Sprintf("%s 这场：经验 %s，信赖 %s（%g · %s），元息 -1（%g）%s", beast.Name, signed(exp), signed(loyalty), nextL, moodName(nextL), nextV, extra))
 		a.notify(beast.Owner)
 	}
 }

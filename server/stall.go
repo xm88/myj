@@ -166,7 +166,14 @@ func (a *App) stallsNear(id string) []M {
 			return
 		}
 		seen[sid] = true
-		out = append(out, M{"id": sid, "title": row["title"], "owner": row["owner_name"], "ownerId": row["player_id"], "mapId": row["map_id"], "x": row["x"], "y": row["y"], "mine": str(row["player_id"]) == id, "seam": seam, "distance": math.Round(gap)})
+		goods := a.rows("SELECT template_id FROM stall_goods WHERE stall_id=? ORDER BY created_at", sid)
+		sample := ""
+		if len(goods) > 0 {
+			if tpl := a.def("items", str(goods[0]["template_id"])); tpl != nil {
+				sample = str(tpl["name"])
+			}
+		}
+		out = append(out, M{"id": sid, "title": row["title"], "owner": row["owner_name"], "ownerId": row["player_id"], "mapId": row["map_id"], "x": row["x"], "y": row["y"], "mine": str(row["player_id"]) == id, "seam": seam, "distance": math.Round(gap), "listed": len(goods), "sample": sample})
 	}
 	for _, row := range a.rows("SELECT s.*, p.name AS owner_name FROM stalls s JOIN players p ON p.id=s.player_id WHERE s.open=1 AND s.map_id=?", l.State["mapId"]) {
 		add(row, false)

@@ -268,8 +268,9 @@ const laid = computed(() => {
         let dx = b.x - a.x
         let dy = b.y - a.y
         const dist = Math.hypot(dx, dy) || 0.01
-        if (dist >= 36) continue
-        const push = (36 - dist) / 2
+        const gap = figured(a.kind) && figured(b.kind) ? 50 : 36
+        if (dist >= gap) continue
+        const push = (gap - dist) / 2
         dx /= dist
         dy /= dist
         a.x -= dx * push
@@ -424,6 +425,7 @@ const floats = computed(() => {
       <ActorFigure class="hud-fig" :look="selfLook" />
       <div>
         <b>{{ game.profile?.name }} <small>Lv.{{ game.profile?.level }}</small></b>
+        <small class="hud-gold">{{ game.profile?.gold }} 金</small>
         <div class="hud-meters">
           <span title="生命"><em>血</em><span class="bar" :class="{ hurt: hpHurt }"><i class="hp" :style="{ width: hpPct + '%' }" /></span></span>
           <span title="法力"><em>法</em><span class="bar"><i class="mp" :style="{ width: mpPct + '%' }" /></span></span>

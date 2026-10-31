@@ -17,7 +17,10 @@ const props = withDefaults(defineProps<{
 
 const shade = computed(() => shadeColor(props.look.coat, -42))
 const back = computed(() => props.facing === 'up')
+const side = computed(() => props.facing === 'left' || props.facing === 'right')
 const eyes = computed(() => props.facing !== 'up' && props.look.hat !== 'helm')
+/** 左右走时身体收窄，武器留在外侧，侧身才看得清。 */
+const pose = computed(() => (side.value && props.look.body === 'human' ? 'translate(36 0) scale(0.84 1) translate(-32 0)' : undefined))
 const bulk = computed(() => {
   if (props.look.bulk === 'wide') return 'translate(32 0) scale(1.16 1) translate(-32 0)'
   if (props.look.bulk === 'slim') return 'translate(32 0) scale(0.86 1) translate(-32 0)'
@@ -37,65 +40,74 @@ const pipText = computed(() => (props.pip ? rankLabel(props.look.rank) : ''))
   >
     <span class="flip" :class="{ left: facing === 'left' }">
       <svg class="fig" viewBox="0 0 64 80">
-        <ellipse cx="32" cy="75" rx="14" ry="3.1" fill="#1c140c" opacity="0.22" />
+        <ellipse cx="32" cy="75" rx="16" ry="3.6" fill="#1c140c" opacity="0.4" />
         <ellipse v-if="look.rank === 'elite'" cx="32" cy="73" rx="18" ry="5.2" fill="rgba(231,180,35,0.28)" stroke="#e7b423" stroke-width="3.4" />
         <ellipse v-if="look.rank === 'boss'" cx="32" cy="73" rx="20" ry="5.6" fill="rgba(141,46,36,0.35)" stroke="#e7c56a" stroke-width="3.6" />
         <ellipse v-if="look.rank === 'world'" cx="32" cy="73" rx="20" ry="5.4" fill="rgba(126,176,212,0.28)" stroke="#7eb0d4" stroke-width="3.4" />
         <polygon v-if="look.rank === 'boss'" points="32,0 40,11 32,8 24,11" fill="#e7c56a" />
 
         <g v-if="look.body === 'human'">
-          <path v-if="look.cape" :d="back ? 'M16 36 Q12 58 18 72 H46 Q52 58 48 36 Z' : 'M20 40 Q14 58 20 70 H44 Q50 58 44 40 Z'" :fill="back ? look.coat : shade" />
+          <g :transform="pose">
+          <path v-if="look.cape" d="M18 44 Q10 58 16 70 H48 Q54 58 46 44 Z" :fill="back ? look.coat : shade" stroke="#2a1810" stroke-width="1.2" />
           <g :transform="bulk">
-            <rect class="leg-a" x="24" y="58" width="6.4" height="13" rx="2" :fill="shade" />
-            <rect class="leg-b" x="34" y="58" width="6.4" height="13" rx="2" :fill="shade" />
-            <path d="M22 38 H42 L47 62 H17 Z" :fill="look.coat" />
-            <rect x="20" y="50" width="24" height="3.2" rx="1" :fill="look.trim" />
-            <rect x="15" y="40" width="8" height="12" rx="3" :fill="look.coat" />
-            <rect x="41" y="40" width="8" height="12" rx="3" :fill="look.coat" />
-            <circle cx="18" cy="52" r="2.5" :fill="look.skin" />
-            <circle cx="46" cy="52" r="2.5" :fill="look.skin" />
+            <rect class="leg-a" x="24" y="62" width="5" height="8" rx="2" :fill="shade" />
+            <rect class="leg-b" x="35" y="62" width="5" height="8" rx="2" :fill="shade" />
+            <ellipse class="leg-a" cx="26.5" cy="71" rx="5.2" ry="2.6" fill="#3a2418" stroke="#2a1810" stroke-width="0.8" />
+            <ellipse class="leg-b" cx="37.5" cy="71" rx="5.2" ry="2.6" fill="#3a2418" stroke="#2a1810" stroke-width="0.8" />
+            <path d="M22 42 Q18 46 19 60 Q24 68 32 68 Q40 68 45 60 Q46 46 42 42 Q36 48 32 48 Q28 48 22 42 Z" :fill="look.coat" stroke="#2a1810" stroke-width="1.3" />
+            <path d="M26 46 H38 L36 52 H28 Z" :fill="look.trim" />
+            <rect v-if="!side" x="14" y="46" width="8" height="11" rx="3" :fill="look.coat" stroke="#2a1810" stroke-width="1" />
+            <rect x="42" y="46" width="8" height="11" rx="3" :fill="look.coat" stroke="#2a1810" stroke-width="1" />
           </g>
-          <circle cx="32" cy="28" r="10" :fill="back ? look.hair : look.skin" />
-          <path v-if="!back && look.hat !== 'hood'" d="M22 27 Q24 16 32 16 Q40 16 42 27 Q36 22 32 23 Q28 22 22 27" :fill="look.hair" />
-          <polygon v-if="look.ears === 'fin'" points="18,26 12,16 24,30" :fill="look.coat" />
-          <polygon v-if="look.ears === 'fin'" points="46,26 52,16 40,30" :fill="look.coat" />
+          <circle cx="32" cy="26" r="14" :fill="back ? look.hair : look.skin" stroke="#2a1810" stroke-width="1.4" />
+          <path v-if="!back && look.hairdo !== 'bald' && look.hat !== 'hood'" d="M20 24 Q22 12 32 12 Q42 12 44 24 Q38 18 32 19 Q26 18 20 24" :fill="look.hair" />
+          <circle v-if="look.hairdo === 'bun'" cx="32" cy="11" r="4.2" :fill="look.hair" stroke="#2a1810" stroke-width="1" />
+          <ellipse v-if="look.hairdo === 'pony'" cx="46" cy="30" rx="4" ry="7" :fill="look.hair" stroke="#2a1810" stroke-width="1" />
+          <ellipse v-if="look.beard === 'chin'" cx="32" cy="36" rx="6" ry="3.2" :fill="look.hair" />
+          <path v-if="look.beard === 'full'" d="M22 30 Q20 42 32 46 Q44 42 42 30 Q36 36 32 36 Q28 36 22 30" :fill="look.hair" stroke="#2a1810" stroke-width="0.8" />
           <g v-if="look.hat === 'cap'">
-            <ellipse cx="32" cy="21" rx="11" ry="3" :fill="shade" />
-            <path d="M24 21 Q32 11 40 21 Z" :fill="look.coat" />
+            <ellipse cx="32" cy="16" rx="12" ry="3" :fill="shade" />
+            <path d="M22 16 Q32 4 42 16 Z" :fill="look.coat" stroke="#2a1810" stroke-width="1" />
           </g>
           <g v-else-if="look.hat === 'wide'">
-            <ellipse cx="32" cy="20" rx="16" ry="3.2" :fill="look.coat" />
-            <path d="M26 20 Q32 8 38 20 Z" :fill="shade" />
+            <ellipse cx="32" cy="16" rx="18" ry="3.4" :fill="look.coat" stroke="#2a1810" stroke-width="1" />
+            <path d="M24 16 Q32 2 40 16 Z" :fill="shade" stroke="#2a1810" stroke-width="1" />
           </g>
           <g v-else-if="look.hat === 'hood'">
-            <path d="M18 32 Q16 12 32 9 Q48 12 46 32 Q32 24 18 32" :fill="look.coat" />
-            <ellipse v-if="!back" cx="32" cy="29" rx="6.4" ry="6" :fill="look.skin" />
+            <path d="M16 32 Q14 8 32 6 Q50 8 48 32 Q32 22 16 32" :fill="look.coat" stroke="#2a1810" stroke-width="1.2" />
+            <ellipse v-if="!back" cx="32" cy="28" rx="8" ry="7" :fill="look.skin" />
           </g>
           <g v-else-if="look.hat === 'helm'">
-            <path d="M22 30 Q22 14 32 13 Q42 14 42 30 Z" :fill="shade" />
-            <rect x="24" y="26" width="16" height="3.2" rx="1" :fill="look.trim" />
+            <path d="M20 28 Q20 10 32 8 Q44 10 44 28 Z" :fill="shade" stroke="#2a1810" stroke-width="1.2" />
+            <rect x="22" y="24" width="20" height="4" rx="1" :fill="look.trim" />
           </g>
           <g v-else-if="look.hat === 'straw'">
-            <ellipse cx="32" cy="22" rx="16" ry="3" fill="#f0d48a" />
-            <path d="M27 22 Q32 12 37 22 Z" fill="#e6c56a" />
-            <rect x="29" y="17" width="6" height="2.4" :fill="look.trim" />
+            <ellipse cx="32" cy="18" rx="18" ry="3.2" fill="#f3d78a" stroke="#2a1810" stroke-width="1" />
+            <path d="M26 18 Q32 6 38 18 Z" fill="#e6c56a" stroke="#2a1810" stroke-width="1" />
+            <rect x="29" y="12" width="6" height="3" :fill="look.trim" />
           </g>
           <g v-else-if="look.hat === 'band'">
-            <rect x="23" y="24" width="18" height="3.4" rx="1" :fill="look.trim" />
+            <rect x="20" y="20" width="24" height="4" rx="1.2" :fill="look.trim" stroke="#2a1810" stroke-width="0.8" />
           </g>
           <g v-else-if="look.hat === 'officer'">
-            <rect x="24" y="12" width="16" height="8" rx="1" :fill="look.coat" />
-            <ellipse cx="32" cy="20" rx="12" ry="3" :fill="shade" />
-            <rect x="24" y="17" width="16" height="2.2" :fill="look.trim" />
+            <rect x="22" y="6" width="20" height="9" rx="1" :fill="look.coat" stroke="#2a1810" stroke-width="1" />
+            <ellipse cx="32" cy="16" rx="14" ry="3.2" :fill="shade" stroke="#2a1810" stroke-width="1" />
+            <rect x="22" y="12" width="20" height="2.4" :fill="look.trim" />
           </g>
           <g v-else-if="look.hat === 'tall'">
-            <rect x="26" y="6" width="12" height="14" rx="1" :fill="look.coat" />
-            <ellipse cx="32" cy="20" rx="9" ry="2.6" :fill="shade" />
-            <rect x="26" y="16" width="12" height="2.2" :fill="look.trim" />
+            <rect x="25" y="2" width="14" height="14" rx="1" :fill="look.coat" stroke="#2a1810" stroke-width="1" />
+            <ellipse cx="32" cy="16" rx="10" ry="2.8" :fill="shade" stroke="#2a1810" stroke-width="1" />
+            <rect x="25" y="12" width="14" height="2.4" :fill="look.trim" />
           </g>
           <g v-if="eyes">
-            <circle cx="28.4" cy="29" r="1.15" fill="#24180f" />
-            <circle cx="35.6" cy="29" r="1.15" fill="#24180f" />
+            <ellipse v-if="!side" cx="26.5" cy="27" rx="2.5" ry="3" fill="#24180f" />
+            <ellipse cx="37.5" cy="27" rx="2.5" ry="3" fill="#24180f" />
+            <circle v-if="!side" cx="27.2" cy="26" r="0.8" fill="#fff8ea" />
+            <circle cx="38.2" cy="26" r="0.8" fill="#fff8ea" />
+            <path d="M29 33 Q32 35.2 35 33" fill="none" stroke="#c46a62" stroke-width="1" stroke-linecap="round" />
+            <ellipse v-if="look.blush && !side" cx="22" cy="31" rx="2.2" ry="1.3" fill="#e7a0a0" opacity="0.9" />
+            <ellipse v-if="look.blush" cx="42" cy="31" rx="2.2" ry="1.3" fill="#e7a0a0" opacity="0.9" />
+          </g>
           </g>
           <g v-if="look.tool === 'sword'">
             <path d="M8 36 L16 34 L18 50 L12 56 L6 48 Z" :fill="look.trim" :stroke="shade" stroke-width="1" />
@@ -110,7 +122,7 @@ const pipText = computed(() => (props.pip ? rankLabel(props.look.rank) : ''))
           </g>
           <g v-else-if="look.tool === 'hammer'">
             <rect x="51" y="30" width="2.4" height="28" :fill="look.hair" />
-            <rect x="45" y="24" width="14" height="8" rx="1" fill="#8d949c" />
+            <rect x="43" y="22" width="16" height="10" rx="1" fill="#8d949c" />
           </g>
           <g v-else-if="look.tool === 'staff'">
             <rect x="50" y="10" width="2.4" height="56" :fill="look.hair" />

@@ -187,6 +187,7 @@ const skills = computed(() => {
 /** 主界面功能菜单的 ID、图标和显示名称清单。 */
 const panels = [
   ['quest', '任务'],
+  ['album', '图鉴'],
   ['bag', '道具'],
   ['pets', '灵兽'],
   ['dispatch', '派遣'],
@@ -599,7 +600,7 @@ onBeforeUnmount(() => {
         <p>点怪物会走近并开战。开战之后按速度轮流出手。旅人、召唤兽和对手分成三列，出手时有飘字和一条短读条。轮到你时中间会亮出「请出手」。可以攻击、放技能、吃药、防御或逃跑。打到七成血可以野捕，三成血再用契约。召唤兽能刻兽纹帖，两只可以合灵。左下角的三步引导可以跳过。</p>
         <p>战斗时如果想先看地图，点「返回地图」。镜头跟着你走过相邻的地块，走到门外就进下一片，不会被拉回入口。副本仍是单独一张。摆摊和当面交易都要站在旁边，成交扣和拍卖一样的旅税。</p>
         <p>点自己的名字，或下面的「角色」，可以看属性和换技能。技能栏一次放 4 个：先点栏位，再点要换上的技能。</p>
-        <p>下面一排还有任务、道具、宠物、跳市和工会。聊天选区域、世界或工会。点别的旅人「交谈」，会在区域频道叫他。</p>
+        <p>下面一排还有任务、图鉴、道具、宠物、跳市和工会。图鉴里是旅迹、遇见过的异兽、契约过的灵兽，以及踏过的地方。聊天选区域、世界或工会。点别的旅人「交谈」，会在区域频道叫他。</p>
       </section>
       </Transition>
       <PrimerCard />
@@ -645,6 +646,7 @@ onBeforeUnmount(() => {
         <button class="skill quick" :class="{ on: game.panel === 'bag' }" title="背包" @click="toggle('bag')"><small>包</small><span>背包</span></button>
         <button class="skill quick" :class="{ on: game.panel === 'quest' }" title="任务" @click="toggle('quest')"><small>任</small><span>任务</span></button>
         <button class="skill quick" :class="{ on: game.panel === 'travel' }" title="地图" @click="toggle('travel')"><small>图</small><span>地图</span></button>
+        <button class="skill quick" :class="{ on: game.panel === 'album' }" title="旅迹和图鉴" @click="toggle('album')"><small>册</small><span>图鉴</span></button>
         <button class="skill quick" title="助手" @click="game.setMode('assistant')"><small>助</small><span>助手</span></button>
         <button class="skill quick" :class="{ on: game.showFx }" title="施法圈，可关" @click="game.setFx(!game.showFx)"><small>光</small><span>{{ game.showFx ? '光效' : '光关' }}</span></button>
         <button class="skill quick" :class="{ on: game.ambience }" title="场景氛围底噪，可关" @click="game.setAmbience(!game.ambience)"><small>氛</small><span>{{ game.ambience ? '氛围' : '静音' }}</span></button>

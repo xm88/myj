@@ -134,6 +134,7 @@ func (a *App) engage(id string) {
 	b.Order = a.boutOrder(b)
 	a.bouts[b.ID] = b
 	halt(l, false)
+	a.markBoutSeen(b)
 	a.note(b, "第 1 回合开始")
 	a.advance(b)
 }

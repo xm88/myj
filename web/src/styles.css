@@ -2425,3 +2425,94 @@ button.item { width: 100%; text-align: left; color: inherit; }
 .primer li.on { background: #e6c56a; color: #3a1c0c; border-color: #8a4b12; }
 .primer li.done { color: #2f6a44; }
 .primer p { margin: 0 0 8px; }
+
+/* 旅册：羊皮纸上的旅迹和剪影图鉴。 */
+.album-sum { margin: 0 0 8px; color: var(--ink-soft); font-size: 12px; }
+.album-tabs { display: flex; gap: 6px; margin: 0 0 8px; }
+.album-tabs.thin { margin-top: -2px; }
+.album-layout { display: grid; grid-template-columns: minmax(0, 1fr) 196px; gap: 10px; align-items: start; }
+.album-side {
+  position: sticky;
+  top: 0;
+  padding: 8px;
+  background: rgba(255, 248, 230, 0.92);
+  border: 1px solid #c9ae78;
+  border-radius: 6px;
+}
+.album-side h3 { margin: 6px 0 4px; font-size: 15px; }
+.album-side p { margin: 0 0 6px; }
+.album-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 8px; }
+.album-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 4px 7px;
+  text-align: center;
+  color: inherit;
+  background: rgba(255, 250, 240, 0.78);
+  border: 1px solid #c9ae78;
+  border-radius: 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 252, 244, 0.8);
+}
+.album-card.on { border-color: #8a5a28; box-shadow: inset 0 0 0 1px #e7c56a; }
+.album-card .nm { font-size: 12px; line-height: 1.3; }
+.album-card small { color: #6a5030; font-size: 10px; }
+.album-fig { width: 46px; height: 58px; }
+.album-side .album-fig.side { width: 72px; height: 90px; margin: 0 auto; }
+.album-card.unknown .album-fig { filter: grayscale(1) brightness(0.38); }
+.album-card.unknown .nm { letter-spacing: 0.12em; color: #8a7560; }
+.album-card.felled { background: #fff8ea; }
+.album-card.met { background: #f7f1e4; }
+.deed-list { display: flex; flex-direction: column; gap: 6px; }
+.deed {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding: 6px 8px;
+  text-align: left;
+  color: inherit;
+  background: rgba(255, 250, 240, 0.72);
+  border: 1px solid #c9ae78;
+  border-radius: 6px;
+}
+.deed.on { border-color: #8a5a28; box-shadow: inset 0 0 0 1px #e7c56a; }
+.deed b { display: block; font-size: 13px; }
+.deed small { display: block; color: var(--ink-soft); font-weight: 600; line-height: 1.35; }
+.deed .count { color: #6a5030; font-style: normal; font-weight: 700; }
+.deed-bar {
+  display: block;
+  height: 6px;
+  margin-top: 4px;
+  overflow: hidden;
+  background: rgba(90, 60, 30, 0.12);
+  border-radius: 99px;
+}
+.deed-bar i { display: block; height: 100%; background: linear-gradient(90deg, #c4a15a, #8a5a28); }
+.deed.done .deed-bar i { background: #3d8a52; }
+.seal {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 2px solid #8a6430;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #fff6d8, #e2c27a 55%, #a67c3d);
+  color: #6a3a12;
+  font-style: normal;
+  font-weight: 800;
+  font-size: 13px;
+}
+.seal.big { width: 48px; height: 48px; margin: 0 auto 4px; font-size: 16px; }
+.deed.done .seal, .album-card.felled .seal, .album-side.done .seal {
+  border-color: #2d6a3e;
+  background: radial-gradient(circle at 40% 35%, #fff, #8dcc96 58%, #2d6a3e);
+  color: #14301c;
+}
+.album-card.land .seal { width: 42px; height: 42px; margin-bottom: 2px; }
+@media (max-width: 720px) {
+  .album-layout { grid-template-columns: 1fr; }
+  .album-side { position: static; }
+}

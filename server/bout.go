@@ -352,6 +352,10 @@ func (a *App) playerTurn(b *Bout, id string, msg M) {
 	if l == nil {
 		return
 	}
+	prefer := str(msg["focusId"])
+	if label := str(msg["orderName"]); label != "" {
+		a.note(b, str(l.State["name"])+"·"+label)
+	}
 	switch str(msg["action"]) {
 	case "defend":
 		l.State["guardUntil"] = now() + 30000
@@ -366,17 +370,17 @@ func (a *App) playerTurn(b *Bout, id string, msg M) {
 		a.useItem(id, str(msg["itemId"]))
 		a.note(b, str(l.State["name"])+" 使用了物品")
 	case "skill":
-		a.boutSkill(b, l, num(msg["slot"]))
+		a.boutSkill(b, l, num(msg["slot"]), prefer)
 	default:
-		a.boutAttack(b, l)
+		a.boutAttack(b, l, prefer)
 	}
 	if b.Phase == "choose" && !a.anyMonsterAlive(b) {
 		a.finishBout(b, "victory")
 	}
 }
 
-func (a *App) boutAttack(b *Bout, l *Live) {
-	m, mid := a.firstFoe(b)
+func (a *App) boutAttack(b *Bout, l *Live, prefer string) {
+	m, mid := a.pickFoe(b, prefer)
 	if m == nil {
 		return
 	}
@@ -388,7 +392,7 @@ func (a *App) boutAttack(b *Bout, l *Live) {
 	l.State["attackAt"] = now() + num(l.Stats["attackInterval"])
 }
 
-func (a *App) boutSkill(b *Bout, l *Live, slot float64) {
+func (a *App) boutSkill(b *Bout, l *Live, slot float64, prefer string) {
 	s := l.State
 	sid := ""
 	if slot == 0 {
@@ -434,7 +438,7 @@ func (a *App) boutSkill(b *Bout, l *Live, slot float64) {
 					victims = append(victims, m)
 				}
 			}
-		} else if _, mid := a.firstFoe(b); mid != "" {
+		} else if _, mid := a.pickFoe(b, prefer); mid != "" {
 			if m := a.boutMonster(b, mid); m != nil && truth(m["alive"]) {
 				victims = append(victims, m)
 			}
@@ -529,6 +533,16 @@ func (a *App) monsterTurn(b *Bout, actor BoutActor) {
 			a.finishBout(b, "defeat")
 		}
 	}
+}
+
+// pickFoe 集火时先打指定的那只，不在这场或已经倒下就退回原来的第一只。
+func (a *App) pickFoe(b *Bout, prefer string) (M, string) {
+	if prefer != "" {
+		if m := a.boutMonster(b, prefer); m != nil && truth(m["alive"]) {
+			return m, prefer
+		}
+	}
+	return a.firstFoe(b)
 }
 
 func (a *App) firstFoe(b *Bout) (M, string) {

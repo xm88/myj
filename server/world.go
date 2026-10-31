@@ -87,7 +87,29 @@ func (a *App) attach(id string, p *Peer) {
 		}
 	}
 	a.resumeStall(l)
-	a.send(l, M{"type": "world", "weather": a.def("weathers", str(a.weather["id"])), "period": a.period, "periodName": periodLabels[a.period]})
+	a.send(l, a.worldPulse())
+}
+
+// nextWeatherName 按配置顺序看下一候的中文名。界面用来写「转雨」。
+func (a *App) nextWeatherName() string {
+	list := objects(a.data["weathers"])
+	if len(list) == 0 {
+		return ""
+	}
+	index := 0
+	for i, d := range list {
+		if str(d["id"]) == str(a.weather["id"]) {
+			index = i
+			break
+		}
+	}
+	next := list[(index+1)%len(list)]
+	return str(a.def("weathers", str(next["id"]))["name"])
+}
+
+// worldPulse 把当前天气、时段和下一候交给界面。不改天气本身怎么结算。
+func (a *App) worldPulse() M {
+	return M{"type": "world", "weather": a.def("weathers", str(a.weather["id"])), "period": a.period, "periodName": periodLabels[a.period], "weatherUntil": num(a.weather["until"]), "weatherNext": a.nextWeatherName()}
 }
 
 // detach 只处理当前连接的断开；停止移动、切换安全状态并保存角色。
@@ -577,7 +599,7 @@ func (a *App) tick() {
 		worldChanged = true
 	}
 	if worldChanged {
-		a.broadcast(M{"type": "world", "weather": a.def("weathers", str(a.weather["id"])), "period": a.period, "periodName": periodLabels[a.period]})
+		a.broadcast(a.worldPulse())
 	}
 	// 断线角色保持六十秒安全状态，超时后保存并从分线移除。
 	for id, l := range a.live {

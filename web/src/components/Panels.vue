@@ -12,6 +12,7 @@ import TradeBoard from './TradeBoard.vue'
 import { itemIcon, portrait, weaponIcon } from '../game/art'
 import { lookForPet } from '../game/look'
 import { npcFocus, portalFocus } from '../game/npc'
+import { companionOrders } from '../game/orders'
 import { useGame } from '../stores/game'
 
 /**
@@ -38,6 +39,16 @@ const nodeId = ref('node_green_herb')
 const bagTab = ref<'gear' | 'bag' | 'bank'>('bag')
 /** 背包里再按种类筛一层，方便在材料堆里找装备。 */
 const bagFilter = ref<'all' | 'equipment' | 'consumable' | 'material' | 'quest'>('all')
+/** 背包排序。默认保持服务器给的顺序。 */
+const bagSort = ref<'shelf' | 'kind' | 'stack'>('shelf')
+/** 商店先看货架，也可以直接把背包里能卖的卖掉。 */
+const shopLane = ref<'buy' | 'sell'>('buy')
+/** 货架再按买得起、药品或材料收一收。 */
+const shopFilter = ref<'all' | 'afford' | 'potion' | 'material'>('all')
+/** 任务日志按进行中的主线、支线，或只看可接。 */
+const questFilter = ref<'all' | 'main' | 'side' | 'open'>('all')
+/** 刚刚做成的配方，用来在列表上闪一下。 */
+const craftFlash = ref('')
 /** 当前选中的物品、灵伴或配方 ID；切换面板时清空。 */
 const pickedId = ref<string | null>(null)
 /** 制造列表当前选择全部、制造或料理配方。 */
@@ -87,9 +98,12 @@ const title = computed(() => titles[game.panel] ?? '窗口')
 /** 窗口标题下的一行说明，只写和这一扇窗有关的事。 */
 const kicker = computed(() => {
   const lines: Record<string, string> = {
-    bag: '装备、背包和仓库',
+    bag: '双击就能穿上或喝掉。装备可以拿火砂淬炼',
     pets: '召唤兽出战进回合，宠物携带给光环',
-    quest: '点「前往」会带你走过去',
+    quest: '报酬写在条目上。钉上的任务排到追踪最前',
+    shop: '买得出价，也能把背包里收的东西卖给米娜',
+    craft: '材料够了才能做。做好的装备回背包淬炼',
+    party: '号令决定队友，以及你超时没选时怎么打',
     stall: '买家支付标价，旅税从卖家手里扣',
     trade: '两边锁定之后才能确认',
     album: '旅迹、异兽、灵兽，还有踏过的地方',
@@ -103,8 +117,8 @@ const shopNpc = computed(() => (game.config?.npcs ?? []).find((npc: any) => npc.
 const shopGoods = computed(() => {
   const items = game.config?.items ?? []
   return (shopNpc.value?.shop ?? []).map((good: { itemId: string; price: number }) => {
-    const item = items.find((row: { id: string; sell?: number }) => row.id === good.itemId)
-    return { ...good, name: item?.name ?? good.itemId, desc: item?.desc ?? '', sell: item?.sell ?? 0 }
+    const item = items.find((row: { id: string; sell?: number; kind?: string }) => row.id === good.itemId)
+    return { ...good, name: item?.name ?? good.itemId, desc: item?.desc ?? '', sell: item?.sell ?? 0, kind: item?.kind ?? 'material' }
   })
 })
 /** 背包里某一模板一共有多少个。 */
@@ -258,13 +272,29 @@ function qualityClass(quality: string | null) {
   return quality ? `q-${quality}` : ''
 }
 
-/** 按当前筛选显示背包格子。 */
+/** 按当前筛选显示背包格子，再按种类或数量排。 */
 const shownBag = computed(() => {
-  const bag = game.profile?.bag ?? []
-  if (bagFilter.value === 'all') return bag
-  if (bagFilter.value === 'quest') return bag.filter((item: { bound?: boolean; kind?: string }) => item.bound || item.kind === 'quest')
-  return bag.filter((item: { kind?: string; bound?: boolean }) => item.kind === bagFilter.value && !(bagFilter.value === 'material' && item.bound))
+  const bag = [...(game.profile?.bag ?? [])]
+  const filtered = bagFilter.value === 'all'
+    ? bag
+    : bagFilter.value === 'quest'
+      ? bag.filter((item: { bound?: boolean; kind?: string }) => item.bound || item.kind === 'quest')
+      : bag.filter((item: { kind?: string; bound?: boolean }) => item.kind === bagFilter.value && !(bagFilter.value === 'material' && item.bound))
+  if (bagSort.value === 'kind') filtered.sort((a: { kind?: string; name?: string }, b: { kind?: string; name?: string }) => String(a.kind).localeCompare(String(b.kind)) || String(a.name).localeCompare(String(b.name), 'zh'))
+  if (bagSort.value === 'stack') filtered.sort((a: { count?: number }, b: { count?: number }) => Number(b.count || 0) - Number(a.count || 0))
+  return filtered
 })
+/** 货架按买得起和种类收过之后的商品。 */
+const shownGoods = computed(() => shopGoods.value.filter((good: { price: number; kind?: string }) => {
+  if (shopFilter.value === 'afford' && Number(game.profile?.gold ?? 0) < good.price) return false
+  if (shopFilter.value === 'potion' && good.kind !== 'consumable') return false
+  if (shopFilter.value === 'material' && good.kind !== 'material') return false
+  return true
+}))
+/** 商人肯收的背包物品。 */
+const sellables = computed(() => (game.profile?.bag ?? []).filter((item: { bound?: boolean; sell?: number }) => !item.bound && Number(item.sell) > 0))
+/** 这些消耗品不在背包里双击直接用。 */
+const heldBack = new Set(['capture_orb', 'beast_grain', 'vigor_fruit', 'beast_seal'])
 
 /** 把属性行收成对照用的数字。百分比和元素按原值相加。 */
 function statTotals(item: { lines?: { stat: string; value: number }[] } | null) {
@@ -409,6 +439,64 @@ function pick(id: string) {
   pickedId.value = pickedId.value === id ? null : id
 }
 
+/** 材料模板的中文名。配置里没有时退回标识。 */
+function itemName(id: string) {
+  return game.config?.items?.find((row: { id: string; name?: string }) => row.id === id)?.name ?? id
+}
+
+/** 金币够不够买这么多个。 */
+function canAfford(price: number, count = 1) {
+  return Number(game.profile?.gold ?? 0) >= price * count
+}
+
+/** 配方现在做不了的原因。空字符串表示可以做。 */
+function craftReady(recipe: { life: string; skill: number; gold: number; inputs: { itemId: string; count: number }[] }) {
+  const track = game.profile?.tracks?.[recipe.life]
+  if (Number(track?.level ?? 1) < recipe.skill) return '等级不够'
+  if (!canAfford(recipe.gold)) return '金币不够'
+  for (const input of recipe.inputs) {
+    if (ownedCount(input.itemId) < input.count) return '材料不够'
+  }
+  return ''
+}
+
+/** 做成之后在这一行上留一下名字，方便看出刚才出了什么。 */
+async function makeRecipe(recipe: { id: string; name: string; life: string; skill: number; gold: number; inputs: { itemId: string; count: number }[] }) {
+  const block = craftReady(recipe)
+  if (block) {
+    game.toast(block)
+    return
+  }
+  await game.act('/api/craft', { recipeId: recipe.id })
+  craftFlash.value = recipe.id
+}
+
+/** 双击背包：装备直接穿上，普通药品直接喝。 */
+async function quickItem(item: { id: string; kind?: string; location?: string; templateId?: string }) {
+  pickedId.value = item.id
+  if (item.kind === 'equipment' && item.location === 'bag') {
+    await game.act('/api/equip', { itemId: item.id })
+    return
+  }
+  if (item.kind === 'consumable' && item.location === 'bag' && item.templateId && !heldBack.has(item.templateId)) {
+    await game.act('/api/use', { itemId: item.id })
+  }
+}
+
+/** 单击选中，连点第二下走快捷。 */
+function onBagClick(item: { id: string; kind?: string; location?: string; templateId?: string }, ev: MouseEvent) {
+  if (ev.detail >= 2) {
+    void quickItem(item)
+    return
+  }
+  pick(item.id)
+}
+
+/** 任务列表按主线、支线或可接收一下。 */
+function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
+  return questLanes(list).filter((lane) => questFilter.value === 'all' || questFilter.value === 'open' || lane.id === questFilter.value)
+}
+
 </script>
 
 <template>
@@ -434,6 +522,11 @@ function pick(id: string) {
       <button :class="{ on: bagFilter === 'consumable' }" @click="bagFilter = 'consumable'">药品</button>
       <button :class="{ on: bagFilter === 'material' }" @click="bagFilter = 'material'">材料</button>
       <button :class="{ on: bagFilter === 'quest' }" @click="bagFilter = 'quest'">任务</button>
+    </div>
+    <div v-if="game.panel === 'bag' && bagTab === 'bag'" class="seg thin">
+      <button :class="{ on: bagSort === 'shelf' }" @click="bagSort = 'shelf'">原序</button>
+      <button :class="{ on: bagSort === 'kind' }" @click="bagSort = 'kind'">种类</button>
+      <button :class="{ on: bagSort === 'stack' }" @click="bagSort = 'stack'">数量</button>
     </div>
     <div v-else-if="game.panel === 'craft'" class="seg">
       <button :class="{ on: craftTab === 'all' }" @click="craftTab = 'all'">全部</button>
@@ -473,9 +566,10 @@ function pick(id: string) {
 
         <div v-else-if="bagTab === 'bag'" class="bag-grid">
           <p v-if="!shownBag.length" class="empty">这一类是空的。换个筛选，或去森林打史莱姆。</p>
-          <button v-for="item in shownBag" :key="item.id" class="slot" :class="{ on: pickedId === item.id }" @click="pick(item.id)">
+          <button v-for="item in shownBag" :key="item.id" class="slot" :class="{ on: pickedId === item.id }" @click="onBagClick(item, $event)">
             <IconMedal :src="itemIcon(item.templateId)" />
             <span class="slot-name" :class="qualityClass(item.quality)">{{ item.name }}</span>
+            <small v-if="item.temper" class="temper-mark">淬{{ item.temper }}</small>
             <b v-if="item.count > 1" class="qty">{{ item.count }}</b>
           </button>
         </div>
@@ -587,16 +681,16 @@ function pick(id: string) {
 
       <template v-else-if="game.panel === 'craft'">
         <div class="list">
-          <button v-for="recipe in recipes" :key="recipe.id" class="item" :class="{ on: pickedId === recipe.id }" @click="pick(recipe.id)">
+          <button v-for="recipe in recipes" :key="recipe.id" class="item" :class="{ on: pickedId === recipe.id, flash: craftFlash === recipe.id, short: craftReady(recipe) }" @click="pick(recipe.id)">
             <span class="item-main">
               <IconMedal :src="itemIcon(recipe.output.itemId)" />
               <span>
                 <b>{{ recipe.name }}</b>
-                <small>{{ recipe.life === 'cook' ? '料理' : '制造' }} {{ recipe.skill }} 级 · {{ recipe.gold }} 金币</small>
+                <small>{{ recipe.life === 'cook' ? '料理' : '制造' }} {{ recipe.skill }} 级 · {{ recipe.gold }} 金币 · {{ craftReady(recipe) || '可以做' }}</small>
                 <span class="ings">
-                  <span v-for="input in recipe.inputs" :key="input.itemId">
+                  <span v-for="input in recipe.inputs" :key="input.itemId" :class="{ short: ownedCount(input.itemId) < input.count }">
                     <IconMedal tiny :src="itemIcon(input.itemId)" />
-                    ×{{ input.count }}
+                    {{ itemName(input.itemId) }} {{ ownedCount(input.itemId) }}/{{ input.count }}
                   </span>
                 </span>
               </span>
@@ -672,55 +766,115 @@ function pick(id: string) {
       </template>
 
       <template v-else-if="game.panel === 'quest'">
-        <h3>进行中</h3>
-        <p v-if="!game.profile.quests.length" class="empty">还没有接任务。去场景里点一个人的「对话」。</p>
-        <section v-for="lane in questLanes(game.profile.quests)" :key="'on-' + lane.id" class="quest-lane" :class="lane.id">
-          <h3><em>{{ lane.label }}</em></h3>
-          <article v-for="quest in lane.rows" :key="quest.id" class="item quest-card" :class="lane.id">
-            <div>
-              <b>{{ quest.name }}</b>
-              <small>{{ lane.label }} · 交给 {{ quest.turnin || '委托人' }}</small>
-              <div v-for="(goal, index) in quest.objectives" :key="index" class="qline">
-                <span>{{ goal.text }}</span>
-                <span>{{ goal.current }}/{{ goal.need }}</span>
-                <span class="qbar"><i :style="{ width: Math.min(100, (goal.current / Math.max(1, goal.need)) * 100) + '%' }" /></span>
+        <div class="seg thin quest-seg">
+          <button :class="{ on: questFilter === 'all' }" @click="questFilter = 'all'">全部</button>
+          <button :class="{ on: questFilter === 'main' }" @click="questFilter = 'main'">主线</button>
+          <button :class="{ on: questFilter === 'side' }" @click="questFilter = 'side'">支线</button>
+          <button :class="{ on: questFilter === 'open' }" @click="questFilter = 'open'">可接</button>
+        </div>
+        <template v-if="questFilter !== 'open'">
+          <h3>进行中</h3>
+          <p v-if="!game.profile.quests.length" class="empty">还没有接任务。去场景里点一个人的「对话」。</p>
+          <p v-else-if="!shownLanes(game.profile.quests).length" class="empty">这一类没有进行中的任务。</p>
+          <section v-for="lane in shownLanes(game.profile.quests)" :key="'on-' + lane.id" class="quest-lane" :class="lane.id">
+            <h3><em>{{ lane.label }}</em></h3>
+            <article v-for="quest in lane.rows" :key="quest.id" class="item quest-card" :class="[lane.id, { pinned: game.pinnedQuest === quest.id }]">
+              <div>
+                <b>{{ quest.name }}</b>
+                <small>{{ lane.label }} · 交给 {{ quest.turnin || '委托人' }}</small>
+                <small v-if="quest.desc" class="qdesc">{{ quest.desc }}</small>
+                <small v-if="quest.reward" class="qreward">报酬 {{ quest.reward }}</small>
+                <div v-for="(goal, index) in quest.objectives" :key="index" class="qline">
+                  <span>{{ goal.text }}</span>
+                  <span>{{ goal.current }}/{{ goal.need }}</span>
+                  <span class="qbar"><i :style="{ width: Math.min(100, (goal.current / Math.max(1, goal.need)) * 100) + '%' }" /></span>
+                </div>
               </div>
+              <div class="row">
+                <button class="btn light" @click="game.pinQuest(quest.id)">{{ game.pinnedQuest === quest.id ? '已钉' : '钉上' }}</button>
+                <button class="btn" @click="game.pursue(quest.id); game.panel = ''">前往</button>
+              </div>
+            </article>
+          </section>
+        </template>
+        <template v-if="questFilter === 'all' || questFilter === 'open'">
+          <h3>可以去接</h3>
+          <p v-if="!game.profile.available?.length" class="empty">暂时没有新的委托。先把身上的做完，或者再升一级。</p>
+          <section v-for="lane in questLanes(game.profile.available)" :key="'open-' + lane.id" class="quest-lane" :class="lane.id">
+            <h3><em>{{ lane.label }}</em></h3>
+            <div v-for="quest in lane.rows" :key="quest.id" class="item quest-card" :class="lane.id">
+              <div>
+                <b>{{ quest.name }}</b>
+                <small>{{ lane.label }} · 去找 {{ quest.giver }} 对话</small>
+                <small v-if="quest.desc" class="qdesc">{{ quest.desc }}</small>
+                <small v-if="quest.reward" class="qreward">报酬 {{ quest.reward }}</small>
+              </div>
+              <button class="btn light" @click="goNpc(quest.giverId)">找人</button>
             </div>
-            <button class="btn" @click="game.pursue(quest.id); game.panel = ''">前往</button>
-          </article>
-        </section>
-        <h3>可以去接</h3>
-        <p v-if="!game.profile.available?.length" class="empty">暂时没有新的委托。先把身上的做完，或者再升一级。</p>
-        <section v-for="lane in questLanes(game.profile.available)" :key="'open-' + lane.id" class="quest-lane" :class="lane.id">
-          <h3><em>{{ lane.label }}</em></h3>
-          <div v-for="quest in lane.rows" :key="quest.id" class="item quest-card" :class="lane.id">
-            <div>
-              <b>{{ quest.name }}</b>
-              <small>{{ lane.label }} · 去找 {{ quest.giver }} 对话</small>
-            </div>
-            <button class="btn light" @click="goNpc(quest.giverId)">找人</button>
-          </div>
-        </section>
+          </section>
+        </template>
       </template>
 
       <template v-else-if="game.panel === 'shop'">
-        <p class="lede">杂货由米娜出售。灵契球打到三成血再契约，捕兽索七成血就能野捕。兽纹帖刻指定的一招。</p>
-        <div class="list">
-          <div v-for="good in shopGoods" :key="good.itemId" class="item">
-            <div class="item-main">
-              <IconMedal :src="itemIcon(good.itemId)" />
-              <div>
-                <b>{{ good.name }}</b>
-                <small>{{ good.desc }}</small>
-                <small>买 {{ good.price }} · 卖店 {{ good.sell || '不收' }} · 身上 {{ ownedCount(good.itemId) }}</small>
+        <div class="seg thin">
+          <button :class="{ on: shopLane === 'buy' }" @click="shopLane = 'buy'">购买</button>
+          <button :class="{ on: shopLane === 'sell' }" @click="shopLane = 'sell'">出售</button>
+        </div>
+        <template v-if="shopLane === 'buy'">
+          <p class="lede">杂货由米娜出售。火砂用来淬炼。灵契球打到三成血再契约，捕兽索七成血就能野捕。兽纹帖刻指定的一招。</p>
+          <div class="seg thin">
+            <button :class="{ on: shopFilter === 'all' }" @click="shopFilter = 'all'">全部</button>
+            <button :class="{ on: shopFilter === 'afford' }" @click="shopFilter = 'afford'">买得起</button>
+            <button :class="{ on: shopFilter === 'potion' }" @click="shopFilter = 'potion'">药品</button>
+            <button :class="{ on: shopFilter === 'material' }" @click="shopFilter = 'material'">材料</button>
+          </div>
+          <p v-if="!shownGoods.length" class="empty">这一栏没有货。换个筛选，或先去挣点金币。</p>
+          <div class="list">
+            <div v-for="good in shownGoods" :key="good.itemId" class="item">
+              <div class="item-main">
+                <IconMedal :src="itemIcon(good.itemId)" />
+                <div>
+                  <b>{{ good.name }}</b>
+                  <small>{{ good.desc }}</small>
+                  <small>买 {{ good.price }} · 卖店 {{ good.sell || '不收' }} · 身上 {{ ownedCount(good.itemId) }}</small>
+                </div>
+              </div>
+              <div class="row">
+                <button class="btn" :disabled="!canAfford(good.price)" @click="game.act('/api/shop/buy', { npcId: shopNpc.id, itemId: good.itemId, count: 1 })">买 1</button>
+                <button class="btn light" :disabled="!canAfford(good.price, 5)" @click="game.act('/api/shop/buy', { npcId: shopNpc.id, itemId: good.itemId, count: 5 })">买 5</button>
               </div>
             </div>
-            <button class="btn" :disabled="game.profile.gold < good.price" @click="game.act('/api/shop/buy', { npcId: shopNpc.id, itemId: good.itemId, count: 1 })">买 1 个</button>
           </div>
-        </div>
+        </template>
+        <template v-else>
+          <p class="lede">卖的是背包里商人肯收的东西。装备一次卖一件。</p>
+          <p v-if="!sellables.length" class="empty">背包里没有能卖的。任务物品和绑定的不会出现在这里。</p>
+          <div class="list">
+            <div v-for="item in sellables" :key="item.id" class="item">
+              <div class="item-main">
+                <IconMedal :src="itemIcon(item.templateId)" />
+                <div>
+                  <b>{{ item.name }}<template v-if="item.count > 1"> ×{{ item.count }}</template></b>
+                  <small>收购 {{ item.sell }} /个 · 全卖 {{ item.sell * item.count }} 金币</small>
+                </div>
+              </div>
+              <div class="row">
+                <button class="btn light" @click="game.act('/api/shop/sell', { itemId: item.id, count: 1 })">卖 1</button>
+                <button v-if="item.count > 1" class="btn" @click="game.act('/api/shop/sell', { itemId: item.id, count: item.count })">卖光</button>
+              </div>
+            </div>
+          </div>
+        </template>
       </template>
 
       <template v-else-if="game.panel === 'party'">
+        <div class="order-picks">
+          <button v-for="order in companionOrders" :key="order.id" type="button" :class="{ on: (game.profile?.companionOrder || 'steady') === order.id }" @click="game.act('/api/party/order', { order: order.id })">
+            <b>{{ order.name }}</b>
+            <small>{{ order.hint }}</small>
+          </button>
+        </div>
+        <p class="lede">现在是「{{ game.profile?.companionOrderName || '稳打' }}」。没组队时，你自己超时没选也会听这个。</p>
         <div v-if="game.party">
           <p class="lede">队长带着队伍。古代遗迹会跟队长进同一条线路。</p>
           <div v-for="member in game.party.members" :key="member.id" class="item">
@@ -860,11 +1014,17 @@ function pick(id: string) {
           <small>{{ picked.desc }}</small>
           <small v-for="line in picked.lines ?? []" :key="line.stat + line.name">{{ formatDelta(line.stat, line.name, line.value) }}</small>
           <small v-if="picked.sell > 0">商人收购 {{ picked.sell }} 金币</small>
+          <small v-if="picked.kind === 'equipment'" class="temper-line">
+            淬炼 {{ picked.temper || 0 }}/{{ picked.temperMax || 6 }}
+            <template v-if="(picked.temper || 0) < (picked.temperMax || 6)"> · 火砂 ×{{ picked.temperGrit }}（身上 {{ ownedCount('temper_grit') }}）· {{ picked.temperGold }} 金币 · 大约 {{ picked.temperChance }}%</template>
+            <template v-else> · 已经淬满</template>
+          </small>
           <small v-if="weaponShift" class="shift">{{ weaponShift }}</small>
           <small v-for="row in compareRows" :key="row.stat" :class="row.up ? 'up' : 'down'">对比身上 {{ row.text }}</small>
         </div>
       </div>
       <div class="row">
+        <button v-if="picked.kind === 'equipment' && (picked.temper || 0) < (picked.temperMax || 6) && picked.location !== 'bank'" class="btn lantern" @click="game.act('/api/temper', { itemId: picked.id })">淬炼</button>
         <button v-if="picked.kind === 'equipment' && picked.location !== 'equipped'" class="btn" @click="game.act('/api/equip', { itemId: picked.id })">装备</button>
         <button v-if="picked.location === 'equipped'" class="btn light" @click="game.act('/api/unequip', { slot: picked.slot }).then(() => pickedId = null)">卸下</button>
         <button v-if="picked.kind === 'consumable' && picked.location === 'bag'" class="btn" @click="game.act('/api/use', { itemId: picked.id })">使用</button>
@@ -944,11 +1104,11 @@ function pick(id: string) {
         <IconMedal :src="itemIcon(pickedRecipe.output.itemId)" />
         <div>
           <b>{{ pickedRecipe.name }}</b>
-          <small>{{ pickedRecipe.life === 'cook' ? '料理' : '制造' }} {{ pickedRecipe.skill }} 级 · 花费 {{ pickedRecipe.gold }} 金币</small>
+          <small>{{ pickedRecipe.life === 'cook' ? '料理' : '制造' }} {{ pickedRecipe.skill }} 级 · 花费 {{ pickedRecipe.gold }} 金币 · {{ craftReady(pickedRecipe) || '材料齐了' }}</small>
         </div>
       </div>
       <div class="row">
-        <button class="btn lantern" @click="game.act('/api/craft', { recipeId: pickedRecipe.id })">制作</button>
+        <button class="btn lantern" :disabled="!!craftReady(pickedRecipe)" @click="makeRecipe(pickedRecipe)">{{ craftReady(pickedRecipe) || '制作' }}</button>
       </div>
     </div>
 

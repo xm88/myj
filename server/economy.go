@@ -27,9 +27,19 @@ func (a *App) craft(id, recipe string) {
 		ex = a.equipmentExtra(fallback(output["quality"], "green"))
 	}
 	a.addItem(id, str(output["itemId"]), num(output["count"]), ex, "bag")
-	a.trackExp(id, "life:"+life, 12*num(r["skill"]), false)
+	gain := 12 * num(r["skill"])
+	a.trackExp(id, "life:"+life, gain, false)
 	a.emit(id, M{"type": "craft", "recipeId": recipe})
-	a.toast(id, "做完了："+str(r["name"]))
+	lifeLabel := "制造"
+	if life == "cook" {
+		lifeLabel = "料理"
+	}
+	made := str(tpl["name"])
+	if str(tpl["kind"]) == "equipment" {
+		a.toast(id, fmt.Sprintf("做完了：%s（%s）。%s熟练 +%g", made, qualityName(str(fallback(output["quality"], "white"))), lifeLabel, gain))
+	} else {
+		a.toast(id, fmt.Sprintf("做完了：%s ×%g。%s熟练 +%g", made, num(output["count"]), lifeLabel, gain))
+	}
 	a.touchAlbum(id, nil)
 	a.notify(id)
 }

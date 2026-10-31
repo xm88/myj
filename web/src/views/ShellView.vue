@@ -6,6 +6,7 @@ import { api } from '../api'
 import ActorFigure from '../components/ActorFigure.vue'
 import { lookForMonster, lookForNpc, lookForTraveler } from '../game/look'
 import { nearestPacks } from '../game/crowd'
+import { syncAmbience } from '../game/ambience'
 import { describeQuest, questTracks } from '../game/guide'
 import { useDropFlash } from '../game/motion'
 import { closestSpot, focusReach, nodeFocus, npcAction, npcFocus, npcHint, npcMark, portalFocus } from '../game/npc'
@@ -86,7 +87,7 @@ const players = computed(() => (game.snap?.entities ?? []).filter((entity: { kin
 /** 主界面显示的当前任务进度摘要。 */
 const questLine = computed(() => describeQuest(game.profile?.quests ?? []))
 /** 右侧追踪的几条任务。点一条就按那一条走。 */
-const tracked = computed(() => questTracks(game.profile?.quests ?? []))
+const tracked = computed(() => questTracks(game.profile?.quests ?? [], game.pinnedQuest))
 /** 可快捷使用的背包恢复道具，具体效果仍由服务器结算。 */
 const quickItems = computed(() => {
   const bag = (game.profile?.bag ?? []).filter((item: { kind: string }) => item.kind === 'consumable')
@@ -144,6 +145,25 @@ const bust = computed(() => {
   const row = (game.config?.npcs ?? []).find((npc: { id: string }) => npc.id === id)
   return lookForNpc(id, row?.title || game.dialog?.title || '', row?.panels ?? [])
 })
+/** 天气还要多久换，以及下一候的名字。时间用服务器给的截止点。 */
+const weatherSoon = computed(() => {
+  const until = Number(game.profile?.weatherUntil)
+  if (!Number.isFinite(until)) return ''
+  const left = until - Date.now()
+  if (left <= 0) return '即将转换'
+  const min = Math.max(1, Math.ceil(left / 60000))
+  const next = game.profile?.weatherNext ? `转${game.profile.weatherNext}` : '转换'
+  return `约 ${min} 分钟后${next}`
+})
+
+watch(
+  () => [game.ambience, game.profile?.weather?.id, game.profile?.period] as const,
+  () => {
+    syncAmbience(Boolean(game.ambience), String(game.profile?.weather?.id || 'clear'), String(game.profile?.period || 'day'))
+  },
+  { immediate: true },
+)
+
 /** 时段和天气只染界面，不改地图或战斗。 */
 const atmoClass = computed(() => {
   const period = String(game.profile?.period || 'day')
@@ -451,7 +471,11 @@ onBeforeUnmount(() => {
       <div class="map-meta">
         <span class="status">出战 {{ deployedBeast ? deployedBeast.name : '无' }}</span>
         <span class="status">光环 {{ auraPet ? auraPet.name : '无' }}</span>
-        <span class="weather">{{ game.profile?.weather?.name }} · {{ game.profile?.periodName }}</span>
+        <span class="weather" :title="(game.profile?.weather?.desc || '') + (weatherSoon ? ' · ' + weatherSoon : '')">
+          <i class="sky-orb" :class="game.profile?.period || 'day'" />
+          {{ game.profile?.weather?.name }} · {{ game.profile?.periodName }}
+          <small v-if="weatherSoon">{{ weatherSoon }}</small>
+        </span>
         <span class="conn" :class="{ warn: !game.connected }"><i />{{ game.displaced ? '已在其他窗口打开' : game.connected ? '在线' : '重连中' }}</span>
       </div>
     </div>
@@ -625,6 +649,7 @@ onBeforeUnmount(() => {
         <button class="skill quick" :class="{ on: game.panel === 'album' }" title="旅迹和图鉴" @click="toggle('album')"><small>册</small><span>图鉴</span></button>
         <button class="skill quick" title="助手" @click="game.setMode('assistant')"><small>助</small><span>助手</span></button>
         <button class="skill quick" :class="{ on: game.showFx }" title="施法圈，可关" @click="game.setFx(!game.showFx)"><small>光</small><span>{{ game.showFx ? '光效' : '光关' }}</span></button>
+        <button class="skill quick" :class="{ on: game.ambience }" title="场景氛围底噪，可关" @click="game.setAmbience(!game.ambience)"><small>氛</small><span>{{ game.ambience ? '氛围' : '静音' }}</span></button>
       </nav>
     </footer>
 

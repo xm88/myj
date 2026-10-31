@@ -17,7 +17,10 @@ const props = withDefaults(defineProps<{
 
 const shade = computed(() => shadeColor(props.look.coat, -42))
 const back = computed(() => props.facing === 'up')
+const side = computed(() => props.facing === 'left' || props.facing === 'right')
 const eyes = computed(() => props.facing !== 'up' && props.look.hat !== 'helm')
+/** 左右走时身体收窄，武器留在外侧，侧身才看得清。 */
+const pose = computed(() => (side.value && props.look.body === 'human' ? 'translate(40 0) scale(0.7 1) translate(-32 0)' : undefined))
 const bulk = computed(() => {
   if (props.look.bulk === 'wide') return 'translate(32 0) scale(1.16 1) translate(-32 0)'
   if (props.look.bulk === 'slim') return 'translate(32 0) scale(0.86 1) translate(-32 0)'
@@ -37,22 +40,23 @@ const pipText = computed(() => (props.pip ? rankLabel(props.look.rank) : ''))
   >
     <span class="flip" :class="{ left: facing === 'left' }">
       <svg class="fig" viewBox="0 0 64 80">
-        <ellipse cx="32" cy="75" rx="14" ry="3.1" fill="#1c140c" opacity="0.22" />
+        <ellipse cx="32" cy="75" rx="16" ry="3.6" fill="#1c140c" opacity="0.4" />
         <ellipse v-if="look.rank === 'elite'" cx="32" cy="73" rx="18" ry="5.2" fill="rgba(231,180,35,0.28)" stroke="#e7b423" stroke-width="3.4" />
         <ellipse v-if="look.rank === 'boss'" cx="32" cy="73" rx="20" ry="5.6" fill="rgba(141,46,36,0.35)" stroke="#e7c56a" stroke-width="3.6" />
         <ellipse v-if="look.rank === 'world'" cx="32" cy="73" rx="20" ry="5.4" fill="rgba(126,176,212,0.28)" stroke="#7eb0d4" stroke-width="3.4" />
         <polygon v-if="look.rank === 'boss'" points="32,0 40,11 32,8 24,11" fill="#e7c56a" />
 
         <g v-if="look.body === 'human'">
+          <g :transform="pose">
           <path v-if="look.cape" :d="back ? 'M16 36 Q12 58 18 72 H46 Q52 58 48 36 Z' : 'M20 40 Q14 58 20 70 H44 Q50 58 44 40 Z'" :fill="back ? look.coat : shade" />
           <g :transform="bulk">
             <rect class="leg-a" x="24" y="58" width="6.4" height="13" rx="2" :fill="shade" />
             <rect class="leg-b" x="34" y="58" width="6.4" height="13" rx="2" :fill="shade" />
             <path d="M22 38 H42 L47 62 H17 Z" :fill="look.coat" />
             <rect x="20" y="50" width="24" height="3.2" rx="1" :fill="look.trim" />
-            <rect x="15" y="40" width="8" height="12" rx="3" :fill="look.coat" />
+            <rect v-if="!side" x="15" y="40" width="8" height="12" rx="3" :fill="look.coat" />
             <rect x="41" y="40" width="8" height="12" rx="3" :fill="look.coat" />
-            <circle cx="18" cy="52" r="2.5" :fill="look.skin" />
+            <circle v-if="!side" cx="18" cy="52" r="2.5" :fill="look.skin" />
             <circle cx="46" cy="52" r="2.5" :fill="look.skin" />
           </g>
           <circle cx="32" cy="28" r="10" :fill="back ? look.hair : look.skin" />
@@ -94,8 +98,9 @@ const pipText = computed(() => (props.pip ? rankLabel(props.look.rank) : ''))
             <rect x="26" y="16" width="12" height="2.2" :fill="look.trim" />
           </g>
           <g v-if="eyes">
-            <circle cx="28.4" cy="29" r="1.15" fill="#24180f" />
+            <circle v-if="!side" cx="28.4" cy="29" r="1.15" fill="#24180f" />
             <circle cx="35.6" cy="29" r="1.15" fill="#24180f" />
+          </g>
           </g>
           <g v-if="look.tool === 'sword'">
             <path d="M8 36 L16 34 L18 50 L12 56 L6 48 Z" :fill="look.trim" :stroke="shade" stroke-width="1" />
@@ -110,7 +115,7 @@ const pipText = computed(() => (props.pip ? rankLabel(props.look.rank) : ''))
           </g>
           <g v-else-if="look.tool === 'hammer'">
             <rect x="51" y="30" width="2.4" height="28" :fill="look.hair" />
-            <rect x="45" y="24" width="14" height="8" rx="1" fill="#8d949c" />
+            <rect x="43" y="22" width="16" height="10" rx="1" fill="#8d949c" />
           </g>
           <g v-else-if="look.tool === 'staff'">
             <rect x="50" y="10" width="2.4" height="56" :fill="look.hair" />

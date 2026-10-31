@@ -268,8 +268,9 @@ const laid = computed(() => {
         let dx = b.x - a.x
         let dy = b.y - a.y
         const dist = Math.hypot(dx, dy) || 0.01
-        if (dist >= 36) continue
-        const push = (36 - dist) / 2
+        const gap = figured(a.kind) && figured(b.kind) ? 50 : 36
+        if (dist >= gap) continue
+        const push = (gap - dist) / 2
         dx /= dist
         dy /= dist
         a.x -= dx * push

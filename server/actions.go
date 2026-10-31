@@ -288,6 +288,8 @@ func (a *App) socketMessage(id string, message M) {
 		a.actBout(id, message)
 	case "capture":
 		a.capture(id)
+	case "snare":
+		a.snare(id)
 	case "interact":
 		a.interact(id, str(message["focus"]))
 	case "chat":

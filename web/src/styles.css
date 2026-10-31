@@ -631,9 +631,10 @@ button.linkish { border: 0; background: transparent; padding: 0; }
 
 .battle {
   display: grid;
-  grid-template-columns: 148px 124px minmax(0, 1fr) 148px;
-  gap: 8px;
-  padding: 10px;
+  grid-template-columns: minmax(132px, 176px) minmax(124px, 160px) minmax(0, 1fr) minmax(132px, 176px);
+  align-items: end;
+  gap: 10px;
+  padding: 16px 12px 12px;
 }
 .fighter, .battle-mid {
   position: relative;
@@ -2245,3 +2246,116 @@ button.item { width: 100%; text-align: left; color: inherit; }
 .root-line em { font-style: normal; text-align: right; }
 .skill-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 .skill-pills em { padding: 1px 7px; border: 1px solid #e2c27a; border-radius: 99px; background: #fff8ea; }
+
+/* V0.2.0：站位、出手读条、任务条、摊市和三步引导。名册避让沿用细金边那一版的内边距。 */
+.lane-self { margin-bottom: 18px; }
+.lane-foe { margin-bottom: 18px; }
+.lane-beast {
+  margin-bottom: 0;
+  align-self: start;
+  border-color: #d0893a;
+  box-shadow: inset 0 0 0 1px #e6c56a, 0 8px 0 rgba(90, 48, 16, 0.18);
+}
+.lane-tag {
+  align-self: flex-start;
+  padding: 0 6px;
+  color: #8a4b12;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  font-weight: 800;
+}
+.cast-read {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+  padding: 4px 8px;
+  color: #ffe7a8;
+  background: rgba(42, 24, 12, 0.92);
+  border: 1px solid #e6c56a;
+}
+.cast-read .read {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  background: #2a160e;
+  border: 1px solid #8a6230;
+}
+.cast-read .read i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #c9843a, #ffe7a8);
+  animation: cast-fill 640ms linear forwards;
+}
+@keyframes cast-fill { to { width: 100%; } }
+.float.cast { color: #8a4b12; font-size: 15px; }
+.float.swing { color: #6b3a16; }
+.quest-track .track-title {
+  display: block;
+  margin: 0 0 4px;
+  color: #ffe7a8;
+  letter-spacing: 0.16em;
+}
+.qtrack {
+  display: block;
+  height: 5px;
+  margin-top: 4px;
+  background: rgba(42, 24, 12, 0.45);
+  border: 1px solid rgba(230, 197, 106, 0.45);
+}
+.qtrack b { display: block; height: 100%; background: #e6c56a; }
+.roster .who .acts { display: flex; flex-direction: column; gap: 2px; }
+.roster .who .acts button { padding: 1px 6px; font-size: 12px; }
+.minimap { height: 118px; }
+.mm-key {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  margin: 0;
+  padding: 2px 4px;
+  list-style: none;
+  color: #3a2a18;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(255, 248, 230, 0.82);
+  border: 1px solid rgba(92, 58, 28, 0.28);
+}
+.mm-key li { display: flex; align-items: center; gap: 3px; }
+.minimap .mm-key .dot,
+.minimap .mm-key .dot.you {
+  position: static;
+  width: 6px;
+  height: 6px;
+  margin: 0;
+}
+.minimap .dot.goal { background: #2f8f4e; box-shadow: 0 0 0 1px #fff8ea; }
+.market-board { font-weight: 800; }
+.item.lot { border-left: 3px solid #e6c56a; }
+.mood { font-style: normal; padding: 0 4px; border: 1px solid currentColor; }
+.mood.close { color: #2f6a44; }
+.mood.steady { color: #8a4b12; }
+.mood.wary { color: #a15c12; }
+.mood.refuse { color: #a93226; }
+.slip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
+.slip-row select { min-width: 160px; }
+.primer {
+  position: absolute;
+  z-index: 8;
+  left: 12px;
+  bottom: 168px;
+  width: min(320px, calc(100% - 280px));
+  padding: 8px 10px;
+  color: #3a2412;
+  background: linear-gradient(180deg, #fff8ea, #f3e2c0);
+  border: 2px solid #e6c56a;
+  box-shadow: 0 0 0 1px #6b4423, 0 10px 18px rgba(0, 0, 0, 0.28);
+}
+.primer header { display: flex; justify-content: space-between; align-items: center; }
+.primer header button { border: 0; background: transparent; color: #8a4b12; font-weight: 700; }
+.primer ol { display: flex; gap: 8px; margin: 6px 0; padding: 0; list-style: none; }
+.primer li { padding: 1px 6px; border: 1px solid #e2d2a8; color: #8a7560; }
+.primer li.on { background: #e6c56a; color: #3a1c0c; border-color: #8a4b12; }
+.primer li.done { color: #2f6a44; }
+.primer p { margin: 0 0 8px; }

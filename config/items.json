@@ -851,7 +851,76 @@
     "kind": "consumable",
     "stack": 99,
     "sell": 10,
-    "desc": "一块刻着爪印的木牌。技能栏还有空位时，能给召唤兽刻上一招旅团兽技。栏满了就刻不上去。",
+    "desc": "一块刻着爪印的木牌。技能栏还有空位时，能给召唤兽随机刻上一招。栏满了就刻不上去。",
+    "effect": {}
+  },
+  {
+    "id": "wild_snare",
+    "name": "捕兽索",
+    "kind": "consumable",
+    "stack": 99,
+    "sell": 8,
+    "desc": "藤编的短索。能契约的野物打到七成血以下就能试着套。比灵契球容易上手，也不容易成功。套住的兽还不熟。",
+    "effect": {}
+  },
+  {
+    "id": "slip_pounce",
+    "name": "再扑帖",
+    "kind": "consumable",
+    "stack": 99,
+    "sell": 14,
+    "desc": "写着「再扑」的兽纹帖。给召唤兽刻上这一招。栏满了可以指定覆掉旧的一招。",
+    "teach": "beast_pounce",
+    "effect": {}
+  },
+  {
+    "id": "slip_shell",
+    "name": "缩壳帖",
+    "kind": "consumable",
+    "stack": 99,
+    "sell": 14,
+    "desc": "写着「缩壳」的兽纹帖。给召唤兽刻上这一招。栏满了可以指定覆掉旧的一招。",
+    "teach": "beast_shell",
+    "effect": {}
+  },
+  {
+    "id": "slip_lick",
+    "name": "舔伤帖",
+    "kind": "consumable",
+    "stack": 99,
+    "sell": 14,
+    "desc": "写着「舔伤」的兽纹帖。给召唤兽刻上这一招。栏满了可以指定覆掉旧的一招。",
+    "teach": "beast_lick",
+    "effect": {}
+  },
+  {
+    "id": "slip_shriek",
+    "name": "尖啸帖",
+    "kind": "consumable",
+    "stack": 99,
+    "sell": 14,
+    "desc": "写着「尖啸」的兽纹帖。给召唤兽刻上这一招。栏满了可以指定覆掉旧的一招。",
+    "teach": "beast_shriek",
+    "effect": {}
+  },
+  {
+    "id": "slip_ember",
+    "name": "燎尾帖",
+    "kind": "consumable",
+    "stack": 99,
+    "sell": 14,
+    "desc": "写着「燎尾」的兽纹帖。给召唤兽刻上这一招。栏满了可以指定覆掉旧的一招。",
+    "teach": "beast_ember",
+    "effect": {}
+  },
+  {
+    "id": "slip_tide",
+    "name": "潮息帖",
+    "kind": "consumable",
+    "stack": 99,
+    "sell": 14,
+    "desc": "写着「潮息」的兽纹帖。给召唤兽刻上这一招。栏满了可以指定覆掉旧的一招。",
+    "teach": "beast_tide",
     "effect": {}
   }
 ]

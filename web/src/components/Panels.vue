@@ -53,6 +53,10 @@ const infoTab = ref<'sheet' | 'skill' | 'log'>('sheet')
 const skillSlot = ref(0)
 /** 灵兽列表按召唤兽、宠物或全部来看。 */
 const petLane = ref<'all' | 'beast' | 'pet'>('all')
+/** 合灵时献上的那只。 */
+const fuseOffer = ref('')
+/** 兽纹帖栏满时要覆掉的旧招。 */
+const coverSkill = ref('')
 
 /** 装备部位的固定展示顺序。 */
 const slotOrder = ['weapon', 'head', 'chest', 'gloves', 'boots', 'ring'] as const
@@ -323,6 +327,16 @@ const shownPets = computed(() => {
 function bagOf(templateId: string) {
   return (game.profile?.bag ?? []).find((item: { templateId: string }) => item.templateId === templateId)
 }
+const slips = computed(() => {
+  const defs = game.config?.items ?? []
+  const names = new Map((game.config?.skills ?? []).map((skill: { id: string; name: string }) => [skill.id, skill.name]))
+  return (game.profile?.bag ?? []).flatMap((item: { id: string; templateId: string; name: string; count: number }) => {
+    const teach = defs.find((row: { id: string; teach?: string }) => row.id === item.templateId)?.teach
+    if (!teach) return []
+    return [{ ...item, teach, skillName: names.get(teach) || item.name }]
+  })
+})
+const fuseChoices = computed(() => (game.profile?.pets ?? []).filter((pet: { id: string; role?: string; busy?: boolean }) => pet.role === 'beast' && pet.id !== pickedPet.value?.id && !pet.busy))
 function petMark(pet: { busy?: boolean; deployed?: boolean; active?: boolean; role?: string; level?: number }) {
   if (pet.busy) return '派遣中'
   if (pet.deployed) return '出战'
@@ -589,9 +603,10 @@ function pick(id: string) {
 
       <template v-else-if="game.panel === 'market'">
         <template v-if="marketTab === 'browse'">
+          <p class="lede market-board">旅团跳市 · 旅税 {{ Math.round((game.config?.constants?.marketTax ?? 0.05) * 100) }}% · {{ game.market.length }} 单在售</p>
           <p v-if="!game.market.length" class="empty">拍卖行还没有货。先从背包挑一件挂上去。</p>
           <div class="list">
-            <div v-for="order in game.market" :key="order.id" class="item">
+            <div v-for="order in game.market" :key="order.id" class="item lot">
               <div class="item-main">
                 <IconMedal :src="itemIcon(order.templateId)" />
                 <div>
@@ -685,7 +700,7 @@ function pick(id: string) {
       </template>
 
       <template v-else-if="game.panel === 'shop'">
-        <p class="lede">杂货由米娜出售。灵契球用来契约，面包和茶可以救急。</p>
+        <p class="lede">杂货由米娜出售。灵契球打到三成血再契约，捕兽索七成血就能野捕。兽纹帖刻指定的一招。</p>
         <div class="list">
           <div v-for="good in shopGoods" :key="good.itemId" class="item">
             <div class="item-main">
@@ -861,7 +876,7 @@ function pick(id: string) {
         <div>
           <b>{{ pickedPet.name }} · Lv.{{ pickedPet.level }}/{{ pickedPet.levelCap }}</b>
           <small>{{ pickedPet.roleName }} · {{ pickedPet.battle }} · 派遣 {{ pickedPet.work }}</small>
-          <small>长势 {{ Number(pickedPet.growth).toFixed(2) }} · 信赖 {{ pickedPet.loyalty }} · 元息 {{ pickedPet.vigor }}/{{ pickedPet.vigorMax }}</small>
+          <small>长势 {{ Number(pickedPet.growth).toFixed(2) }} · 信赖 {{ pickedPet.loyalty }} · <em class="mood" :class="pickedPet.mood">{{ pickedPet.moodName }}</em> · 元息 {{ pickedPet.vigor }}/{{ pickedPet.vigorMax }}</small>
         </div>
       </div>
       <p>{{ pickedPet.desc }}</p>
@@ -888,6 +903,27 @@ function pick(id: string) {
         <button class="btn" :disabled="!bagOf('beast_grain')" @click="bagOf('beast_grain') && game.act('/api/pets/feed', { petId: pickedPet.id, itemId: bagOf('beast_grain').id })">喂干粮</button>
         <button class="btn" :disabled="!bagOf('vigor_fruit')" @click="bagOf('vigor_fruit') && game.act('/api/pets/feed', { petId: pickedPet.id, itemId: bagOf('vigor_fruit').id })">喂元息果</button>
         <button v-if="pickedPet.role === 'beast'" class="btn" :disabled="!bagOf('beast_seal') || pickedPet.skills.length >= pickedPet.slots" @click="bagOf('beast_seal') && game.act('/api/pets/teach', { petId: pickedPet.id, itemId: bagOf('beast_seal').id })">刻印</button>
+      </div>
+      <p v-if="pickedPet.role === 'beast'" class="hint">打完一场元息 -1。信赖低于 40 会犹豫，低于 15 不肯出战。喂干粮或元息果会立刻写回。</p>
+      <div v-if="pickedPet.role === 'beast' && slips.length" class="slip-row">
+        <select v-if="pickedPet.skills.length >= pickedPet.slots" v-model="coverSkill">
+          <option value="">栏满了，覆掉哪一招</option>
+          <option v-for="skill in pickedPet.skills" :key="skill.id" :value="skill.id">{{ skill.name }}</option>
+        </select>
+        <button
+          v-for="slip in slips"
+          :key="slip.id"
+          class="btn"
+          :disabled="pickedPet.skills.length >= pickedPet.slots && !coverSkill"
+          @click="game.act('/api/pets/teach', { petId: pickedPet.id, itemId: slip.id, cover: coverSkill })"
+        >{{ slip.skillName }} ×{{ slip.count }}</button>
+      </div>
+      <div v-if="pickedPet.role === 'beast' && fuseChoices.length" class="slip-row">
+        <select v-model="fuseOffer">
+          <option value="">合灵：献上一只召唤兽</option>
+          <option v-for="pet in fuseChoices" :key="pet.id" :value="pet.id">{{ pet.name }} · 长势 {{ Number(pet.growth).toFixed(2) }}</option>
+        </select>
+        <button class="btn lantern" :disabled="!fuseOffer" @click="game.act('/api/pets/fuse', { keepId: pickedPet.id, offerId: fuseOffer }).then(() => { fuseOffer = '' }).catch(() => {})">合灵</button>
       </div>
     </div>
 

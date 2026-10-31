@@ -36,6 +36,7 @@ let foeTimer = 0
 let engageTimer = 0
 let bannerTimer = 0
 let castFxTimer = 0
+let castReadTimer = 0
 const engage = ref(false)
 /** 胜负横幅。点得穿，过一会儿自己消失，不挡返回和再开战。 */
 const banner = ref('')
@@ -47,6 +48,8 @@ const mpPct = computed(() => (self.value ? Math.max(0, (self.value.mp / self.val
 const foePct = computed(() => (foe.value?.maxHp ? Math.max(0, (foe.value.hp / foe.value.maxHp) * 100) : 0))
 /** 显示目标是否可尝试契约；最终条件与成功率由服务器校验。 */
 const canCapture = computed(() => Boolean(foe.value?.alive && foe.value.capturable && foe.value.hp / foe.value.maxHp <= 0.3))
+/** 野捕更早能试，成功率更低，套住的兽还不熟。 */
+const canSnare = computed(() => Boolean(foe.value?.alive && foe.value.capturable && foe.value.hp / foe.value.maxHp <= 0.7))
 /** 从公共模板读取目标等级，供战斗界面展示。 */
 const foeLevel = computed(() => game.config?.monsters?.find((item: { id: string }) => item.id === foe.value?.templateId)?.level)
 /** 追击已结束且当前目标死亡时显示战斗结束状态。 */
@@ -82,8 +85,8 @@ function hits(id: string | undefined) {
 const mapId = computed(() => game.snap?.mapId || game.profile?.mapId || 'town_starfall')
 /** 判断当前意图是否为追击攻击或契约目标。 */
 const chasing = computed(() => game.intent?.kind === 'fight' || game.intent?.kind === 'capture')
-/** 药品只列出能直接喝的消耗品。 */
-const drinks = computed(() => (game.profile?.bag ?? []).filter((item: { kind: string; templateId: string }) => item.kind === 'consumable' && item.templateId !== 'capture_orb'))
+/** 药品只列出能直接喝的消耗品。兽粮、兽纹和捕兽索不进回合物品栏。 */
+const drinks = computed(() => (game.profile?.bag ?? []).filter((item: { kind: string; templateId: string }) => item.kind === 'consumable' && item.templateId !== 'capture_orb' && item.templateId !== 'wild_snare' && item.templateId !== 'beast_grain' && item.templateId !== 'vigor_fruit' && item.templateId !== 'beast_seal' && !item.templateId.startsWith('slip_')))
 /** 技能栏和模板合在一起，给回合里的技能菜单用。 */
 const skills = computed(() => {
   const loadout: string[] = game.profile?.loadout ?? []
@@ -143,6 +146,7 @@ onUnmounted(() => {
   window.clearTimeout(engageTimer)
   window.clearTimeout(bannerTimer)
   window.clearTimeout(castFxTimer)
+  window.clearTimeout(castReadTimer)
 })
 
 /** 回合提示：轮到谁，或这一场已经怎么结束。 */
@@ -216,6 +220,21 @@ const beastSkills = computed(() => {
   const actor = (bout.value?.order ?? []).find((item: { kind?: string; id?: string }) => item.kind === 'beast' && item.id === bout.value?.await)
   return actor?.skills ?? []
 })
+/** 这一下出手的名字。读条只跟着飘字走，不自己结算伤害。 */
+const castRead = ref<{ id: number; who: string; name: string } | null>(null)
+watch(() => game.floats.at(-1)?.id, () => {
+  const hit = game.floats.at(-1)
+  if (!hit || (hit.kind !== 'cast' && hit.kind !== 'swing' && hit.kind !== 'text')) return
+  let who = '出手'
+  if (hit.entityId && hit.entityId === game.profile?.id) who = '你'
+  else if (hit.entityId && hit.entityId === shownBeast.value?.id) who = shownBeast.value?.name || '召唤兽'
+  else if (hit.entityId && hit.entityId === foe.value?.id) who = foe.value?.name || '对方'
+  castRead.value = { id: hit.id, who, name: hit.text }
+  window.clearTimeout(castReadTimer)
+  castReadTimer = window.setTimeout(() => {
+    castRead.value = null
+  }, 680)
+})
 </script>
 
 <template>
@@ -223,14 +242,15 @@ const beastSkills = computed(() => {
   <div class="battle" :class="{ live: !!bout, yours, engage }">
     <img class="scene-bg dim" :src="mapThumb(mapId)" alt="" />
     <div v-if="banner" class="outcome" :class="banner">{{ banner === 'victory' ? '胜利' : '战败' }}</div>
-    <div class="fighter" :class="{ acting: bout && bout.await === game.profile?.id, hurt: selfHurt }">
+    <div class="fighter lane-self" :class="{ acting: bout && bout.await === game.profile?.id, hurt: selfHurt }">
+      <small class="lane-tag">旅人</small>
       <div v-if="casting" class="cast-ring" aria-hidden="true"><i /><i /><b /></div>
       <ActorFigure class="portrait" :look="selfLook" />
       <b>{{ game.profile?.name }}</b>
       <small>{{ game.profile?.weaponName }} · Lv.{{ game.profile?.level }}</small>
       <div class="bar" :class="{ hurt: selfHurt }"><i class="hp" :style="{ width: hpPct + '%' }" /></div>
       <small>{{ whole(self?.hp) }} / {{ whole(self?.maxHp) }}</small>
-      <span v-for="hit in hits(game.profile?.id)" :key="hit.id" class="float" :class="{ crit: hit.crit, heal: hit.kind === 'heal', miss: hit.kind === 'miss', guarded: hit.guarded }">{{ hit.text }}</span>
+      <span v-for="hit in hits(game.profile?.id)" :key="hit.id" class="float" :class="{ crit: hit.crit, heal: hit.kind === 'heal', miss: hit.kind === 'miss', guarded: hit.guarded, cast: hit.kind === 'cast', swing: hit.kind === 'swing' }">{{ hit.text }}</span>
       <div class="bar"><i class="mp" :style="{ width: mpPct + '%' }" /></div>
       <div v-if="selfEffects.length" class="effects">
         <em v-for="ef in selfEffects" :key="ef.id" class="fx" :class="fxKind(ef.id)"><b>{{ ef.name }}</b><small>{{ ef.rounds }}</small></em>
@@ -241,7 +261,7 @@ const beastSkills = computed(() => {
       </div>
       <p v-else class="hint">没有携带中的光环</p>
     </div>
-    <div class="fighter beast-side" :class="{ acting: bout && shownBeast && bout.await === shownBeast.id, down: shownBeast && shownBeast.alive === false }">
+    <div class="fighter beast-side lane-beast" :class="{ acting: bout && shownBeast && bout.await === shownBeast.id, down: shownBeast && shownBeast.alive === false }">
       <template v-if="shownBeast && beastLook">
         <small class="role-flag">召唤兽</small>
         <ActorFigure class="portrait" :look="beastLook" />
@@ -249,11 +269,16 @@ const beastSkills = computed(() => {
         <small>{{ shownBeast.alive === false ? '倒下了' : '出战' }}</small>
         <div class="bar"><i class="hp" :style="{ width: beastPct + '%' }" /></div>
         <small>{{ whole(shownBeast.hp) }} / {{ whole(shownBeast.maxHp) }}</small>
-        <span v-for="hit in hits(shownBeast.id)" :key="hit.id" class="float" :class="{ crit: hit.crit, heal: hit.kind === 'heal' }">{{ hit.text }}</span>
+        <span v-for="hit in hits(shownBeast.id)" :key="hit.id" class="float" :class="{ crit: hit.crit, heal: hit.kind === 'heal', cast: hit.kind === 'cast', swing: hit.kind === 'swing' }">{{ hit.text }}</span>
       </template>
       <p v-else class="hint">没有出战的召唤兽</p>
     </div>
     <div class="battle-mid">
+      <div v-if="castRead" :key="castRead.id" class="cast-read">
+        <b>{{ castRead.who }}</b>
+        <span class="read"><i /></span>
+        <small>{{ castRead.name }}</small>
+      </div>
       <div v-if="bout" class="turnbar" :class="{ yours, over: bout.phase !== 'choose' }">
         <div class="order">
           <span
@@ -315,20 +340,22 @@ const beastSkills = computed(() => {
         <button v-if="!bout" class="btn danger" @click="game.flee()">逃跑</button>
         <button class="btn" :class="{ lantern: won }" @click="game.view = 'scene'">{{ won ? '胜利，返回地图' : '返回地图' }}</button>
         <button class="btn lantern" :disabled="!canCapture || !foe" @click="foe && game.capture(foe.id)">契约</button>
+        <button class="btn" :disabled="!canSnare || !foe" @click="foe && game.snare(foe.id)">野捕</button>
       </div>
     </div>
-    <div class="fighter" :class="{ acting: bout && foe && bout.await === foe.id, marked: yours && foe, hurt: foeHurt }">
+    <div class="fighter lane-foe" :class="{ acting: bout && foe && bout.await === foe.id, marked: yours && foe, hurt: foeHurt }">
+      <small class="lane-tag">对手</small>
       <template v-if="foe">
         <small v-if="yours" class="target-flag">当前目标</small>
         <ActorFigure class="portrait" pip :look="foeLook" />
         <b>{{ foe.name }}</b>
-        <small>{{ foeLevel ? foeLevel + '级 · ' : '' }}{{ foe.alive === false ? '已被击败' : (foe.capturable ? '可以契约' : '战斗中') }}</small>
+        <small>{{ foeLevel ? foeLevel + '级 · ' : '' }}{{ foe.alive === false ? '已被击败' : (foe.capturable ? (canCapture ? '可以契约' : '可以野捕') : '战斗中') }}</small>
         <div class="bar" :class="{ hurt: foeHurt }"><i class="hp foe" :style="{ width: foePct + '%' }" /></div>
         <small>{{ whole(foe.hp) }} / {{ whole(foe.maxHp) }}</small>
         <div v-if="foeEffects.length" class="effects">
           <em v-for="ef in foeEffects" :key="ef.id" class="fx" :class="fxKind(ef.id)"><b>{{ ef.name }}</b><small>{{ ef.rounds }}</small></em>
         </div>
-        <span v-for="hit in hits(foe.id)" :key="hit.id" class="float foe" :class="{ crit: hit.crit, heal: hit.kind === 'heal' }">{{ hit.text }}</span>
+        <span v-for="hit in hits(foe.id)" :key="hit.id" class="float foe" :class="{ crit: hit.crit, heal: hit.kind === 'heal', cast: hit.kind === 'cast', swing: hit.kind === 'swing' }">{{ hit.text }}</span>
       </template>
       <p v-else class="hint">{{ lastName ? lastName + ' 已被击败' : '这场已经结束' }}</p>
     </div>

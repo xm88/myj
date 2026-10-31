@@ -224,6 +224,10 @@ export function itemIcon(templateId: string): string {
   if (!path && templateId.startsWith('arm_gloves')) path = '/art/fi-item-gloves.jpg'
   if (!path && templateId.startsWith('arm_boots')) path = '/art/fi-item-boots.jpg'
   if (!path && templateId.startsWith('arm_ring')) path = '/art/fi-item-ring.jpg'
+  if (!path && templateId === 'wild_snare') path = '/art/fi-item-orb.jpg'
+  if (!path && (templateId.startsWith('slip_') || templateId === 'beast_seal')) path = '/art/fi-item-fragment.jpg'
+  if (!path && templateId === 'beast_grain') path = '/art/fi-item-bread.jpg'
+  if (!path && templateId === 'vigor_fruit') path = '/art/fi-item-heart.jpg'
   return versioned(path ?? '/art/fi-prop-herb.jpg')
 }
 

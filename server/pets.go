@@ -20,13 +20,25 @@ func (a *App) jobs(id string) []M {
 
 // givePet 发放灵兽并处理重复契约。第一只自动挂上光环；第一只召唤兽同时出战。
 func (a *App) givePet(id, tpl string, capture bool) {
+	how := ""
+	if capture {
+		how = "capture"
+	}
+	a.adoptPet(id, tpl, how)
+}
+
+// adoptPet 按来源发放灵兽。capture 是灵契球，snare 是捕兽索，其余是任务或赠予。
+// 野捕到的新兽信赖和元息都更低，表示它还没服。
+func (a *App) adoptPet(id, tpl, how string) {
 	def := a.def("pets", tpl)
 	check(def != nil, "没有这种灵伴")
 	old := a.one("SELECT id FROM player_pets WHERE player_id=? AND template_id=?", id, tpl)
+	fresh := false
 	if old != nil {
 		a.addGold(id, 30)
 		a.mail(id, "已经契约过了", str(def["name"])+" 把多余的契约化成了 30 金币。", nil)
 	} else {
+		fresh = true
 		active := 0
 		if a.one("SELECT id FROM player_pets WHERE player_id=? AND active=1", id) == nil {
 			active = 1
@@ -38,6 +50,9 @@ func (a *App) givePet(id, tpl string, capture bool) {
 		}
 		pid := uid()
 		growth, roots, skills, loyalty, vigor := rollCompanion(def, pid, true)
+		if how == "snare" {
+			loyalty, vigor = 52, 60
+		}
 		a.run("INSERT INTO player_pets(id,player_id,template_id,level,exp,active,created_at,growth,roots,skills,loyalty,vigor,deployed) VALUES(?,?,?,1,0,?,?,?,?,?,?,?,?)", pid, id, tpl, active, now(), growth, js(roots), js(skills), loyalty, vigor, deployed)
 		a.refresh(id)
 		if firstBeast {
@@ -48,11 +63,20 @@ func (a *App) givePet(id, tpl string, capture bool) {
 			a.pushNews("旅人「" + str(a.player(id)["name"]) + "」与" + str(def["name"]) + "建立了契约。")
 		}
 	}
-	if capture {
+	name := str(def["name"])
+	switch how {
+	case "capture":
 		a.emit(id, M{"type": "capture", "petId": tpl})
-		a.toast(id, "契约成功："+str(def["name"]))
-	} else {
-		a.toast(id, str(def["name"])+" 加入了旅团")
+		a.toast(id, "契约成功："+name)
+	case "snare":
+		a.emit(id, M{"type": "capture", "petId": tpl})
+		if fresh {
+			a.toast(id, name+" 被套住了。它还野，信赖和元息都偏低")
+		} else {
+			a.toast(id, "已经有一只"+name+"，捕兽索化成了 30 金币")
+		}
+	default:
+		a.toast(id, name+" 加入了旅团")
 	}
 	a.notify(id)
 }

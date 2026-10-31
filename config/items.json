@@ -90,6 +90,15 @@
     "bound": false
   },
   {
+    "id": "temper_grit",
+    "name": "火砂",
+    "kind": "material",
+    "stack": 999,
+    "sell": 3,
+    "desc": "铁匠用来给兵器退火的细砂。淬炼失败只散砂，装备还在。",
+    "bound": false
+  },
+  {
     "id": "copper_ore",
     "name": "铜矿",
     "kind": "material",

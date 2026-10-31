@@ -24,6 +24,17 @@ var qualityMul = map[string]float64{"white": 1, "green": 1.12, "blue": 1.28, "pu
 // qualityAffixes 每个装备品质允许生成的随机词条数量。
 var qualityAffixes = map[string]int{"white": 0, "green": 1, "blue": 2, "purple": 3, "gold": 3}
 
+// qualityNames 装备品质在制造和淬炼提示里的中文。
+var qualityNames = map[string]string{"white": "普通", "green": "优秀", "blue": "精良", "purple": "史诗", "gold": "传说"}
+
+// qualityName 把品质标识写成中文。不认识的按普通。
+func qualityName(q string) string {
+	if name := qualityNames[q]; name != "" {
+		return name
+	}
+	return qualityNames["white"]
+}
+
 // attrKeys 潜力点的固定字段顺序，加点校验和界面展示共用。
 var attrKeys = []string{"vit", "mag", "str", "agi", "end"}
 

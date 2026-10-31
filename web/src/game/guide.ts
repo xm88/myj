@@ -83,9 +83,16 @@ export interface QuestTrack {
   line: string
 }
 
-/** 把进行中的任务收成追踪列表。主线排在前面，最多四条，避免把侧栏塞满。 */
-export function questTracks(quests: Array<QuestRow & { kind?: string }>) {
+/** 把进行中的任务收成追踪列表。主线排在前面，钉上的那条再提前，最多四条。 */
+export function questTracks(quests: Array<QuestRow & { kind?: string }>, pin?: string) {
   const ordered = [...quests].sort((a, b) => Number(b.kind === 'main') - Number(a.kind === 'main'))
+  if (pin) {
+    const index = ordered.findIndex((quest) => (quest.id || quest.name) === pin)
+    if (index > 0) {
+      const [row] = ordered.splice(index, 1)
+      if (row) ordered.unshift(row)
+    }
+  }
   return ordered.slice(0, 4).map((quest): QuestTrack => {
     const goal = quest.objectives?.find((item) => item.current < item.need)
     return {

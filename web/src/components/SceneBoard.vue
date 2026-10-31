@@ -57,6 +57,14 @@ const mpPct = computed(() => (self.value.maxMp ? Math.max(0, (self.value.mp / se
 const expPct = computed(() => (game.profile?.expMax ? Math.max(0, (Number(game.profile.exp) / Number(game.profile.expMax)) * 100) : 0))
 const periodId = computed(() => String(game.profile?.period || 'day'))
 const weatherId = computed(() => String(game.profile?.weather?.id || 'clear'))
+/** 雨、雪、风在场景上落一点轻粒子。晴天不铺。 */
+const moteKind = computed(() => {
+  const sky = weatherId.value
+  if (sky === 'rain' || sky === 'storm') return 'rain'
+  if (sky === 'snow') return 'snow'
+  if (sky === 'wind') return 'wind'
+  return ''
+})
 watch(() => game.castSeq, (n) => {
   if (!n) return
   casting.value = true
@@ -428,6 +436,9 @@ const floats = computed(() => {
       :style="chunkBox(chunk)"
     />
     <div class="atmo" :class="['atmo-' + periodId, weatherId === 'clear' ? '' : 'sky-' + weatherId]" />
+    <div v-if="moteKind" class="motes" :class="moteKind" aria-hidden="true">
+      <i v-for="n in 14" :key="n" :style="{ left: ((n * 7.1) % 100) + '%', animationDelay: (n * 0.17) + 's' }" />
+    </div>
     <div class="hud-plate">
       <ActorFigure class="hud-fig" :look="selfLook" />
       <div>

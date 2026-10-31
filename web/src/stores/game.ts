@@ -94,6 +94,10 @@ export const useGame = defineStore('game', {
     autoFight: localStorage.getItem('float_auto') === '1',
     // 施法圈开关。只影响画面上那一下闪光，不进存档。
     showFx: localStorage.getItem('float_fx') !== '0',
+    // 氛围底噪开关。只影响本机听到的一层噪声，不进存档。
+    ambience: localStorage.getItem('float_ambience') === '1',
+    // 钉在追踪最前面的任务。只记在本机。
+    pinnedQuest: localStorage.getItem('float_pin') || '',
     // 每次放技能加一，战斗和场景用来闪一下施法圈。
     castSeq: 0,
     // 飘字。只活大约一秒，用来在场景和战斗画面上标伤害。
@@ -304,6 +308,8 @@ export const useGame = defineStore('game', {
         this.profile.weather = msg.weather
         this.profile.period = msg.period
         this.profile.periodName = msg.periodName
+        if (msg.weatherUntil != null) this.profile.weatherUntil = msg.weatherUntil
+        if (msg.weatherNext != null) this.profile.weatherNext = msg.weatherNext
       }
     },
     /** 只在 WebSocket 已连接时提交 JSON 意图消息。 */
@@ -344,6 +350,16 @@ export const useGame = defineStore('game', {
     setFx(on: boolean) {
       this.showFx = on
       localStorage.setItem('float_fx', on ? '1' : '0')
+    },
+    /** 氛围底噪开关。第一次打开要有一次点击，浏览器才允许出声。 */
+    setAmbience(on: boolean) {
+      this.ambience = on
+      localStorage.setItem('float_ambience', on ? '1' : '0')
+    },
+    /** 把一条任务钉到追踪最前。再点一次就松开。 */
+    pinQuest(id: string) {
+      this.pinnedQuest = this.pinnedQuest === id ? '' : id
+      localStorage.setItem('float_pin', this.pinnedQuest)
     },
     /** 记一笔技能出手，给施法圈用。关闭光效时什么都不做。 */
     noteCast() {

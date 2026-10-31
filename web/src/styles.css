@@ -631,7 +631,7 @@ button.linkish { border: 0; background: transparent; padding: 0; }
 
 .battle {
   display: grid;
-  grid-template-columns: 168px minmax(0, 1fr) 168px;
+  grid-template-columns: 148px 124px minmax(0, 1fr) 148px;
   gap: 8px;
   padding: 10px;
 }
@@ -648,6 +648,9 @@ button.linkish { border: 0; background: transparent; padding: 0; }
 .fighter { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; }
 .fighter .icon, .fighter .portrait { width: clamp(64px, 14vh, 104px); height: clamp(64px, 14vh, 104px); }
 .fighter .bar { width: 100%; }
+.beast-side .role-flag { color: #8a4b12; letter-spacing: 0.08em; }
+.beast-side.down { opacity: 0.55; }
+.order-chip.ally { border-color: #6e9a74; }
 .pet-row { display: flex; gap: 6px; align-items: center; width: 100%; text-align: left; }
 .pet-row .icon { width: 36px; height: 36px; }
 .pet-row small { display: block; color: var(--ink-soft); }
@@ -1857,3 +1860,19 @@ button.item { width: 100%; text-align: left; color: inherit; }
 .order span.rank-boss { border-color: #e7c56a; box-shadow: 0 0 0 1px #8d2e24; }
 .order-chip.rank-world,
 .order span.rank-world { border-color: #7eb0d4; }
+.deploy-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.deploy-slot { border: 1px solid #c9ae78; background: rgba(255, 248, 230, 0.72); padding: 6px; min-height: 72px; }
+.deploy-slot > small, .deploy-who small { color: var(--ink-soft); }
+.deploy-who { display: flex; gap: 8px; align-items: center; text-align: left; }
+.deploy-who b, .skill-pills em { font-style: normal; }
+.mini-fig { width: 36px; height: 44px; background: #fff8ea; border: 1px solid var(--line); }
+.detail-fig { width: 72px; height: 90px; background: #fff8ea; border: 1px solid var(--line); flex: none; }
+.slot.pet.beast { box-shadow: inset 3px 0 0 #c47a3a; }
+.slot.pet.companion { box-shadow: inset 3px 0 0 #3d7a62; }
+.roots { margin: 6px 0; }
+.root-line { display: grid; grid-template-columns: 2.4em 1fr 2.2em; gap: 6px; align-items: center; font-size: 12px; }
+.root-line .track { display: block; height: 6px; background: #efe4c4; border: 1px solid #e2d2a8; }
+.root-line .track b { display: block; height: 100%; background: #c47a3a; }
+.root-line em { font-style: normal; text-align: right; }
+.skill-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.skill-pills em { padding: 1px 6px; border: 1px solid #c9ae78; background: #fff8ea; }

@@ -148,6 +148,14 @@ func (a *App) route(r *http.Request, b M) any {
 			a.allocate(id, b, true)
 		case "/api/pets/active":
 			a.activePet(id, s("petId"))
+		case "/api/pets/deploy":
+			a.deployBeast(id, s("petId"))
+		case "/api/pets/rest":
+			a.restBeast(id, s("petId"))
+		case "/api/pets/feed":
+			a.feedPet(id, s("petId"), s("itemId"))
+		case "/api/pets/teach":
+			a.teachPet(id, s("petId"), s("itemId"))
 		case "/api/dispatches":
 			a.startDispatch(id, s("petId"), s("nodeId"), s("durationId"))
 		case "/api/dispatches/claim":

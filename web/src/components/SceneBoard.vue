@@ -43,7 +43,14 @@ onUnmounted(() => {
 const mapId = computed(() => game.snap?.mapId || game.profile?.mapId || 'town_starfall')
 const map = computed(() => game.config?.maps?.find((item: { id: string }) => item.id === mapId.value))
 const self = computed(() => game.snap?.self ?? { x: game.profile?.x ?? 0, y: game.profile?.y ?? 0, hp: 0, maxHp: 0, mp: 0, maxMp: 0, worldX: undefined as number | undefined, worldY: undefined as number | undefined, originX: 0, originY: 0 })
-const pet = computed(() => game.profile?.pets?.find((item: { active: boolean }) => item.active) ?? null)
+const pet = computed(() => {
+  const pets = game.profile?.pets ?? []
+  const beast = pets.find((item: { deployed?: boolean }) => item.deployed)
+  if (beast) return { ...beast, tag: '出战' }
+  const carried = pets.find((item: { active?: boolean }) => item.active)
+  if (carried) return { ...carried, tag: carried.role === 'pet' ? '携带' : '光环' }
+  return null
+})
 const hpPct = computed(() => (self.value.maxHp ? Math.max(0, (self.value.hp / self.value.maxHp) * 100) : 0))
 const hpHurt = useDropFlash(() => Number(self.value?.hp))
 const mpPct = computed(() => (self.value.maxMp ? Math.max(0, (self.value.mp / self.value.maxMp) * 100) : 0))
@@ -432,7 +439,7 @@ const floats = computed(() => {
       </div>
       <div v-if="pet" class="hud-pet" :title="pet.name">
         <ActorFigure class="hud-fig" :look="lookForPet(pet.templateId)" />
-        <small>{{ pet.name }}</small>
+        <small>{{ pet.tag }} {{ pet.name }}</small>
       </div>
     </div>
     <div class="minimap" :title="map.name">

@@ -257,7 +257,8 @@ export const useGame = defineStore('game', {
           if (event.kind === 'dmg' && event.amount) {
             const mine = event.entityId === this.profile?.id
             const guard = event.guarded ? '守势 ' : ''
-            this.noteBattle(`${mine ? '受到' : '造成'} ${guard}${event.crit ? '暴击 ' : ''}${event.amount}`)
+            const hit = `${guard}${event.crit ? '暴击 ' : ''}${event.amount}`
+            this.noteBattle(event.beast ? `召唤兽受到 ${hit}` : `${mine ? '受到' : '造成'} ${hit}`)
           } else if (event.kind === 'heal' && event.amount) {
             this.noteBattle(`回复 ${event.amount}`)
           } else if (event.text) {
@@ -268,8 +269,8 @@ export const useGame = defineStore('game', {
         this.log = this.log.slice(0, 24)
         this.snap = msg
         if (msg.bout?.phase === 'fled' || msg.bout?.phase === 'defeat') this.view = 'scene'
-        if (msg.bout?.yours && this.autoFight && this.view === 'battle') {
-          const key = `${msg.bout.round}:${msg.bout.await}`
+        if ((msg.bout?.yours || msg.bout?.yoursBeast) && this.autoFight && this.view === 'battle') {
+          const key = `${msg.bout.round}:${msg.bout.await}:${msg.bout.yoursBeast ? 'beast' : 'you'}`
           if (this.lastBoutKey !== key) {
             this.lastBoutKey = key
             this.send({ type: 'bout', action: 'attack' })

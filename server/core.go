@@ -23,7 +23,7 @@ import (
 const devJWTSecret = "dev-float-island-change-me"
 
 // gameVersion 是这一版对外的切片号。健康检查和公开配置都读它。
-const gameVersion = "0.1.8"
+const gameVersion = "0.1.9"
 
 // maxGold 防止异常金额把 float64 金币打成 Inf 后写进存档。
 const maxGold = 1000000000
@@ -560,6 +560,8 @@ func newApp(root, file string) *App {
 			a.index[k][str(d["id"])] = d
 		}
 	}
+	a.migratePetColumns()
+	a.backfillPets()
 	a.weather = M{"id": "clear", "until": now() + a.constant("weatherMs")}
 	if r := a.one("SELECT value FROM world_state WHERE key='weather'"); r != nil {
 		m := obj(parse(str(r["value"])))

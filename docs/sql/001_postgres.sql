@@ -63,7 +63,13 @@ CREATE TABLE player_pets (
   level INTEGER NOT NULL,
   exp INTEGER NOT NULL,
   active INTEGER NOT NULL DEFAULT 0,
-  created_at BIGINT NOT NULL
+  created_at BIGINT NOT NULL,
+  growth DOUBLE PRECISION NOT NULL DEFAULT 1,
+  roots JSONB,
+  skills JSONB,
+  loyalty INTEGER NOT NULL DEFAULT 0,
+  vigor INTEGER NOT NULL DEFAULT 0,
+  deployed INTEGER NOT NULL DEFAULT 0
 );
 
 -- 离线派遣起止时间、领取状态与结算结果。

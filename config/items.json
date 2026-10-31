@@ -826,5 +826,32 @@
       "critRate": 0.03,
       "mp": 24
     }
+  },
+  {
+    "id": "beast_grain",
+    "name": "兽谷干粮",
+    "kind": "consumable",
+    "stack": 99,
+    "sell": 4,
+    "desc": "浮岛路上带的粗粮。在灵兽面板喂下去，能补一点经验和信赖。",
+    "effect": {}
+  },
+  {
+    "id": "vigor_fruit",
+    "name": "元息果",
+    "kind": "consumable",
+    "stack": 99,
+    "sell": 6,
+    "desc": "矿坑边上的酸果。喂给灵兽，能把耗掉的元息补回来。",
+    "effect": {}
+  },
+  {
+    "id": "beast_seal",
+    "name": "兽纹印",
+    "kind": "consumable",
+    "stack": 99,
+    "sell": 10,
+    "desc": "一块刻着爪印的木牌。技能栏还有空位时，能给召唤兽刻上一招旅团兽技。栏满了就刻不上去。",
+    "effect": {}
   }
 ]

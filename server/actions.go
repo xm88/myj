@@ -58,7 +58,7 @@ func (a *App) cast(id string, slot any) {
 	sid := ""
 	if str(slot) == "pet" {
 		p := a.one("SELECT template_id FROM player_pets WHERE player_id=? AND active=1", id)
-		check(p != nil, "没有主战灵伴")
+		check(p != nil, "没有携带中的灵兽")
 		sid = str(a.def("pets", str(p["template_id"]))["skillId"])
 	} else {
 		check(truth(s["armed"]), "没有装备武器")

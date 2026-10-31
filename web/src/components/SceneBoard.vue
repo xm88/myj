@@ -425,6 +425,7 @@ const floats = computed(() => {
       <ActorFigure class="hud-fig" :look="selfLook" />
       <div>
         <b>{{ game.profile?.name }} <small>Lv.{{ game.profile?.level }}</small></b>
+        <small class="hud-gold">{{ game.profile?.gold }} 金</small>
         <div class="hud-meters">
           <span title="生命"><em>血</em><span class="bar" :class="{ hurt: hpHurt }"><i class="hp" :style="{ width: hpPct + '%' }" /></span></span>
           <span title="法力"><em>法</em><span class="bar"><i class="mp" :style="{ width: mpPct + '%' }" /></span></span>

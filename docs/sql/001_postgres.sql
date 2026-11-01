@@ -30,6 +30,7 @@ CREATE TABLE players (
   race TEXT NOT NULL DEFAULT 'human',
   flags JSONB NOT NULL DEFAULT '{}',
   buffs JSONB NOT NULL DEFAULT '[]',
+  mount_preview TEXT NOT NULL DEFAULT '',
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL
 );
@@ -125,6 +126,8 @@ CREATE TABLE guild_members (
   guild_id TEXT NOT NULL REFERENCES guilds(id),
   player_id TEXT NOT NULL UNIQUE REFERENCES players(id),
   role TEXT NOT NULL,
+  contrib INTEGER NOT NULL DEFAULT 0,
+  roll_day BIGINT NOT NULL DEFAULT 0,
   joined_at BIGINT NOT NULL
 );
 

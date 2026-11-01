@@ -757,13 +757,29 @@ button.linkish { border: 0; background: transparent; padding: 0; }
 .talk {
   display: grid;
   grid-template-columns: 1.4fr 1fr;
-  grid-template-rows: 36px auto;
+  grid-template-rows: auto minmax(72px, 96px) auto;
   gap: 4px 8px;
-  padding: 0 8px;
+  padding: 4px 8px 0;
   background: #f6edd6;
   border-top: 1px solid var(--line);
   min-width: 0;
 }
+.channels { grid-column: 1 / -1; display: flex; gap: 4px; min-width: 0; }
+.channels button {
+  border: 1px solid #6b3014;
+  background: #f3e3c0;
+  color: #3a2a18;
+  padding: 1px 8px;
+  border-radius: 2px;
+  box-shadow: inset 0 1px 0 rgba(255, 248, 234, 0.8);
+}
+.channels button.on { background: #7a3018; color: #fff6e0; }
+.logbox .ch-map { color: #1f6b3a; }
+.logbox .ch-world { color: #8a4b12; }
+.logbox .ch-party { color: #1d5c86; }
+.logbox .ch-guild { color: #7a3060; }
+.logbox .ch-rumor { color: #8a6230; }
+.logbox .ch-system { color: #4d5c3a; }
 .logbox {
   min-width: 0;
   overflow: auto;
@@ -1270,7 +1286,7 @@ button.item { width: 100%; text-align: left; color: inherit; }
   .ticker { display: none; }
   .hot-hint { flex-basis: 100%; }
   .weapons, .grid { grid-template-columns: 1fr; }
-  .talk { grid-template-columns: 1fr; grid-template-rows: 64px 64px auto; }
+  .talk { grid-template-columns: 1fr; grid-template-rows: auto 64px 64px auto; }
   .gate-banner { max-width: calc(100% - 24px); }
 }
 @media (max-width: 640px) {
@@ -2061,16 +2077,30 @@ button.item { width: 100%; text-align: left; color: inherit; }
 .dock > * { pointer-events: auto; }
 .talk {
   grid-area: talk;
-  max-height: 118px;
+  max-height: 176px;
   padding: 5px;
   background: rgba(22, 12, 8, 0.78);
   border: 1px solid rgba(230, 197, 106, 0.62);
   border-radius: 8px;
-  grid-template-rows: 48px auto;
+  grid-template-rows: auto 56px auto;
   box-shadow: inset 0 1px 0 rgba(255, 220, 160, 0.12);
 }
+.dock .channels button {
+  background: rgba(255, 244, 214, 0.92);
+  color: #3a2412;
+  border-color: rgba(230, 197, 106, 0.85);
+  padding: 0 7px;
+  font-size: 12px;
+}
+.dock .channels button.on { background: #7a3018; color: #fff6e0; }
+.dock .logbox .ch-map { color: #b7e2c0; }
+.dock .logbox .ch-world { color: #f0c14a; }
+.dock .logbox .ch-party { color: #9fd0ea; }
+.dock .logbox .ch-guild { color: #f0b0d4; }
+.dock .logbox .ch-rumor { color: #f0d2a8; }
+.dock .logbox .ch-system { color: #d7ecc4; }
 .logbox {
-  max-height: 48px;
+  max-height: 56px;
   background: rgba(255, 246, 224, 0.08);
   color: #fff6e4;
   border-color: rgba(230, 197, 106, 0.35);
@@ -2425,6 +2455,48 @@ button.item { width: 100%; text-align: left; color: inherit; }
 .primer li.on { background: #e6c56a; color: #3a1c0c; border-color: #8a4b12; }
 .primer li.done { color: #2f6a44; }
 .primer p { margin: 0 0 8px; }
+
+/* V0.2.2：堂口、频道、坐骑预览和遗迹门槛。步速和进图规则不在这里。 */
+.hall-board, .gate-board {
+  background:
+    linear-gradient(180deg, rgba(255, 250, 240, 0.7), transparent 28px),
+    #fff6e0;
+  border: 1px solid var(--line);
+  box-shadow: inset 0 0 0 1px rgba(255, 248, 234, 0.9);
+  padding: 8px 10px;
+}
+.hall-board .notice { margin: 0 0 8px; font-weight: 700; }
+.hall-meter { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; margin: 6px 0; }
+.hall-meter i { display: block; height: 8px; background: #efe0c0; border: 1px solid #c9ae78; }
+.hall-meter b { display: block; height: 100%; background: linear-gradient(180deg, #e7c56a, #a86a28); }
+.mount-stage { display: grid; grid-template-columns: 150px 1fr; gap: 12px; align-items: center; }
+.mount-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.mount-card {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  background: #fffaf0;
+  color: inherit;
+}
+.mount-card.on { border-color: #7a3018; box-shadow: inset 0 0 0 1px #e7c56a; }
+.mount-card.locked { opacity: 0.55; }
+.mount-card .mount-glyph { width: 84px; height: 56px; }
+.gate-facts { margin: 6px 0 0; padding-left: 18px; }
+.ride { position: relative; display: flex; flex-direction: column; align-items: center; }
+.ride .mount-glyph { width: 72px; height: 48px; }
+.ride.on .actor { margin-bottom: -22px; z-index: 1; }
+.ride.on .mount-glyph { order: 2; }
+.ride.stage {
+  width: 150px;
+  height: 132px;
+  justify-content: flex-end;
+  background: radial-gradient(circle at 50% 70%, #f3e2b8, #e7d3a4 70%);
+  border: 1px solid var(--line);
+}
+.ride.stage .mount-glyph { width: 118px; height: 76px; }
+.ride.stage .actor { width: 64px; height: 82px; margin-bottom: -30px; }
 
 /* 旅册：羊皮纸上的旅迹和剪影图鉴。 */
 .album-sum { margin: 0 0 8px; color: var(--ink-soft); font-size: 12px; }

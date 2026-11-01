@@ -25,6 +25,16 @@ const menu = ref(false)
 const help = ref(false)
 /** 当前待发送的聊天文本。 */
 const draft = ref('')
+/** 底栏正在看的频道。系统和传闻只读。 */
+const channelView = ref<'map' | 'world' | 'party' | 'guild' | 'rumor' | 'system'>('map')
+const channelTabs = [
+  ['map', '当前'],
+  ['world', '世界'],
+  ['party', '队伍'],
+  ['guild', '公会'],
+  ['rumor', '传闻'],
+  ['system', '系统'],
+] as const
 /** 附近名册当前显示 NPC、怪物或其他玩家。 */
 const rosterTab = ref<'people' | 'mobs' | 'players'>('people')
 
@@ -99,8 +109,37 @@ const quickItems = computed(() => {
   }
   return picked.slice(0, 2)
 })
-/** 最近聊天记录倒序展示，保持输入列表的原始顺序。 */
-const recentChat = computed(() => [...game.chat].slice(-16).reverse())
+/** 按当前频道收一收。系统和传闻不进发送。 */
+function lineIn(channel: string, view: string) {
+  if (view === 'world') return channel === 'world'
+  if (view === 'guild') return channel.startsWith('guild')
+  if (view === 'party') return channel.startsWith('party')
+  return channel === 'map' || channel.startsWith('map')
+}
+const talkRows = computed(() => {
+  const view = channelView.value
+  if (view === 'system') {
+    return game.log.slice(0, 12).map((text: string, index: number) => ({ key: `s-${index}`, tag: '系统', name: '', text, kind: 'system' }))
+  }
+  if (view === 'rumor') {
+    return [...(game.news ?? [])].slice(-12).reverse().map((item: { t: number; text: string }, index: number) => ({ key: `n-${item.t}-${index}`, tag: '传闻', name: '', text: item.text, kind: 'rumor' }))
+  }
+  return game.chat.filter((line) => lineIn(line.channel, view)).slice(-16).reverse().map((line, index) => ({
+    key: `${line.t}-${index}`,
+    tag: channelTag(line.channel),
+    name: line.name,
+    text: line.text,
+    kind: view,
+  }))
+})
+const talkQuiet = computed(() => channelView.value === 'system' || channelView.value === 'rumor')
+const talkHint = computed(() => {
+  if (channelView.value === 'system') return '系统记录只看不发'
+  if (channelView.value === 'rumor') return '传闻只看不发'
+  if (channelView.value === 'guild' && !game.profile?.guild) return '先加入公会'
+  if (channelView.value === 'party') return '队伍里说一句'
+  return '说点什么'
+})
 /** 当前在提示范围内最近的 NPC、资源点或传送门。 */
 const near = computed(() => {
   const spots = [
@@ -194,7 +233,9 @@ const panels = [
   ['craft', '制造'],
   ['market', '跳市'],
   ['shop', '商店'],
-  ['guild', '工会'],
+  ['guild', '公会'],
+  ['mount', '坐骑'],
+  ['dungeon', '遗迹'],
   ['party', '队伍'],
   ['social', '好友'],
   ['info', '角色'],
@@ -247,13 +288,21 @@ function mobTint(templateId: string) {
 /** 选中聊天呼叫对象并切换到当前地图频道。 */
 function call(name: string) {
   game.callName = name
-  game.chatChannel = 'map'
+  pickChannel('map')
+}
+
+function pickChannel(id: 'map' | 'world' | 'party' | 'guild' | 'rumor' | 'system') {
+  channelView.value = id
+  if (id === 'map' || id === 'world' || id === 'party' || id === 'guild') {
+    game.chatChannel = id
+    void loadChannel(id)
+  }
 }
 
 /** 把世界、地图或公会频道转换为界面频道标签。 */
 function channelTag(channel: string) {
   if (channel === 'world') return '世界'
-  if (channel?.startsWith('guild')) return '工会'
+  if (channel?.startsWith('guild')) return '公会'
   if (channel === 'party' || channel?.startsWith('party')) return '队伍'
   return '区域'
 }
@@ -267,7 +316,7 @@ function goldText(value: number) {
 async function loadChannel(channel: string) {
   try {
     const data = await api<{ messages: { player_name: string; text: string; created_at: number }[] }>(`/api/chat?channel=${channel}`)
-    const tag = channel === 'world' ? 'world' : channel === 'guild' ? 'guild:' : 'map:'
+    const tag = channel === 'world' ? 'world' : channel === 'guild' ? 'guild:' : channel === 'party' ? 'party:' : 'map:'
     for (const item of data.messages) {
       const exists = game.chat.some((line) => line.t === item.created_at && line.text === item.text && line.name === item.player_name)
       if (!exists) game.chat.push({ name: item.player_name, text: item.text, t: item.created_at, channel: tag })
@@ -280,6 +329,7 @@ async function loadChannel(channel: string) {
 
 /** 提交当前聊天文本和频道，可加入已选对象的呼叫前缀。 */
 function sendChat() {
+  if (talkQuiet.value) return
   const text = draft.value.trim()
   if (!text) return
   const body = game.callName ? `对${game.callName}：${text}` : text
@@ -415,6 +465,7 @@ onMounted(() => {
   void api<{ news: { t: number; text: string }[] }>('/api/news').then((data) => {
     game.news = data.news
   }).catch(() => {})
+  void loadChannel('map')
   void loadChannel('world')
 })
 onBeforeUnmount(() => {
@@ -600,7 +651,7 @@ onBeforeUnmount(() => {
         <p>点怪物会走近并开战。开战之后按速度轮流出手。旅人、召唤兽和对手分成三列，出手时有飘字和一条短读条。轮到你时中间会亮出「请出手」。可以攻击、放技能、吃药、防御或逃跑。打到七成血可以野捕，三成血再用契约。召唤兽能刻兽纹帖，两只可以合灵。左下角的三步引导可以跳过。</p>
         <p>战斗时如果想先看地图，点「返回地图」。镜头跟着你走过相邻的地块，走到门外就进下一片，不会被拉回入口。副本仍是单独一张。摆摊和当面交易都要站在旁边，成交扣和拍卖一样的旅税。</p>
         <p>点自己的名字，或下面的「角色」，可以看属性和换技能。技能栏一次放 4 个：先点栏位，再点要换上的技能。</p>
-        <p>下面一排还有任务、图鉴、道具、宠物、跳市和工会。图鉴里是旅迹、遇见过的异兽、契约过的灵兽，以及踏过的地方。聊天选区域、世界或工会。点别的旅人「交谈」，会在区域频道叫他。</p>
+        <p>下面一排还有任务、图鉴、道具、灵兽、公会、坐骑和遗迹门槛。图鉴里是旅迹、遇见过的异兽、契约过的灵兽，以及踏过的地方。聊天分当前、世界、队伍、公会，传闻和系统只看不发。点别的旅人「交谈」，会在当前频道叫他。</p>
       </section>
       </Transition>
       <PrimerCard />
@@ -654,10 +705,14 @@ onBeforeUnmount(() => {
     </footer>
 
     <form class="talk" @submit.prevent="sendChat">
+      <div class="channels" role="tablist">
+        <button v-for="[id, label] in channelTabs" :key="id" type="button" :class="{ on: channelView === id }" @click="pickChannel(id)">{{ label }}</button>
+      </div>
       <div class="logbox">
-        <p v-if="!recentChat.length" class="hint">公聊会显示在这里。</p>
-        <p v-for="(line, index) in recentChat" :key="line.t + '-' + index">
-          <button type="button" class="who-name" @click="call(line.name)">[{{ channelTag(line.channel) }}] {{ line.name }}</button>
+        <p v-if="!talkRows.length" class="hint">这一栏还没有话。</p>
+        <p v-for="line in talkRows" :key="line.key" :class="'ch-' + line.kind">
+          <button v-if="line.name" type="button" class="who-name" @click="call(line.name)">[{{ line.tag }}] {{ line.name }}</button>
+          <template v-else>[{{ line.tag }}] </template>
           {{ line.text }}
         </p>
       </div>
@@ -666,18 +721,12 @@ onBeforeUnmount(() => {
         <p v-for="(line, index) in game.log.slice(0, 8)" :key="index">{{ line }}</p>
       </div>
       <div class="composer">
-        <select v-model="game.chatChannel" @change="loadChannel(game.chatChannel)">
-          <option value="map">区域</option>
-          <option value="world">世界</option>
-          <option value="party">队伍</option>
-          <option value="guild">工会</option>
-        </select>
-        <button type="button" class="phrase" @click="draft = '求组队'">求组</button>
-        <button type="button" class="phrase" @click="draft = '收材料，跳市见'">收货</button>
-        <button type="button" class="phrase" @click="draft = '这张图怎么走？'">问路</button>
+        <button type="button" class="phrase" :disabled="talkQuiet" @click="draft = '古代遗迹求组'">求组</button>
+        <button type="button" class="phrase" :disabled="talkQuiet" @click="draft = '收材料，跳市见'">收货</button>
+        <button type="button" class="phrase" :disabled="talkQuiet" @click="draft = '这张图怎么走？'">问路</button>
         <span v-if="game.callName" class="call">对 {{ game.callName }} <button type="button" @click="game.callName = ''">×</button></span>
-        <input v-model="draft" maxlength="80" placeholder="说点什么" />
-        <button class="btn" type="submit">发送</button>
+        <input v-model="draft" maxlength="80" :disabled="talkQuiet" :placeholder="talkHint" />
+        <button class="btn" type="submit" :disabled="talkQuiet">发送</button>
       </div>
     </form>
 

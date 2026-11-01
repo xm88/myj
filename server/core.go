@@ -23,7 +23,7 @@ import (
 const devJWTSecret = "dev-float-island-change-me"
 
 // gameVersion 是这一版对外的切片号。健康检查和公开配置都读它。
-const gameVersion = "0.2.1"
+const gameVersion = "0.2.2"
 
 // maxGold 防止异常金额把 float64 金币打成 Inf 后写进存档。
 const maxGold = 1000000000
@@ -517,6 +517,19 @@ func loadSecret() string {
 	return s
 }
 
+// ensureColumns 给旧存档补列。新库在建表时已经有这些列，这里会跳过。
+func (a *App) ensureColumns(table string, cols []struct{ name, ddl string }) {
+	have := map[string]bool{}
+	for _, c := range a.rows("PRAGMA table_info(" + table + ")") {
+		have[str(c["name"])] = true
+	}
+	for _, col := range cols {
+		if !have[col.name] {
+			a.run("ALTER TABLE " + table + " ADD COLUMN " + col.name + " " + col.ddl)
+		}
+	}
+}
+
 // pragma 用查询执行会返回结果的 PRAGMA，避免把建表语句和连接参数混在同一次 Exec 里。
 func (a *App) pragma(query string) {
 	rows, e := a.db.Query(query)
@@ -541,6 +554,13 @@ func newApp(root, file string) *App {
 	a.pragma("PRAGMA journal_mode=WAL")
 	a.pragma("PRAGMA synchronous=NORMAL")
 	a.run(schema)
+	a.ensureColumns("players", []struct{ name, ddl string }{
+		{"mount_preview", "TEXT NOT NULL DEFAULT ''"},
+	})
+	a.ensureColumns("guild_members", []struct{ name, ddl string }{
+		{"contrib", "INTEGER NOT NULL DEFAULT 0"},
+		{"roll_day", "INTEGER NOT NULL DEFAULT 0"},
+	})
 	cols := a.rows("PRAGMA table_info(players)")
 	for _, column := range []string{"attributes", "race"} {
 		found := false

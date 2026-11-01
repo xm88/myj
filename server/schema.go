@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS players (
   race TEXT NOT NULL DEFAULT 'human',
   flags TEXT NOT NULL DEFAULT '{}',
   buffs TEXT NOT NULL DEFAULT '[]',
+  mount_preview TEXT NOT NULL DEFAULT '',
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
@@ -117,6 +118,8 @@ CREATE TABLE IF NOT EXISTS guild_members (
   guild_id TEXT NOT NULL,
   player_id TEXT NOT NULL UNIQUE,
   role TEXT NOT NULL,
+  contrib INTEGER NOT NULL DEFAULT 0,
+  roll_day INTEGER NOT NULL DEFAULT 0,
   joined_at INTEGER NOT NULL
 );
 

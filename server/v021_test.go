@@ -8,7 +8,8 @@ func TestAlbumOpensOnTheTown(t *testing.T) {
 	a := testApp(t)
 	token, id := newGuest(t, a)
 	health, _ := request(t, a, "/api/health", "", nil)
-	if str(health["version"]) != "0.2.1" {
+	// 旅册合进这一支之后，健康检查跟着公会和坐骑走到 0.2.2。见闻断言不变。
+	if str(health["version"]) != "0.2.2" {
 		t.Fatalf("version %v", health["version"])
 	}
 	book := okRequest(t, a, "/api/album", token, nil)

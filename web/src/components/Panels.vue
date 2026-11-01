@@ -10,7 +10,8 @@ import AlbumBoard from './AlbumBoard.vue'
 import StallBoard from './StallBoard.vue'
 import TradeBoard from './TradeBoard.vue'
 import { itemIcon, portrait, weaponIcon } from '../game/art'
-import { lookForPet } from '../game/look'
+import { lookForPet, lookForSelf } from '../game/look'
+import MountGlyph from './MountGlyph.vue'
 import { npcFocus, portalFocus } from '../game/npc'
 import { companionOrders } from '../game/orders'
 import { useGame } from '../stores/game'
@@ -31,6 +32,12 @@ const guildName = ref('')
 const friendName = ref('')
 /** 向公会捐赠的金币输入，最低值由服务器校验。 */
 const donate = ref(50)
+/** 公会窗口先看堂口，再看名册和可加入的名录。 */
+const guildTab = ref<'hall' | 'roster' | 'list'>('hall')
+/** 会长正在改的公告。 */
+const noticeDraft = ref('')
+/** 坐骑预览里点中的那一匹，还没亮出。 */
+const mountPick = ref('')
 /** 当前选择的灵伴派遣时长模板 ID。 */
 const durationId = ref('scout')
 /** 当前选择的灵伴派遣路线模板 ID。 */
@@ -82,7 +89,9 @@ const titles: Record<string, string> = {
   dispatch: '派遣',
   craft: '制造',
   market: '跳市',
-  guild: '工会',
+  guild: '公会',
+  mount: '坐骑',
+  dungeon: '遗迹门槛',
   travel: '世界地图',
   social: '好友',
   quest: '任务',
@@ -104,6 +113,9 @@ const kicker = computed(() => {
     shop: '买得出价，也能把背包里收的东西卖给米娜',
     craft: '材料够了才能做。做好的装备回背包淬炼',
     party: '号令决定队友，以及你超时没选时怎么打',
+    guild: '点卯和捐献只涨公会。战斗和金币收入不跟着变',
+    mount: '亮出来给自己和旁边的人看。步子还是原来的',
+    dungeon: '先看门槛，再决定进不进。线路和等级门没改',
     stall: '买家支付标价，旅税从卖家手里扣',
     trade: '两边锁定之后才能确认',
     album: '旅迹、异兽、灵兽，还有踏过的地方',
@@ -492,6 +504,62 @@ function onBagClick(item: { id: string; kind?: string; location?: string; templa
   pick(item.id)
 }
 
+/** 公会经验条：500 一点一级，10 级封顶。和捐献用的是同一条。 */
+const guildPace = computed(() => {
+  const guild = game.profile?.guild
+  if (!guild) return { into: 0, width: '0%', full: false }
+  const full = Number(guild.level) >= 10
+  const into = full ? 500 : Number(guild.exp) % 500
+  return { into, width: `${Math.min(100, (into / 500) * 100)}%`, full }
+})
+/** 坐骑图鉴。等级不够的只能看剪影说明，不能亮出。 */
+const mountRows = computed(() => (game.config?.mounts ?? game.profile?.mounts ?? []) as { id: string; name: string; level: number; blurb: string }[])
+const shownMount = computed(() => mountRows.value.find((row) => row.id === (mountPick.value || game.profile?.mount)) ?? mountRows.value[0])
+const selfLook = computed(() => lookForSelf(game.profile?.weaponType))
+/** 古代遗迹的门槛，怪物名单从地图刷新里收，不另写一份掉落。 */
+const ruins = computed(() => (game.config?.maps ?? []).find((item: { id: string }) => item.id === 'dungeon_ruins') as {
+  name?: string
+  desc?: string
+  unlockLevel?: number
+  levelMin?: number
+  levelMax?: number
+  spawns?: { monsterId?: string }[]
+} | undefined)
+const ruinsFoes = computed(() => {
+  const seen = new Set<string>()
+  const rows: { id: string; name: string; level?: number; role?: string }[] = []
+  for (const spawn of ruins.value?.spawns ?? []) {
+    const id = String(spawn.monsterId || '')
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+    const mob = game.config?.monsters?.find((item: { id: string }) => item.id === id) as { name?: string; level?: number; role?: string } | undefined
+    rows.push({ id, name: mob?.name ?? id, level: mob?.level, role: mob?.role })
+  }
+  return rows
+})
+const ruinsHere = computed(() => (game.snap?.mapId || game.profile?.mapId) === 'dungeon_ruins')
+const ruinsTown = computed(() => {
+  const id = game.snap?.mapId || game.profile?.mapId
+  const row = (game.config?.maps ?? []).find((item: { id: string }) => item.id === id) as { kind?: string } | undefined
+  return row?.kind === 'town'
+})
+const ruinsReady = computed(() => Number(game.profile?.level ?? 1) >= Number(ruins.value?.unlockLevel ?? 25))
+function foeMark(role?: string) {
+  if (role === 'boss') return '首领'
+  if (role === 'elite') return '精英'
+  return '普通'
+}
+async function saveNotice() {
+  await game.act('/api/guilds/notice', { text: noticeDraft.value })
+}
+async function showMount(id: string) {
+  await game.act('/api/mount', { id })
+}
+async function enterRuins() {
+  await game.act('/api/travel', { mapId: ruinsHere.value ? 'town_starfall' : 'dungeon_ruins' })
+  game.panel = ''
+}
+
 /** 任务列表按主线、支线或可接收一下。 */
 function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
   return questLanes(list).filter((lane) => questFilter.value === 'all' || questFilter.value === 'open' || lane.id === questFilter.value)
@@ -540,6 +608,11 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
     <div v-else-if="game.panel === 'social'" class="seg">
       <button :class="{ on: socialTab === 'friend' }" @click="socialTab = 'friend'">好友</button>
       <button :class="{ on: socialTab === 'mail' }" @click="socialTab = 'mail'">邮箱</button>
+    </div>
+    <div v-else-if="game.panel === 'guild'" class="seg">
+      <button :class="{ on: guildTab === 'hall' }" @click="guildTab = 'hall'">堂口</button>
+      <button :class="{ on: guildTab === 'roster' }" @click="guildTab = 'roster'">名册</button>
+      <button :class="{ on: guildTab === 'list' }" @click="guildTab = 'list'">名录</button>
     </div>
     <div v-else-if="game.panel === 'info'" class="seg">
       <button :class="{ on: infoTab === 'sheet' }" @click="infoTab = 'sheet'">资料</button>
@@ -731,26 +804,98 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
       </template>
 
       <template v-else-if="game.panel === 'guild'">
-        <div v-if="game.profile.guild">
-          <h3>{{ game.profile.guild.name }} · {{ game.profile.guild.level }} 级</h3>
-          <p>{{ game.profile.guild.notice }}</p>
-          <div v-for="member in game.profile.guild.members" :key="member.id" class="item">{{ member.name }} · {{ member.role === 'leader' ? '会长' : '成员' }}</div>
-          <div class="row" style="margin-top:10px">
-            <input v-model.number="donate" type="number" min="50" style="width:100px" />
-            <button class="btn" @click="game.act('/api/guilds/donate', { gold: donate })">捐献</button>
-            <button class="btn light" @click="game.act('/api/guilds/leave')">离开</button>
+        <template v-if="guildTab === 'hall'">
+          <div v-if="game.profile.guild" class="hall-board">
+            <h3>{{ game.profile.guild.name }} · {{ game.profile.guild.level }} 级</h3>
+            <p class="notice">{{ game.profile.guild.notice }}</p>
+            <div class="hall-meter">
+              <span>{{ guildPace.full ? '已经满级' : '距下一级' }}</span>
+              <i><b :style="{ width: guildPace.width }" /></i>
+              <small>{{ guildPace.full ? '10 / 10' : guildPace.into + ' / 500' }}</small>
+            </div>
+            <p class="lede">捐献仍是 50 金币起，500 经验一级。点卯一天一次，只加 20 公会经验。</p>
+            <div v-if="game.profile.guild.role === 'leader'" class="row">
+              <input v-model="noticeDraft" maxlength="40" placeholder="改一句公告" />
+              <button class="btn" @click="saveNotice">张贴</button>
+            </div>
+            <div class="row">
+              <input v-model.number="donate" type="number" min="50" style="width:100px" />
+              <button class="btn" @click="game.act('/api/guilds/donate', { gold: donate })">捐献</button>
+              <button class="btn lantern" :disabled="game.profile.guild.rolled" @click="game.act('/api/guilds/roll')">{{ game.profile.guild.rolled ? '今日已点卯' : '点卯' }}</button>
+              <button class="btn light" @click="game.act('/api/guilds/leave')">离开</button>
+            </div>
+          </div>
+          <div v-else class="hall-board">
+            <h3>还没有堂口</h3>
+            <p class="lede">创建要 200 金币。有成员时会长不能直接走。没有公会岛，也不加战斗。</p>
+            <div class="row">
+              <input v-model="guildName" maxlength="8" placeholder="公会名" />
+              <button class="btn lantern" @click="game.act('/api/guilds', { name: guildName }).then(() => { guildTab = 'hall' })">创建</button>
+            </div>
+          </div>
+        </template>
+        <template v-else-if="guildTab === 'roster'">
+          <p v-if="!game.profile.guild" class="empty">先创建或加入，名册才会出现。</p>
+          <div v-for="member in game.profile.guild?.members ?? []" :key="member.id" class="item">
+            <span>{{ member.name }} · {{ member.level }} 级<small> · {{ member.role === 'leader' ? '会长' : '成员' }} · 捐献 {{ member.contrib || 0 }}</small></span>
+          </div>
+        </template>
+        <template v-else>
+          <p v-if="game.profile.guild" class="lede">你已经在「{{ game.profile.guild.name }}」。要换，先离开。</p>
+          <p v-if="!game.guilds.length" class="empty">还没有别人的公会。</p>
+          <div v-for="guild in game.guilds" :key="guild.id" class="item">
+            <span>{{ guild.name }} · {{ guild.level }} 级 · {{ guild.members }} 人 · 会长 {{ guild.leaderName }}</span>
+            <button v-if="!game.profile.guild" class="btn" @click="game.act('/api/guilds/join', { guildId: guild.id }).then(loadSide)">加入</button>
+          </div>
+        </template>
+      </template>
+
+      <template v-else-if="game.panel === 'mount'">
+        <div class="mount-stage">
+          <div class="ride stage" :class="{ on: shownMount }">
+            <MountGlyph v-if="shownMount" :id="shownMount.id" />
+            <ActorFigure :look="selfLook" />
+          </div>
+          <div v-if="shownMount">
+            <h3>{{ shownMount.name }}</h3>
+            <p class="lede">{{ shownMount.blurb }}</p>
+            <p class="lede">{{ game.profile.level >= shownMount.level ? '你的等级够了，可以亮出。' : '要 ' + shownMount.level + ' 级才能亮出。' }}</p>
+            <div class="row">
+              <button class="btn lantern" :disabled="game.profile.level < shownMount.level" @click="showMount(shownMount.id)">亮出</button>
+              <button class="btn light" :disabled="!game.profile.mount" @click="showMount('')">收起</button>
+            </div>
           </div>
         </div>
-        <div v-else class="row">
-          <input v-model="guildName" placeholder="公会名" />
-          <button class="btn lantern" @click="game.act('/api/guilds', { name: guildName })">创建（200 金币）</button>
+        <div class="mount-grid">
+          <button v-for="row in mountRows" :key="row.id" type="button" class="mount-card" :class="{ on: shownMount?.id === row.id, locked: game.profile.level < row.level, worn: game.profile.mount === row.id }" @click="mountPick = row.id">
+            <MountGlyph :id="row.id" />
+            <b>{{ row.name }}</b>
+            <small>{{ game.profile.mount === row.id ? '亮着' : game.profile.level < row.level ? row.level + ' 级' : '可预览' }}</small>
+          </button>
         </div>
-        <h3>可加入</h3>
-        <p v-if="!game.guilds.length" class="empty">还没有别人的公会。</p>
-        <div v-for="guild in game.guilds" :key="guild.id" class="item">
-          <span>{{ guild.name }} · {{ guild.level }} 级 · {{ guild.members }} 人 · 会长 {{ guild.leaderName }}</span>
-          <button class="btn" @click="game.act('/api/guilds/join', { guildId: guild.id })">加入</button>
-        </div>
+      </template>
+
+      <template v-else-if="game.panel === 'dungeon'">
+        <article class="gate-board">
+          <h3>{{ ruins?.name || '古代遗迹' }}</h3>
+          <p class="lede">{{ ruins?.desc }}</p>
+          <ul class="gate-facts">
+            <li>门槛 {{ ruins?.unlockLevel ?? 25 }} 级 · 建议 {{ ruins?.levelMin }}–{{ ruins?.levelMax }}</li>
+            <li>{{ game.party ? '跟队长进同一条线路' : '现在一个人一条线路' }}</li>
+            <li>里面不能摆摊。离开回到星落镇</li>
+          </ul>
+          <h3>会遇见</h3>
+          <p v-if="!ruinsFoes.length" class="empty">门槛上还没写出会见谁。</p>
+          <div v-for="foe in ruinsFoes" :key="foe.id" class="item">
+            <span>{{ foe.name }}<small> · {{ foeMark(foe.role) }}<template v-if="foe.level"> · {{ foe.level }} 级</template></small></span>
+          </div>
+          <p v-if="!ruinsTown && !ruinsHere" class="lede">你在野外。先回星落镇，再用这里或航标进门。</p>
+          <p v-else-if="!ruinsReady && !ruinsHere" class="lede">还差 {{ (ruins?.unlockLevel ?? 25) - (game.profile?.level ?? 1) }} 级。门槛不会因为预览坐骑而放开。</p>
+          <div class="row">
+            <button class="btn lantern" :disabled="ruinsHere ? false : !(ruinsTown && ruinsReady)" @click="enterRuins">{{ ruinsHere ? '离开遗迹' : '进入遗迹' }}</button>
+            <button class="btn light" @click="game.panel = 'travel'">返回地图</button>
+          </div>
+        </article>
       </template>
 
       <template v-else-if="game.panel === 'travel'">

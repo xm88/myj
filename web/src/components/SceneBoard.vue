@@ -3,6 +3,7 @@
 
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import ActorFigure from './ActorFigure.vue'
+import MountGlyph from './MountGlyph.vue'
 import { nearestPacks } from '../game/crowd'
 import { questGuide } from '../game/guide'
 import { mapThumb } from '../game/art'
@@ -158,6 +159,7 @@ const stalls = computed(() => (game.snap?.entities ?? []).filter((entity: { kind
 const packs = computed(() => nearestPacks(monsters.value, self.value))
 const guideKey = computed(() => questGuide(game.profile?.quests ?? [], game.config, mapId.value, packs.value)?.key ?? '')
 const selfLook = computed(() => lookForSelf(game.profile?.weaponType))
+const mountId = computed(() => String(game.snap?.self?.mount || game.profile?.mount || ''))
 /** 怪物和旁边的旅人走路时换朝向。自己仍看点击后的位移。 */
 const gait = useGait(() => {
   const list: { id: string; x: number; y: number }[] = []
@@ -206,6 +208,7 @@ interface Spot {
   templateId?: string
   role?: string
   weapon?: string
+  mount?: string
 }
 
 /** 名字牌左侧的小标：等级、职责或类型，不另占一行。 */
@@ -260,7 +263,7 @@ const spots = computed<Spot[]>(() => {
   }
   for (const person of people.value) {
     const world = person.worldX != null ? { x: Number(person.worldX), y: Number(person.worldY) } : worldOf(mapId.value, person.x, person.y)
-    add({ key: 'who:' + person.id, kind: 'player', name: person.name, badge: person.level ? String(person.level) : '旅', wx: world.x, wy: world.y, x: person.x, y: person.y, mapId: mapId.value, id: person.id, weapon: person.templateId })
+    add({ key: 'who:' + person.id, kind: 'player', name: person.name, badge: person.level ? String(person.level) : '旅', wx: world.x, wy: world.y, x: person.x, y: person.y, mapId: mapId.value, id: person.id, weapon: person.templateId, mount: person.mount || '' })
   }
   for (const stall of stalls.value) {
     const world = stall.worldX != null ? { x: Number(stall.worldX), y: Number(stall.worldY) } : worldOf(mapId.value, stall.x, stall.y)
@@ -268,7 +271,7 @@ const spots = computed<Spot[]>(() => {
   }
   for (const mark of afar.value) {
     const world = mark.worldX != null ? { x: Number(mark.worldX), y: Number(mark.worldY) } : worldOf(mark.mapId, mark.x, mark.y)
-    add({ key: 'afar:' + mark.id, kind: mark.kind, name: mark.name, badge: plateBadge(mark.kind, mark), wx: world.x, wy: world.y, x: mark.x, y: mark.y, mapId: mark.mapId, id: mark.id, stallId: mark.stallId, templateId: mark.templateId, role: mark.role, weapon: mark.kind === 'player' ? mark.templateId : undefined })
+    add({ key: 'afar:' + mark.id, kind: mark.kind, name: mark.name, badge: plateBadge(mark.kind, mark), wx: world.x, wy: world.y, x: mark.x, y: mark.y, mapId: mark.mapId, id: mark.id, stallId: mark.stallId, templateId: mark.templateId, role: mark.role, weapon: mark.kind === 'player' ? mark.templateId : undefined, mount: mark.mount || '' })
   }
   return list
 })
@@ -477,9 +480,12 @@ const floats = computed(() => {
     </div>
     <span v-if="clickFx" :key="clickFx.id" class="click-fx" :style="{ left: clickFx.x + 'px', top: clickFx.y + 'px' }" />
     <div v-if="veilKey" :key="veilKey" class="map-veil" />
-    <div class="pin you" :class="{ step: walking, cast: casting }" :style="pinWorld(selfWorld.x, selfWorld.y)">
+    <div class="pin you" :class="{ step: walking, cast: casting, mounted: !!mountId }" :style="pinWorld(selfWorld.x, selfWorld.y)">
       <span class="plate-line"><em class="badge">{{ game.profile?.level }}</em><span>你</span></span>
-      <ActorFigure :look="selfLook" :facing="facing" :step="walking" />
+      <span class="ride" :class="{ on: !!mountId }">
+        <MountGlyph v-if="mountId" :id="mountId" />
+        <ActorFigure :look="selfLook" :facing="facing" :step="walking" />
+      </span>
     </div>
     <div v-if="dest" class="pin dest" :style="pinWorld(dest.x, dest.y)">去</div>
     <span
@@ -515,7 +521,10 @@ const floats = computed(() => {
         <span class="plate-name">{{ spot.name }}<template v-if="spot.count && spot.count > 1"> ×{{ spot.count }}</template></span>
         <small v-if="spot.kind === 'player'">交易</small><small v-else-if="spot.kind === 'stall'">摊</small><small v-else-if="spot.kind === 'portal'">{{ spot.mapId === mapId ? '进入' : '邻门' }}</small><small v-else-if="spot.mapId !== mapId">界外</small>
       </span>
-      <ActorFigure v-if="figured(spot.kind)" :look="actorLook(spot)" :facing="actorFace(spot)" :step="actorStep(spot)" :pip="spot.role === 'elite' || spot.role === 'boss' || spot.role === 'world'" />
+      <span v-if="figured(spot.kind)" class="ride" :class="{ on: !!spot.mount }">
+        <MountGlyph v-if="spot.mount" :id="spot.mount" />
+        <ActorFigure :look="actorLook(spot)" :facing="actorFace(spot)" :step="actorStep(spot)" :pip="spot.role === 'elite' || spot.role === 'boss' || spot.role === 'world'" />
+      </span>
     </button>
   </div>
   <div v-else class="scene empty-scene">地图还在加载</div>

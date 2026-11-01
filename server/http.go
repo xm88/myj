@@ -190,6 +190,12 @@ func (a *App) route(r *http.Request, b M) any {
 			a.leaveGuild(id)
 		case "/api/guilds/donate":
 			a.donateGuild(id, n("gold", 0))
+		case "/api/guilds/notice":
+			a.setGuildNotice(id, s("text"))
+		case "/api/guilds/roll":
+			a.rollGuild(id)
+		case "/api/mount":
+			a.setMountPreview(id, s("id"))
 		case "/api/mail/claim":
 			a.claimMail(id, s("id"))
 		case "/api/friends/request":

@@ -71,6 +71,15 @@ const pipStyle = computed(() => {
   return { left: `calc(${node.x}% + ${ox}px)`, top: `calc(${node.y}% + ${oy}px)` }
 })
 
+/** 遗迹先打开门槛，不直接传送。别的岛仍走原来的航标。 */
+function openIsle(id: string) {
+  if (id === 'dungeon_ruins') {
+    game.panel = 'dungeon'
+    return
+  }
+  void go(id)
+}
+
 /** 向服务器申请航标传送，成功后关闭世界地图面板。 */
 async function go(id: string) {
   if (!canGo(id)) return
@@ -82,7 +91,7 @@ async function go(id: string) {
 <template>
   <!-- 世界地图：固定岛屿布局，显示等级解锁，并按当前位置决定航标传送是否可用。 -->
   <p class="lede">
-    <template v-if="here?.kind === 'town'">在星落镇可以使用航标。点亮的岛可以直接过去。</template>
+    <template v-if="here?.kind === 'town'">在星落镇可以使用航标。点亮的岛可以直接过去。古代遗迹先看门槛。</template>
     <template v-else-if="here?.kind === 'dungeon'">先离开遗迹，回到星落镇。</template>
     <template v-else>你在野外。镜头会连着相邻的地块一起走，走到门外就进入下一片。航标传送仍要回星落镇。</template>
   </p>
@@ -104,12 +113,13 @@ async function go(id: string) {
       class="isle"
       :class="{ here: node.id === hereId, locked: !unlocked(node.id), ready: canGo(node.id) }"
       :style="{ left: node.x + '%', top: node.y + '%' }"
-      :disabled="!canGo(node.id)"
-      @click="go(node.id)"
+      :disabled="node.id !== 'dungeon_ruins' && !canGo(node.id)"
+      @click="openIsle(node.id)"
     >
       <img :src="mapThumb(node.id)" alt="" />
       <b>{{ byId[node.id]?.name ?? node.id }}</b>
       <small v-if="node.id === hereId">你在这里</small>
+      <small v-else-if="node.id === 'dungeon_ruins'">{{ unlocked(node.id) ? '看门槛' : (byId[node.id]?.unlockLevel + ' 级门槛') }}</small>
       <small v-else-if="!unlocked(node.id)">{{ byId[node.id]?.unlockLevel }} 级解锁</small>
       <small v-else>Lv.{{ byId[node.id]?.levelMin }}–{{ byId[node.id]?.levelMax }}</small>
     </button>

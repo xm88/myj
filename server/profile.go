@@ -85,14 +85,19 @@ func (a *App) profile(id string) M {
 		}
 	}
 	s["quests"], s["available"] = quests, available
+	s["mount"] = str(r["mount_preview"])
+	if l != nil && l.State["mount"] != nil {
+		s["mount"] = str(l.State["mount"])
+	}
+	s["mounts"] = mountCatalog
 	s["guild"] = nil
 	if member := a.one("SELECT * FROM guild_members WHERE player_id=?", id); member != nil {
 		g := a.one("SELECT * FROM guilds WHERE id=?", member["guild_id"])
 		members := []M{}
-		for _, m := range a.rows("SELECT m.player_id,m.role,p.name FROM guild_members m JOIN players p ON p.id=m.player_id WHERE m.guild_id=?", member["guild_id"]) {
-			members = append(members, M{"id": m["player_id"], "name": m["name"], "role": m["role"]})
+		for _, m := range a.rows("SELECT m.player_id,m.role,m.contrib,p.name,p.level FROM guild_members m JOIN players p ON p.id=m.player_id WHERE m.guild_id=? ORDER BY CASE m.role WHEN 'leader' THEN 0 ELSE 1 END, m.contrib DESC, p.name", member["guild_id"]) {
+			members = append(members, M{"id": m["player_id"], "name": m["name"], "role": m["role"], "contrib": m["contrib"], "level": m["level"]})
 		}
-		s["guild"] = M{"id": g["id"], "name": g["name"], "level": g["level"], "exp": g["exp"], "notice": g["notice"], "role": member["role"], "members": members}
+		s["guild"] = M{"id": g["id"], "name": g["name"], "level": g["level"], "exp": g["exp"], "notice": g["notice"], "role": member["role"], "contrib": member["contrib"], "rolled": num(member["roll_day"]) == guildDay(now()), "members": members}
 	}
 	s["unreadMail"] = num(a.one("SELECT COUNT(*) AS n FROM mail WHERE player_id=? AND is_read=0", id)["n"])
 	tracks := M{}
@@ -177,7 +182,7 @@ func (a *App) rewardBrief(q M) string {
 
 // publicConfig 输出客户端显示与操作需要的配置，怪物列表省略服务器战斗结算细节。
 func (a *App) publicConfig() M {
-	out := M{"version": gameVersion}
+	out := M{"version": gameVersion, "mounts": mountCatalog}
 	for _, k := range []string{"maps", "npcs", "items", "skills", "pets", "recipes", "durations", "dispatchNodes", "weathers", "constants"} {
 		out[k] = a.data[k]
 	}

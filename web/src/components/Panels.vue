@@ -6,6 +6,7 @@ import { api } from '../api'
 import ActorFigure from './ActorFigure.vue'
 import IconMedal from './IconMedal.vue'
 import WorldMap from './WorldMap.vue'
+import AlbumBoard from './AlbumBoard.vue'
 import StallBoard from './StallBoard.vue'
 import TradeBoard from './TradeBoard.vue'
 import { itemIcon, portrait, weaponIcon } from '../game/art'
@@ -99,6 +100,7 @@ const titles: Record<string, string> = {
   info: '角色',
   stall: '摆摊',
   trade: '当面交易',
+  album: '旅册',
 }
 /** 根据当前打开的面板选择窗口标题。 */
 const title = computed(() => titles[game.panel] ?? '窗口')
@@ -116,6 +118,7 @@ const kicker = computed(() => {
     dungeon: '先看门槛，再决定进不进。线路和等级门没改',
     stall: '买家支付标价，旅税从卖家手里扣',
     trade: '两边锁定之后才能确认',
+    album: '旅迹、异兽、灵兽，还有踏过的地方',
   }
   return lines[game.panel] ?? ''
 })
@@ -567,7 +570,7 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
 <template>
   <!-- 功能弹窗：统一角色、装备、派遣、制造、拍卖、公会、社交、任务和队伍操作。 -->
   <Transition name="sheet">
-  <section v-if="game.panel" class="panel" :class="['win-' + game.panel, { wide: game.panel === 'travel' }]">
+  <section v-if="game.panel" class="panel" :class="['win-' + game.panel, { wide: game.panel === 'travel' || game.panel === 'album' }]">
     <div class="panel-head">
       <div class="panel-title">
         <h2>{{ title }}</h2>
@@ -618,7 +621,8 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
     </div>
 
     <div class="panel-body">
-      <template v-if="game.panel === 'bag'">
+      <AlbumBoard v-if="game.panel === 'album'" />
+      <template v-else-if="game.panel === 'bag'">
         <div v-if="bagTab === 'gear'" class="gear">
           <button
             v-for="slot in slotOrder"

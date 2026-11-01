@@ -40,6 +40,7 @@ func (a *App) craft(id, recipe string) {
 	} else {
 		a.toast(id, fmt.Sprintf("做完了：%s ×%g。%s熟练 +%g", made, num(output["count"]), lifeLabel, gain))
 	}
+	a.touchAlbum(id, nil)
 	a.notify(id)
 }
 
@@ -170,6 +171,7 @@ func (a *App) createGuild(id, name string) {
 	a.run("INSERT INTO guilds(id,name,leader_id,level,exp,notice,created_at) VALUES(?,?,?,1,0,'欢迎加入。',?)", gid, name, id, now())
 	a.run("INSERT INTO guild_members(guild_id,player_id,role,joined_at) VALUES(?,?,'leader',?)", gid, id, now())
 	a.emit(id, M{"type": "join_guild"})
+	a.touchAlbum(id, nil)
 	a.notify(id)
 }
 
@@ -180,6 +182,7 @@ func (a *App) joinGuild(id, gid string) {
 	check(num(a.one("SELECT COUNT(*) AS n FROM guild_members WHERE guild_id=?", gid)["n"]) < 30, "公会满了")
 	a.run("INSERT INTO guild_members(guild_id,player_id,role,joined_at) VALUES(?,?,'member',?)", gid, id, now())
 	a.emit(id, M{"type": "join_guild"})
+	a.touchAlbum(id, nil)
 	a.notify(id)
 }
 

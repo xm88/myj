@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** 世界地图：固定岛屿布局，显示等级解锁，并按当前位置决定航标传送是否可用。 */
 
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { mapThumb } from '../game/art'
 import { useGame } from '../stores/game'
 
@@ -86,6 +86,23 @@ async function go(id: string) {
   await game.act('/api/travel', { mapId: id })
   game.panel = ''
 }
+
+const flagName = ref('')
+const marks = computed(() => (game.profile?.marks ?? []) as { id: string; name: string; mapId: string; x: number; y: number }[])
+const inWorld = computed(() => Boolean(game.snap?.self))
+
+function walkMark(mark: { mapId: string; x: number; y: number }) {
+  if (mark.mapId !== hereId.value) return
+  game.go(Number(mark.x), Number(mark.y))
+  game.panel = ''
+}
+
+async function dropFlag() {
+  const name = flagName.value.trim()
+  if (!name || !inWorld.value) return
+  await game.act('/api/mark', { name })
+  flagName.value = ''
+}
 </script>
 
 <template>
@@ -126,4 +143,21 @@ async function go(id: string) {
     <i v-if="here" class="you-pip" :style="pipStyle" />
   </div>
   <p v-if="game.snap?.self?.worldX != null" class="hint">连续坐标 {{ Math.round(game.snap.self.worldX) }} , {{ Math.round(game.snap.self.worldY) }}。小地图跟着这块坐标，不再只画当前这一片。</p>
+  <h3>航标旗</h3>
+  <p class="lede">最多三面，插在脚下。同一张图里就走过去。人在别的岛，仍用原来的航标送到门口，到了再看小地图上的旗。不新开传送。</p>
+  <p v-if="!marks.length" class="empty">还没有旗。在世界里写下名字，插在脚下。</p>
+  <div v-for="mark in marks" :key="mark.id" class="item">
+    <span>{{ mark.name }}<small> · {{ byId[mark.mapId]?.name ?? '路上' }} · {{ Math.round(mark.x) }}, {{ Math.round(mark.y) }}</small></span>
+    <span class="row">
+      <button v-if="mark.mapId === hereId" class="btn" @click="walkMark(mark)">走向这面旗</button>
+      <button v-else-if="canGo(mark.mapId)" class="btn" @click="go(mark.mapId)">航标送到门口</button>
+      <small v-else-if="!unlocked(mark.mapId)">{{ byId[mark.mapId]?.unlockLevel }} 级再去</small>
+      <small v-else>先回星落镇再用航标</small>
+      <button class="btn light" @click="game.act('/api/mark/forget', { id: mark.id })">拔掉</button>
+    </span>
+  </div>
+  <div class="row" style="margin-top: 8px">
+    <input v-model="flagName" maxlength="6" placeholder="旗子的名字" :disabled="!inWorld || marks.length >= 3" @keydown.enter="dropFlag" />
+    <button class="btn lantern" :disabled="!inWorld || !flagName.trim() || marks.length >= 3" @click="dropFlag">插在脚下</button>
+  </div>
 </template>

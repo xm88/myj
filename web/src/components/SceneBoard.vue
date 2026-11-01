@@ -7,7 +7,7 @@ import MountGlyph from './MountGlyph.vue'
 import { nearestPacks } from '../game/crowd'
 import { questGuide } from '../game/guide'
 import { mapThumb } from '../game/art'
-import { lookForMonster, lookForNpc, lookForPet, lookForSelf, lookForTraveler, type Face } from '../game/look'
+import { lookForMonster, lookForNpc, lookForPet, lookForSelf, lookForTraveler, paletteOf, type Face } from '../game/look'
 import { useDropFlash, useGait } from '../game/motion'
 import { chunkAt, frameOf, screenToWorld, worldToScreen, type Chunk } from '../game/camera'
 import { nodeFocus, npcFocus, npcMark, portalFocus } from '../game/npc'
@@ -157,8 +157,10 @@ const afar = computed(() => (game.snap?.entities ?? []).filter((entity: { afar?:
 const people = computed(() => (game.snap?.entities ?? []).filter((entity: { kind: string; seam?: boolean; afar?: boolean; mapId?: string }) => entity.kind === 'player' && !entity.seam && !entity.afar && (!entity.mapId || entity.mapId === mapId.value)))
 const stalls = computed(() => (game.snap?.entities ?? []).filter((entity: { kind: string; seam?: boolean; afar?: boolean; mapId?: string }) => entity.kind === 'stall' && !entity.seam && !entity.afar && (!entity.mapId || entity.mapId === mapId.value)))
 const packs = computed(() => nearestPacks(monsters.value, self.value))
-const guideKey = computed(() => questGuide(game.profile?.quests ?? [], game.config, mapId.value, packs.value)?.key ?? '')
-const selfLook = computed(() => lookForSelf(game.profile?.weaponType))
+const guide = computed(() => questGuide(game.profile?.quests ?? [], game.config, mapId.value, packs.value))
+const guideKey = computed(() => guide.value?.key ?? '')
+const dyeRows = computed(() => (game.config?.dyes ?? game.profile?.dyes ?? []) as { id?: string; coat?: string; trim?: string; hair?: string }[])
+const selfLook = computed(() => lookForSelf(game.profile?.weaponType, paletteOf(String(game.snap?.self?.dye || game.profile?.dye || ''), dyeRows.value)))
 const mountId = computed(() => String(game.snap?.self?.mount || game.profile?.mount || ''))
 const wornTitle = computed(() => String(game.snap?.self?.title || game.profile?.titleName || ''))
 /** 怪物和旁边的旅人走路时换朝向。自己仍看点击后的位移。 */
@@ -174,7 +176,7 @@ function tintOf(id?: string) {
 }
 function actorLook(spot: Spot) {
   if (spot.kind === 'npc' && spot.npc) return lookForNpc(spot.npc.id, spot.npc.title, spot.npc.panels)
-  if (spot.kind === 'player') return lookForTraveler(spot.id || spot.name, spot.weapon)
+  if (spot.kind === 'player') return lookForTraveler(spot.id || spot.name, spot.weapon, paletteOf(spot.dye, dyeRows.value))
   return lookForMonster(spot.templateId || '', spot.role, tintOf(spot.templateId))
 }
 function actorFace(spot: Spot): Face {
@@ -211,6 +213,7 @@ interface Spot {
   weapon?: string
   mount?: string
   title?: string
+  dye?: string
 }
 
 /** 名字牌左侧的小标：等级、职责或类型，不另占一行。 */
@@ -265,7 +268,7 @@ const spots = computed<Spot[]>(() => {
   }
   for (const person of people.value) {
     const world = person.worldX != null ? { x: Number(person.worldX), y: Number(person.worldY) } : worldOf(mapId.value, person.x, person.y)
-    add({ key: 'who:' + person.id, kind: 'player', name: person.name, badge: person.level ? String(person.level) : '旅', wx: world.x, wy: world.y, x: person.x, y: person.y, mapId: mapId.value, id: person.id, weapon: person.templateId, mount: person.mount || '', title: person.title || '' })
+    add({ key: 'who:' + person.id, kind: 'player', name: person.name, badge: person.level ? String(person.level) : '旅', wx: world.x, wy: world.y, x: person.x, y: person.y, mapId: mapId.value, id: person.id, weapon: person.templateId, mount: person.mount || '', dye: person.dye || '', title: person.title || '' })
   }
   for (const stall of stalls.value) {
     const world = stall.worldX != null ? { x: Number(stall.worldX), y: Number(stall.worldY) } : worldOf(mapId.value, stall.x, stall.y)
@@ -273,7 +276,7 @@ const spots = computed<Spot[]>(() => {
   }
   for (const mark of afar.value) {
     const world = mark.worldX != null ? { x: Number(mark.worldX), y: Number(mark.worldY) } : worldOf(mark.mapId, mark.x, mark.y)
-    add({ key: 'afar:' + mark.id, kind: mark.kind, name: mark.name, badge: plateBadge(mark.kind, mark), wx: world.x, wy: world.y, x: mark.x, y: mark.y, mapId: mark.mapId, id: mark.id, stallId: mark.stallId, templateId: mark.templateId, role: mark.role, weapon: mark.kind === 'player' ? mark.templateId : undefined, mount: mark.mount || '', title: mark.title || '' })
+    add({ key: 'afar:' + mark.id, kind: mark.kind, name: mark.name, badge: plateBadge(mark.kind, mark), wx: world.x, wy: world.y, x: mark.x, y: mark.y, mapId: mark.mapId, id: mark.id, stallId: mark.stallId, templateId: mark.templateId, role: mark.role, weapon: mark.kind === 'player' ? mark.templateId : undefined, mount: mark.mount || '', dye: mark.dye || '', title: mark.title || '' })
   }
   return list
 })
@@ -348,6 +351,42 @@ function mm(wx: number, wy: number) {
   const box = mini.value
   return { left: `${((wx - box.minX) / box.width) * 100}%`, top: `${((wy - box.minY) / box.height) * 100}%` }
 }
+const servicePanels = ['shop', 'bank', 'travel', 'guild', 'craft']
+/** 小地图标记不跟名字牌的屏幕裁剪走。门、镇上的事务、摊、任务和自己插的旗都画在镜头窗口里。 */
+const pins = computed(() => {
+  const list: { key: string; kind: string; wx: number; wy: number; name: string }[] = []
+  for (const chunk of chunks.value) {
+    const cfg = configOf(chunk.id)
+    if (!cfg) continue
+    for (const portal of cfg.portals ?? []) {
+      const world = worldOf(chunk.id, portal.x, portal.y)
+      list.push({ key: `gate:${chunk.id}:${portal.label}`, kind: 'portal', wx: world.x, wy: world.y, name: portal.label })
+    }
+  }
+  for (const npc of game.config?.npcs ?? []) {
+    if (!chunks.value.some((chunk) => chunk.id === npc.mapId)) continue
+    const panels = npc.panels ?? []
+    if (!panels.some((panel: string) => servicePanels.includes(panel))) continue
+    const world = worldOf(npc.mapId, npc.x, npc.y)
+    list.push({ key: `svc:${npc.id}`, kind: 'service', wx: world.x, wy: world.y, name: npc.name })
+  }
+  for (const stall of game.snap?.entities ?? []) {
+    if (stall.kind !== 'stall') continue
+    const map = stall.mapId || mapId.value
+    const world = stall.worldX != null ? { x: Number(stall.worldX), y: Number(stall.worldY) } : worldOf(map, Number(stall.x), Number(stall.y))
+    list.push({ key: `stall:${stall.id}`, kind: 'stall', wx: world.x, wy: world.y, name: stall.name || '摊' })
+  }
+  if (guide.value?.x != null && guide.value.y != null) {
+    const world = worldOf(mapId.value, guide.value.x, guide.value.y)
+    list.push({ key: 'goal', kind: 'goal', wx: world.x, wy: world.y, name: '任务' })
+  }
+  for (const mark of game.profile?.marks ?? []) {
+    if (!chunks.value.some((chunk) => chunk.id === mark.mapId)) continue
+    const world = worldOf(mark.mapId, Number(mark.x), Number(mark.y))
+    list.push({ key: `flag:${mark.id}`, kind: 'flag', wx: world.x, wy: world.y, name: mark.name })
+  }
+  return list
+})
 function land(chunk: Chunk) {
   const box = mini.value
   return {
@@ -465,14 +504,14 @@ const floats = computed(() => {
       <i v-for="chunk in chunks" :key="'land' + chunk.id" class="land" :class="{ here: chunk.id === mapId }" :style="land(chunk)" />
       <i class="dot you" :style="mm(selfWorld.x, selfWorld.y)" />
       <i v-if="dest" class="dot dest" :style="mm(dest.x, dest.y)" />
-      <i v-for="spot in spots.filter((item) => item.kind === 'portal')" :key="'m' + spot.key" class="dot exit" :style="mm(spot.wx, spot.wy)" />
-      <i v-for="spot in spots.filter((item) => item.kind === 'stall')" :key="'s' + spot.key" class="dot stall" :style="mm(spot.wx, spot.wy)" />
-      <i v-for="spot in spots.filter((item) => item.key === guideKey)" :key="'g' + spot.key" class="dot goal" :style="mm(spot.wx, spot.wy)" />
+      <i v-for="pin in pins" :key="pin.key" class="dot" :class="pin.kind === 'portal' ? 'exit' : pin.kind" :title="pin.name" :style="mm(pin.wx, pin.wy)" />
       <ul class="mm-key">
         <li><i class="dot you" />你</li>
         <li><i class="dot exit" />门</li>
         <li><i class="dot stall" />摊</li>
-        <li><i class="dot goal" />任务</li>
+        <li><i class="dot goal" />任</li>
+        <li><i class="dot service" />务</li>
+        <li><i class="dot flag" />旗</li>
       </ul>
       <b>{{ map.name }}</b>
     </div>

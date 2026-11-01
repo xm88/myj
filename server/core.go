@@ -23,7 +23,7 @@ import (
 const devJWTSecret = "dev-float-island-change-me"
 
 // gameVersion 是这一版对外的切片号。健康检查和公开配置都读它。
-const gameVersion = "0.2.3"
+const gameVersion = "0.2.4"
 
 // maxGold 防止异常金额把 float64 金币打成 Inf 后写进存档。
 const maxGold = 1000000000
@@ -560,6 +560,12 @@ func newApp(root, file string) *App {
 		{"pledge_to", "TEXT NOT NULL DEFAULT ''"},
 		{"bond_with", "TEXT NOT NULL DEFAULT ''"},
 		{"daybook", "TEXT NOT NULL DEFAULT '{}'"},
+		{"dye_id", "TEXT NOT NULL DEFAULT ''"},
+		{"marks", "TEXT NOT NULL DEFAULT '[]'"},
+		{"manual", "TEXT NOT NULL DEFAULT '{}'"},
+	})
+	a.ensureColumns("player_items", []struct{ name, ddl string }{
+		{"bin", "TEXT NOT NULL DEFAULT ''"},
 	})
 	a.ensureColumns("mail", []struct{ name, ddl string }{
 		{"sender", "TEXT NOT NULL DEFAULT ''"},

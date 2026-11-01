@@ -141,7 +141,15 @@ func (a *App) route(r *http.Request, b M) any {
 		case "/api/use":
 			a.useItem(id, s("itemId"))
 		case "/api/storage":
-			a.storage(id, s("itemId"), s("direction"), n("count", 1))
+			a.storage(id, s("itemId"), s("direction"), n("count", 1), s("bin"))
+		case "/api/dye":
+			a.setDye(id, s("id"))
+		case "/api/mark":
+			a.dropMark(id, s("name"))
+		case "/api/mark/forget":
+			a.forgetMark(id, s("id"))
+		case "/api/manual":
+			a.studyVerse(id, s("id"))
 		case "/api/skills":
 			a.setLoadout(id, b["ids"])
 		case "/api/attributes":

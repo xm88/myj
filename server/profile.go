@@ -90,6 +90,14 @@ func (a *App) profile(id string) M {
 		s["mount"] = str(l.State["mount"])
 	}
 	s["mounts"] = mountCatalog
+	s["dye"] = str(r["dye_id"])
+	if l != nil && l.State["dye"] != nil {
+		s["dye"] = str(l.State["dye"])
+	}
+	s["dyes"] = dyeCatalog
+	s["shelves"] = shelfCatalog
+	s["marks"] = a.marksOf(id)
+	s["manual"] = a.manualOf(id)
 	s["guild"] = nil
 	if member := a.one("SELECT * FROM guild_members WHERE player_id=?", id); member != nil {
 		g := a.one("SELECT * FROM guilds WHERE id=?", member["guild_id"])
@@ -183,7 +191,7 @@ func (a *App) rewardBrief(q M) string {
 
 // publicConfig 输出客户端显示与操作需要的配置，怪物列表省略服务器战斗结算细节。
 func (a *App) publicConfig() M {
-	out := M{"version": gameVersion, "mounts": mountCatalog}
+	out := M{"version": gameVersion, "mounts": mountCatalog, "dyes": dyeCatalog, "shelves": shelfCatalog}
 	for _, k := range []string{"maps", "npcs", "items", "skills", "pets", "recipes", "durations", "dispatchNodes", "weathers", "constants"} {
 		out[k] = a.data[k]
 	}

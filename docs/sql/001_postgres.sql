@@ -35,6 +35,9 @@ CREATE TABLE players (
   pledge_to TEXT NOT NULL DEFAULT '',
   bond_with TEXT NOT NULL DEFAULT '',
   daybook JSONB NOT NULL DEFAULT '{}',
+  dye_id TEXT NOT NULL DEFAULT '',
+  marks JSONB NOT NULL DEFAULT '[]',
+  manual JSONB NOT NULL DEFAULT '{}',
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL
 );
@@ -56,6 +59,7 @@ CREATE TABLE player_items (
   count INTEGER NOT NULL,
   location TEXT NOT NULL,
   extra JSONB,
+  bin TEXT NOT NULL DEFAULT '',
   created_at BIGINT NOT NULL
 );
 CREATE INDEX idx_items_player ON player_items(player_id, location);

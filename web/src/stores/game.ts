@@ -52,9 +52,12 @@ export const useGame = defineStore('game', {
     // 按时间记录世界、地图和公会频道消息。
     chat: [] as { name: string; text: string; t: number; channel: string }[],
     // 当前发送频道，实际地图或公会归属由服务器确定。
-    chatChannel: 'map' as 'map' | 'world' | 'guild',
+    chatChannel: 'map' as string,
     // 已选中的聊天呼叫对象，发送时加入文本前缀。
     callName: '',
+    // 私聊对象。好友面板点「私聊」时写入，底栏切到私聊。
+    whisperName: '',
+    whisperTick: 0,
     // 主界面当前显示地图场景或战斗视图。
     view: 'scene' as 'scene' | 'battle',
     // 正在执行的移动、追击或契约意图，由新快照推动下一步。

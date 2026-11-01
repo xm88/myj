@@ -41,6 +41,7 @@ func (a *App) craft(id, recipe string) {
 		a.toast(id, fmt.Sprintf("做完了：%s ×%g。%s熟练 +%g", made, num(output["count"]), lifeLabel, gain))
 	}
 	a.touchAlbum(id, nil)
+	a.noteDay(id, "hand")
 	a.notify(id)
 }
 
@@ -172,6 +173,7 @@ func (a *App) createGuild(id, name string) {
 	a.run("INSERT INTO guild_members(guild_id,player_id,role,joined_at) VALUES(?,?,'leader',?)", gid, id, now())
 	a.emit(id, M{"type": "join_guild"})
 	a.touchAlbum(id, nil)
+	a.refreshPlate(id)
 	a.notify(id)
 }
 
@@ -183,6 +185,7 @@ func (a *App) joinGuild(id, gid string) {
 	a.run("INSERT INTO guild_members(guild_id,player_id,role,joined_at) VALUES(?,?,'member',?)", gid, id, now())
 	a.emit(id, M{"type": "join_guild"})
 	a.touchAlbum(id, nil)
+	a.refreshPlate(id)
 	a.notify(id)
 }
 
@@ -196,6 +199,7 @@ func (a *App) leaveGuild(id string) {
 	if n == 0 {
 		a.run("DELETE FROM guilds WHERE id=?", r["guild_id"])
 	}
+	a.refreshPlate(id)
 	a.notify(id)
 }
 
@@ -217,7 +221,12 @@ func (a *App) donateGuild(id string, gold float64) {
 func (a *App) listMail(id string) []M {
 	out := []M{}
 	for _, r := range a.rows("SELECT * FROM mail WHERE player_id=? ORDER BY created_at DESC LIMIT 40", id) {
-		out = append(out, M{"id": r["id"], "title": r["title"], "body": r["body"], "attachments": parse(str(r["attachments"])), "read": truth(r["is_read"]), "claimed": truth(r["claimed"]), "createdAt": r["created_at"]})
+		sender := str(r["sender"])
+		from := "驿站"
+		if sender != "" {
+			from = sender
+		}
+		out = append(out, M{"id": r["id"], "title": r["title"], "body": r["body"], "attachments": parse(str(r["attachments"])), "read": truth(r["is_read"]), "claimed": truth(r["claimed"]), "createdAt": r["created_at"], "sender": sender, "from": from})
 	}
 	return out
 }
@@ -266,13 +275,18 @@ func (a *App) friends(id string) []M {
 		if other == id {
 			other = str(r["to_id"])
 		}
-		out = append(out, M{"id": r["id"], "status": r["status"], "incoming": str(r["to_id"]) == id && str(r["status"]) == "pending", "name": a.player(other)["name"], "online": a.live[other] != nil})
+		me := a.player(id)
+		them := a.player(other)
+		out = append(out, M{"id": r["id"], "status": r["status"], "incoming": str(r["to_id"]) == id && str(r["status"]) == "pending", "outgoing": str(r["from_id"]) == id && str(r["status"]) == "pending", "name": them["name"], "online": a.live[other] != nil, "bonded": str(me["bond_with"]) == other, "pledged": str(me["pledge_to"]) == other, "pledgeIn": str(them["pledge_to"]) == id && str(them["bond_with"]) == ""})
 	}
 	return out
 }
 
 // channel 将公开频道名转换成世界、地图或公会的实际存储频道。
 func (a *App) channel(id, ch string, posting bool) string {
+	if strings.HasPrefix(ch, "friend:") || ch == "friend" {
+		return a.friendChannel(id, ch, posting)
+	}
 	switch ch {
 	case "world":
 		return ch
@@ -311,6 +325,9 @@ func (a *App) chatHistory(id, ch string) []M {
 	for i, j := 0, len(r)-1; i < j; i, j = i+1, j-1 {
 		r[i], r[j] = r[j], r[i]
 	}
+	for _, row := range r {
+		row["channel"] = stored
+	}
 	return r
 }
 
@@ -328,6 +345,7 @@ func (a *App) postChat(id, ch, text string) M {
 	name := a.player(id)["name"]
 	a.run("INSERT INTO chat_messages(id,channel,player_id,player_name,text,created_at) VALUES(?,?,?,?,?,?)", mid, stored, id, name, clean, t)
 	message := M{"type": "chat", "id": mid, "channel": stored, "name": name, "text": clean, "t": t}
+	a.noteDay(id, "speak")
 	for pid, l := range a.live {
 		if a.hears(pid, l, stored) {
 			a.send(l, message)
@@ -347,6 +365,9 @@ func (a *App) hears(pid string, l *Live, stored string) bool {
 		return a.one("SELECT guild_id FROM guild_members WHERE player_id=? AND guild_id=?", pid, strings.TrimPrefix(stored, "guild:")) != nil
 	case strings.HasPrefix(stored, "party:"):
 		return a.playerParty[pid] == strings.TrimPrefix(stored, "party:")
+	case strings.HasPrefix(stored, "dm:"):
+		left, right, ok := strings.Cut(strings.TrimPrefix(stored, "dm:"), ":")
+		return ok && (pid == left || pid == right)
 	default:
 		return false
 	}

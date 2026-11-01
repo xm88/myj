@@ -171,6 +171,7 @@ func (a *App) gather(l *Live, i *Instance, n M) {
 	a.trackExp(id, "life:gather", 8, false)
 	a.emit(id, M{"type": "gather", "nodeKind": n["kind"]})
 	a.toast(id, fmt.Sprintf("采集到 %s x%g", str(a.def("items", str(n["itemId"]))["name"]), count))
+	a.noteDay(id, "hand")
 	a.notify(id)
 }
 

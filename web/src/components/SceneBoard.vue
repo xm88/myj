@@ -160,6 +160,7 @@ const packs = computed(() => nearestPacks(monsters.value, self.value))
 const guideKey = computed(() => questGuide(game.profile?.quests ?? [], game.config, mapId.value, packs.value)?.key ?? '')
 const selfLook = computed(() => lookForSelf(game.profile?.weaponType))
 const mountId = computed(() => String(game.snap?.self?.mount || game.profile?.mount || ''))
+const wornTitle = computed(() => String(game.snap?.self?.title || game.profile?.titleName || ''))
 /** 怪物和旁边的旅人走路时换朝向。自己仍看点击后的位移。 */
 const gait = useGait(() => {
   const list: { id: string; x: number; y: number }[] = []
@@ -209,6 +210,7 @@ interface Spot {
   role?: string
   weapon?: string
   mount?: string
+  title?: string
 }
 
 /** 名字牌左侧的小标：等级、职责或类型，不另占一行。 */
@@ -263,7 +265,7 @@ const spots = computed<Spot[]>(() => {
   }
   for (const person of people.value) {
     const world = person.worldX != null ? { x: Number(person.worldX), y: Number(person.worldY) } : worldOf(mapId.value, person.x, person.y)
-    add({ key: 'who:' + person.id, kind: 'player', name: person.name, badge: person.level ? String(person.level) : '旅', wx: world.x, wy: world.y, x: person.x, y: person.y, mapId: mapId.value, id: person.id, weapon: person.templateId, mount: person.mount || '' })
+    add({ key: 'who:' + person.id, kind: 'player', name: person.name, badge: person.level ? String(person.level) : '旅', wx: world.x, wy: world.y, x: person.x, y: person.y, mapId: mapId.value, id: person.id, weapon: person.templateId, mount: person.mount || '', title: person.title || '' })
   }
   for (const stall of stalls.value) {
     const world = stall.worldX != null ? { x: Number(stall.worldX), y: Number(stall.worldY) } : worldOf(mapId.value, stall.x, stall.y)
@@ -271,7 +273,7 @@ const spots = computed<Spot[]>(() => {
   }
   for (const mark of afar.value) {
     const world = mark.worldX != null ? { x: Number(mark.worldX), y: Number(mark.worldY) } : worldOf(mark.mapId, mark.x, mark.y)
-    add({ key: 'afar:' + mark.id, kind: mark.kind, name: mark.name, badge: plateBadge(mark.kind, mark), wx: world.x, wy: world.y, x: mark.x, y: mark.y, mapId: mark.mapId, id: mark.id, stallId: mark.stallId, templateId: mark.templateId, role: mark.role, weapon: mark.kind === 'player' ? mark.templateId : undefined, mount: mark.mount || '' })
+    add({ key: 'afar:' + mark.id, kind: mark.kind, name: mark.name, badge: plateBadge(mark.kind, mark), wx: world.x, wy: world.y, x: mark.x, y: mark.y, mapId: mark.mapId, id: mark.id, stallId: mark.stallId, templateId: mark.templateId, role: mark.role, weapon: mark.kind === 'player' ? mark.templateId : undefined, mount: mark.mount || '', title: mark.title || '' })
   }
   return list
 })
@@ -446,6 +448,7 @@ const floats = computed(() => {
       <ActorFigure class="hud-fig" :look="selfLook" />
       <div>
         <b>{{ game.profile?.name }} <small>Lv.{{ game.profile?.level }}</small></b>
+        <small v-if="wornTitle" class="hud-title">{{ wornTitle }}</small>
         <small class="hud-gold">{{ game.profile?.gold }} 金</small>
         <div class="hud-meters">
           <span title="生命"><em>血</em><span class="bar" :class="{ hurt: hpHurt }"><i class="hp" :style="{ width: hpPct + '%' }" /></span></span>
@@ -481,6 +484,7 @@ const floats = computed(() => {
     <span v-if="clickFx" :key="clickFx.id" class="click-fx" :style="{ left: clickFx.x + 'px', top: clickFx.y + 'px' }" />
     <div v-if="veilKey" :key="veilKey" class="map-veil" />
     <div class="pin you" :class="{ step: walking, cast: casting, mounted: !!mountId }" :style="pinWorld(selfWorld.x, selfWorld.y)">
+      <span v-if="wornTitle" class="plate-title">{{ wornTitle }}</span>
       <span class="plate-line"><em class="badge">{{ game.profile?.level }}</em><span>你</span></span>
       <span class="ride" :class="{ on: !!mountId }">
         <MountGlyph v-if="mountId" :id="mountId" />
@@ -514,6 +518,7 @@ const floats = computed(() => {
       :style="at(spot.key)"
       @click="openSpot(spot)"
     >
+      <span v-if="spot.title" class="plate-title">{{ spot.title }}</span>
       <span class="plate-line">
         <i v-if="spot.npc && markOf(spot.npc) === 'turnin'" class="qmark">?</i>
         <i v-else-if="spot.npc && (markOf(spot.npc) === 'offer' || markOf(spot.npc) === 'talk')" class="qmark">!</i>

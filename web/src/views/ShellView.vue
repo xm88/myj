@@ -26,12 +26,13 @@ const help = ref(false)
 /** 当前待发送的聊天文本。 */
 const draft = ref('')
 /** 底栏正在看的频道。系统和传闻只读。 */
-const channelView = ref<'map' | 'world' | 'party' | 'guild' | 'rumor' | 'system'>('map')
+const channelView = ref<'map' | 'world' | 'party' | 'guild' | 'friend' | 'rumor' | 'system'>('map')
 const channelTabs = [
   ['map', '当前'],
   ['world', '世界'],
   ['party', '队伍'],
   ['guild', '公会'],
+  ['friend', '私聊'],
   ['rumor', '传闻'],
   ['system', '系统'],
 ] as const
@@ -114,6 +115,7 @@ function lineIn(channel: string, view: string) {
   if (view === 'world') return channel === 'world'
   if (view === 'guild') return channel.startsWith('guild')
   if (view === 'party') return channel.startsWith('party')
+  if (view === 'friend') return channel.startsWith('dm')
   return channel === 'map' || channel.startsWith('map')
 }
 const talkRows = computed(() => {
@@ -132,10 +134,12 @@ const talkRows = computed(() => {
     kind: view,
   }))
 })
-const talkQuiet = computed(() => channelView.value === 'system' || channelView.value === 'rumor')
+const talkQuiet = computed(() => channelView.value === 'system' || channelView.value === 'rumor' || (channelView.value === 'friend' && !game.whisperName))
 const talkHint = computed(() => {
   if (channelView.value === 'system') return '系统记录只看不发'
   if (channelView.value === 'rumor') return '传闻只看不发'
+  if (channelView.value === 'friend' && !game.whisperName) return '先在好友里点私聊'
+  if (channelView.value === 'friend') return `对 ${game.whisperName} 说`
   if (channelView.value === 'guild' && !game.profile?.guild) return '先加入公会'
   if (channelView.value === 'party') return '队伍里说一句'
   return '说点什么'
@@ -238,6 +242,7 @@ const panels = [
   ['dungeon', '遗迹'],
   ['party', '队伍'],
   ['social', '好友'],
+  ['slate', '名帖'],
   ['info', '角色'],
   ['travel', '地图'],
   ['stall', '摆摊'],
@@ -291,19 +296,31 @@ function call(name: string) {
   pickChannel('map')
 }
 
-function pickChannel(id: 'map' | 'world' | 'party' | 'guild' | 'rumor' | 'system') {
+function pickChannel(id: 'map' | 'world' | 'party' | 'guild' | 'friend' | 'rumor' | 'system') {
   channelView.value = id
+  if (id === 'friend') {
+    if (!game.whisperName) return
+    game.chatChannel = `friend:${game.whisperName}`
+    void loadChannel(game.chatChannel)
+    return
+  }
   if (id === 'map' || id === 'world' || id === 'party' || id === 'guild') {
     game.chatChannel = id
     void loadChannel(id)
   }
 }
 
+watch(() => game.whisperTick, () => {
+  if (!game.whisperName) return
+  pickChannel('friend')
+})
+
 /** 把世界、地图或公会频道转换为界面频道标签。 */
 function channelTag(channel: string) {
   if (channel === 'world') return '世界'
   if (channel?.startsWith('guild')) return '公会'
   if (channel === 'party' || channel?.startsWith('party')) return '队伍'
+  if (channel?.startsWith('dm') || channel?.startsWith('friend')) return '私聊'
   return '区域'
 }
 
@@ -315,11 +332,11 @@ function goldText(value: number) {
 /** 读取频道历史并合并到本地消息列表，按时间、名字与内容去重。 */
 async function loadChannel(channel: string) {
   try {
-    const data = await api<{ messages: { player_name: string; text: string; created_at: number }[] }>(`/api/chat?channel=${channel}`)
-    const tag = channel === 'world' ? 'world' : channel === 'guild' ? 'guild:' : channel === 'party' ? 'party:' : 'map:'
+    const data = await api<{ messages: { player_name: string; text: string; created_at: number; channel?: string }[] }>(`/api/chat?channel=${encodeURIComponent(channel)}`)
+    const tag = channel === 'world' ? 'world' : channel === 'guild' ? 'guild:' : channel === 'party' ? 'party:' : channel.startsWith('friend:') ? 'dm:' : 'map:'
     for (const item of data.messages) {
       const exists = game.chat.some((line) => line.t === item.created_at && line.text === item.text && line.name === item.player_name)
-      if (!exists) game.chat.push({ name: item.player_name, text: item.text, t: item.created_at, channel: tag })
+      if (!exists) game.chat.push({ name: item.player_name, text: item.text, t: item.created_at, channel: item.channel || tag })
     }
     game.chat = game.chat.slice(-80)
   } catch {
@@ -332,8 +349,9 @@ function sendChat() {
   if (talkQuiet.value) return
   const text = draft.value.trim()
   if (!text) return
-  const body = game.callName ? `对${game.callName}：${text}` : text
-  game.send({ type: 'chat', channel: game.chatChannel, text: body })
+  const channel = channelView.value === 'friend' ? `friend:${game.whisperName}` : game.chatChannel
+  const body = channelView.value === 'friend' || !game.callName ? text : `对${game.callName}：${text}`
+  game.send({ type: 'chat', channel, text: body })
   draft.value = ''
 }
 
@@ -583,7 +601,7 @@ onBeforeUnmount(() => {
           <p v-if="!players.length" class="hint">旁边没有别的旅人。</p>
           <div v-for="player in players" :key="player.id" class="who">
             <ActorFigure class="roster-fig" :pip="false" :look="lookForTraveler(player.id, player.templateId)" />
-            <span><b>{{ player.name }}</b></span>
+            <span><b>{{ player.name }}</b><small v-if="player.title">{{ player.title }}</small></span>
             <button @click="call(player.name)">交谈</button>
             <button @click="game.act('/api/party/invite', { name: player.name })">组队</button>
           </div>
@@ -732,7 +750,7 @@ onBeforeUnmount(() => {
 
     <nav class="funcs">
       <button v-for="[id, label] in panels" :key="id" :class="{ on: game.panel === id }" @click="toggle(id)">
-        {{ label }}<em v-if="id === 'social' && game.profile?.unreadMail">{{ game.profile.unreadMail }}</em><em v-if="id === 'info' && game.profile?.unspent">{{ game.profile.unspent }}</em>
+        {{ label }}<em v-if="id === 'social' && game.profile?.unreadMail">{{ game.profile.unreadMail }}</em><em v-if="id === 'slate' && game.profile?.day?.done && !game.profile?.day?.kept">!</em><em v-if="id === 'info' && game.profile?.unspent">{{ game.profile.unspent }}</em>
       </button>
     </nav>
     </div>

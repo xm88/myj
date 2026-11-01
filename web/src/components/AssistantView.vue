@@ -75,6 +75,14 @@ function remain(endsAt: number) {
           <div class="card-top"><b>旅册</b><small>图鉴</small></div>
           <p>旅迹、遇见过的异兽、契约过的灵兽，还有踏过的地方。</p>
         </button>
+        <button class="phone-card" type="button" @click="game.setMode('play'); game.panel = 'slate'">
+          <div class="card-top"><b>名帖</b><small>{{ game.profile?.titleName || '未挂称谓' }}</small></div>
+          <p>一日三件事和名字上的称谓。做完不加金币。</p>
+        </button>
+        <button class="phone-card" type="button" @click="game.setMode('play'); game.panel = 'social'">
+          <div class="card-top"><b>好友</b><small>驿站 {{ game.profile?.unreadMail || 0 }}</small></div>
+          <p>私聊、短信和同行。短信不带东西。</p>
+        </button>
         <button class="phone-card" type="button" @click="game.setMode('play'); game.panel = 'guild'">
           <div class="card-top"><b>公会</b><small>{{ game.profile?.guild?.name ?? '未加入' }}</small></div>
           <p>{{ game.profile?.guild ? '点卯、公告和捐献都在堂口。' : '还没有公会。点这里去创建或加入。' }}</p>

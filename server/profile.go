@@ -157,6 +157,7 @@ func (a *App) profile(id string) M {
 	}
 	s["attributeRows"] = rows
 	s["stall"] = a.myStallView(id)
+	a.fillNamecard(s, id)
 	return s
 }
 

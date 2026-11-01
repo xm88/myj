@@ -31,6 +31,10 @@ CREATE TABLE IF NOT EXISTS players (
   flags TEXT NOT NULL DEFAULT '{}',
   buffs TEXT NOT NULL DEFAULT '[]',
   mount_preview TEXT NOT NULL DEFAULT '',
+  title_id TEXT NOT NULL DEFAULT '',
+  pledge_to TEXT NOT NULL DEFAULT '',
+  bond_with TEXT NOT NULL DEFAULT '',
+  daybook TEXT NOT NULL DEFAULT '{}',
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
@@ -131,7 +135,8 @@ CREATE TABLE IF NOT EXISTS mail (
   attachments TEXT,
   is_read INTEGER NOT NULL DEFAULT 0,
   claimed INTEGER NOT NULL DEFAULT 0,
-  created_at INTEGER NOT NULL
+  created_at INTEGER NOT NULL,
+  sender TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS friends (

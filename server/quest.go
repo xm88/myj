@@ -235,6 +235,7 @@ func (a *App) rewardText(q M) string {
 // dialog 根据可接、可交和进行中的任务生成 NPC 话题与服务入口。
 func (a *App) dialog(id, npcID string) M {
 	npc := a.nearNPC(id, npcID)
+	a.noteDay(id, "hand")
 	a.emit(id, M{"type": "talk", "npcId": npcID})
 	p := a.player(id)
 	actions, turnins, accepts, pending := []M{}, []M{}, []M{}, []M{}

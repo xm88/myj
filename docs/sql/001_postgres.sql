@@ -31,6 +31,10 @@ CREATE TABLE players (
   flags JSONB NOT NULL DEFAULT '{}',
   buffs JSONB NOT NULL DEFAULT '[]',
   mount_preview TEXT NOT NULL DEFAULT '',
+  title_id TEXT NOT NULL DEFAULT '',
+  pledge_to TEXT NOT NULL DEFAULT '',
+  bond_with TEXT NOT NULL DEFAULT '',
+  daybook JSONB NOT NULL DEFAULT '{}',
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL
 );
@@ -140,7 +144,8 @@ CREATE TABLE mail (
   attachments JSONB,
   is_read INTEGER NOT NULL DEFAULT 0,
   claimed INTEGER NOT NULL DEFAULT 0,
-  created_at BIGINT NOT NULL
+  created_at BIGINT NOT NULL,
+  sender TEXT NOT NULL DEFAULT ''
 );
 
 -- 好友申请的双方角色与接受状态。
@@ -152,7 +157,7 @@ CREATE TABLE friends (
   created_at BIGINT NOT NULL
 );
 
--- 按世界、地图或公会频道存储的聊天历史。
+-- 按世界、地图、公会或私聊频道存储的聊天历史。私聊键是 dm:双方id。
 CREATE TABLE chat_messages (
   id TEXT PRIMARY KEY,
   channel TEXT NOT NULL,

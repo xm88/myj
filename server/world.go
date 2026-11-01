@@ -87,6 +87,7 @@ func (a *App) attach(id string, p *Peer) {
 		}
 	}
 	a.resumeStall(l)
+	a.refreshPlate(id)
 	a.send(l, a.worldPulse())
 }
 
@@ -137,6 +138,7 @@ func (a *App) enter(l *Live, mapID string, spawn bool) {
 	check(m != nil, "没有这张地图")
 	check(num(l.State["level"]) >= num(m["unlockLevel"]), fmt.Sprintf("需要 %g 级", num(m["unlockLevel"])))
 	id := str(l.State["id"])
+	prevMap := str(l.State["mapId"])
 	if old := a.instances[l.InstanceKey]; old != nil {
 		delete(old.Players, id)
 	}
@@ -192,6 +194,9 @@ func (a *App) enter(l *Live, mapID string, spawn bool) {
 	a.emit(id, M{"type": "enter", "mapId": mapID})
 	a.save(l)
 	a.markMap(id, mapID)
+	if prevMap != "" && prevMap != mapID {
+		a.noteDay(id, "stride")
+	}
 }
 
 // spawnMonster 按模板生成怪物实例，初始化出生点、血量、冷却与控制状态。
@@ -722,7 +727,7 @@ func (a *App) snapshot(l *Live, t float64) M {
 				continue
 			}
 			s := p.State
-			entities = append(entities, M{"id": id, "kind": "player", "templateId": s["weaponType"], "name": s["name"], "level": s["level"], "x": s["x"], "y": s["y"], "hp": s["hp"], "maxHp": p.Stats["maxHp"], "alive": true, "tint": "#f2d48a", "role": "player", "radius": 14, "stalling": str(s["stallId"]) != "", "mount": str(s["mount"])})
+			entities = append(entities, M{"id": id, "kind": "player", "templateId": s["weaponType"], "name": s["name"], "level": s["level"], "x": s["x"], "y": s["y"], "hp": s["hp"], "maxHp": p.Stats["maxHp"], "alive": true, "tint": "#f2d48a", "role": "player", "radius": 14, "stalling": str(s["stallId"]) != "", "mount": str(s["mount"]), "title": a.plateOf(p)})
 		}
 		for _, stall := range a.rows("SELECT s.*, p.name AS owner_name FROM stalls s JOIN players p ON p.id=s.player_id WHERE s.open=1 AND s.map_id=?", i.MapID) {
 			entities = append(entities, M{"id": "stall:" + str(stall["id"]), "kind": "stall", "stallId": stall["id"], "name": stall["title"], "owner": stall["owner_name"], "x": stall["x"], "y": stall["y"], "alive": true})
@@ -758,6 +763,7 @@ func (a *App) snapshot(l *Live, t float64) M {
 	for _, k := range []string{"x", "y", "hp", "mp", "level", "exp", "gold", "targetId", "shield", "weaponType", "safe", "mount"} {
 		self[k] = l.State[k]
 	}
+	self["title"] = a.plateOf(l)
 	self["maxHp"], self["maxMp"], self["expMax"] = l.Stats["maxHp"], l.Stats["maxMp"], expNext(num(l.State["level"]))
 	self["swing"] = math.Max(0, num(l.State["attackAt"])-t)
 	self["guard"] = math.Max(0, num(l.State["guardUntil"])-t)

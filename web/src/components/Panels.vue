@@ -30,6 +30,9 @@ const count = ref(1)
 const guildName = ref('')
 /** 申请添加好友的目标角色名输入。 */
 const friendName = ref('')
+/** 驿站短信的收件人和正文。不带附件。 */
+const noteName = ref('')
+const noteBody = ref('')
 /** 向公会捐赠的金币输入，最低值由服务器校验。 */
 const donate = ref(50)
 /** 公会窗口先看堂口，再看名册和可加入的名录。 */
@@ -94,6 +97,7 @@ const titles: Record<string, string> = {
   dungeon: '遗迹门槛',
   travel: '世界地图',
   social: '好友',
+  slate: '名帖',
   quest: '任务',
   party: '队伍',
   shop: '商店',
@@ -114,6 +118,8 @@ const kicker = computed(() => {
     craft: '材料够了才能做。做好的装备回背包淬炼',
     party: '号令决定队友，以及你超时没选时怎么打',
     guild: '点卯和捐献只涨公会。战斗和金币收入不跟着变',
+    social: '私聊走原来的频道。驿站短信不带金币和东西',
+    slate: '一日三件事和挂在名字上的称谓。不加属性',
     mount: '亮出来给自己和旁边的人看。步子还是原来的',
     dungeon: '先看门槛，再决定进不进。线路和等级门没改',
     stall: '买家支付标价，旅税从卖家手里扣',
@@ -552,6 +558,19 @@ function foeMark(role?: string) {
 async function saveNotice() {
   await game.act('/api/guilds/notice', { text: noticeDraft.value })
 }
+function openWhisper(name: string) {
+  game.whisperName = name
+  game.whisperTick += 1
+  game.panel = ''
+}
+async function sendNote() {
+  const name = noteName.value.trim()
+  const body = noteBody.value.trim()
+  if (!name || !body) return
+  await game.act('/api/mail/send', { name, body })
+  noteBody.value = ''
+  await loadSide()
+}
 async function showMount(id: string) {
   await game.act('/api/mount', { id })
 }
@@ -607,7 +626,7 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
     </div>
     <div v-else-if="game.panel === 'social'" class="seg">
       <button :class="{ on: socialTab === 'friend' }" @click="socialTab = 'friend'">好友</button>
-      <button :class="{ on: socialTab === 'mail' }" @click="socialTab = 'mail'">邮箱</button>
+      <button :class="{ on: socialTab === 'mail' }" @click="socialTab = 'mail'">驿站</button>
     </div>
     <div v-else-if="game.panel === 'guild'" class="seg">
       <button :class="{ on: guildTab === 'hall' }" @click="guildTab = 'hall'">堂口</button>
@@ -1049,6 +1068,7 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
                 <b class="mh-name">{{ who.name }}</b>
                 <div class="mh-meta">
                   <span>{{ who.raceName || '人族' }}</span>
+                  <span v-if="who.titleName">{{ who.titleName }}</span>
                   <span>等级 {{ who.level }}</span>
                   <span>{{ mapName || '路上' }}</span>
                   <span>{{ who.gold }} 金币</span>
@@ -1131,23 +1151,71 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
 
       <template v-else-if="game.panel === 'social'">
         <template v-if="socialTab === 'friend'">
+          <p class="lede">加上好友就能私聊、寄短信，也可以互相同行。同行只是称谓，不加属性。</p>
           <div class="row">
-            <input v-model="friendName" placeholder="对方名字" @keydown.enter="api('/api/friends/request', { name: friendName }).then(loadSide)" />
-            <button class="btn" @click="api('/api/friends/request', { name: friendName }).then(loadSide)">申请</button>
+            <input v-model="friendName" placeholder="对方名字" @keydown.enter="game.act('/api/friends/request', { name: friendName }).then(loadSide)" />
+            <button class="btn" @click="game.act('/api/friends/request', { name: friendName }).then(loadSide)">申请</button>
           </div>
           <p v-if="!game.friends.length" class="empty">还没有好友。</p>
           <div v-for="friend in game.friends" :key="friend.id" class="item">
-            <span>{{ friend.name }} · {{ friend.status === 'accepted' ? (friend.online ? '在线' : '离线') : '待处理' }}</span>
-            <button v-if="friend.incoming" class="btn" @click="api('/api/friends/accept', { id: friend.id }).then(loadSide)">同意</button>
+            <span>
+              {{ friend.name }}
+              · {{ friend.status === 'accepted' ? (friend.online ? '在线' : '离线') : (friend.incoming ? '想加你' : '等答应') }}
+              <small v-if="friend.bonded">同行</small>
+              <small v-else-if="friend.pledged">已邀同行</small>
+            </span>
+            <span class="row">
+              <button v-if="friend.incoming" class="btn" @click="game.act('/api/friends/accept', { id: friend.id }).then(loadSide)">同意</button>
+              <button v-if="friend.incoming" class="btn light" @click="game.act('/api/friends/remove', { id: friend.id }).then(loadSide)">回绝</button>
+              <button v-if="friend.status === 'accepted'" class="btn" @click="openWhisper(friend.name)">私聊</button>
+              <button v-if="friend.status === 'accepted' && !friend.bonded && !friend.pledged" class="btn light" @click="game.act('/api/friends/pledge', { name: friend.name }).then(loadSide)">邀同行</button>
+              <button v-if="friend.pledgeIn && !friend.bonded" class="btn" @click="game.act('/api/friends/pledge', { name: friend.name }).then(loadSide)">答应</button>
+              <button v-if="friend.bonded" class="btn light" @click="game.act('/api/friends/break').then(loadSide)">散了</button>
+              <button v-if="friend.outgoing" class="btn light" @click="game.act('/api/friends/remove', { id: friend.id }).then(loadSide)">撤回</button>
+              <button v-if="friend.status === 'accepted'" class="btn light" @click="game.act('/api/friends/remove', { id: friend.id }).then(loadSide)">删除</button>
+            </span>
           </div>
         </template>
         <template v-else>
-          <p v-if="!game.mail.length" class="empty">邮箱是空的。</p>
-          <div v-for="letter in game.mail" :key="letter.id" class="mail">
-            <div><b>{{ letter.title }}</b><div>{{ letter.body }}</div></div>
-            <button v-if="!letter.claimed" class="btn" @click="game.act('/api/mail/claim', { id: letter.id }).then(loadSide)">领取</button>
+          <p class="lede">驿站代转短信。玩家的信没有附件。系统寄来的东西，仍然在这里领。</p>
+          <div class="row">
+            <input v-model="noteName" placeholder="好友名字" />
+            <input v-model="noteBody" maxlength="60" placeholder="写一句，不带东西" @keydown.enter="sendNote" />
+            <button class="btn" @click="sendNote">寄出</button>
+          </div>
+          <p v-if="!game.mail.length" class="empty">驿站还没有信。</p>
+          <div v-for="letter in game.mail" :key="letter.id" class="mail" :class="{ fresh: !letter.read }">
+            <div>
+              <b>{{ letter.from || '驿站' }} · {{ letter.title }}</b>
+              <div>{{ letter.body }}</div>
+            </div>
+            <span class="row">
+              <button v-if="!letter.claimed" class="btn" @click="game.act('/api/mail/claim', { id: letter.id }).then(loadSide)">领取</button>
+              <button v-else-if="!letter.read" class="btn light" @click="game.act('/api/mail/read', { id: letter.id }).then(loadSide)">读过</button>
+            </span>
           </div>
         </template>
+      </template>
+
+      <template v-else-if="game.panel === 'slate'">
+        <h3>今日小事</h3>
+        <p class="lede">和公会点卯分开。做完只解锁称谓「今日有闲」，不加金币、经验，也不改战斗。</p>
+        <div v-for="goal in game.profile.day?.goals ?? []" :key="goal.id" class="item">
+          <span>{{ goal.done ? '已记' : '未记' }} · {{ goal.name }}<small>{{ goal.hint }}</small></span>
+        </div>
+        <div class="row">
+          <button class="btn lantern" :disabled="!game.profile.day?.done || game.profile.day?.kept" @click="game.act('/api/day/claim')">
+            {{ game.profile.day?.kept ? '今日已收下' : '收下称谓' }}
+          </button>
+        </div>
+        <h3>称谓</h3>
+        <p v-if="game.profile.bondName" class="lede">同行的人：{{ game.profile.bondName }}</p>
+        <p class="lede">挂在地图名字上面。旁边的人也能看见。不加攻击、防御、生命或速度。</p>
+        <div v-for="row in game.profile.titles ?? []" :key="row.id" class="item" :class="{ on: row.on }">
+          <span>{{ row.name }}<small>{{ row.need }}</small></span>
+          <button v-if="row.on" class="btn light" @click="game.act('/api/title', { id: '' })">卸下</button>
+          <button v-else class="btn" :disabled="!row.open" @click="game.act('/api/title', { id: row.id })">{{ row.open ? '挂上' : '未解锁' }}</button>
+        </div>
       </template>
     </div>
 

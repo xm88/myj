@@ -329,6 +329,7 @@ func (a *App) feedPet(id, pet, item string) {
 		a.run("UPDATE player_pets SET loyalty=?,vigor=? WHERE id=?", loyalty, vigor, pet)
 		a.toast(id, fmt.Sprintf("元息果：元息 %s（%g），信赖 +2（%g · %s）", signed(vigor-before), vigor, loyalty, moodName(loyalty)))
 	}
+	a.noteDay(id, "hand")
 	a.notify(id)
 }
 

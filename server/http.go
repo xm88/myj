@@ -198,12 +198,26 @@ func (a *App) route(r *http.Request, b M) any {
 			a.setMountPreview(id, s("id"))
 		case "/api/mail/claim":
 			a.claimMail(id, s("id"))
+		case "/api/mail/send":
+			a.sendNote(id, s("name"), s("body"))
+		case "/api/mail/read":
+			a.readMail(id, s("id"))
 		case "/api/friends/request":
 			a.requestFriend(id, s("name"))
 			return M{"ok": true}
 		case "/api/friends/accept":
 			a.acceptFriend(id, s("id"))
 			return M{"friends": a.friends(id)}
+		case "/api/friends/remove":
+			a.removeFriend(id, s("id"))
+		case "/api/friends/pledge":
+			a.pledgeFriend(id, s("name"))
+		case "/api/friends/break":
+			a.breakBond(id)
+		case "/api/title":
+			a.setTitle(id, s("id"))
+		case "/api/day/claim":
+			a.claimDay(id)
 		case "/api/chat":
 			return a.postChat(id, s("channel"), s("text"))
 		case "/api/party/invite":

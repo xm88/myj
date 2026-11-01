@@ -778,6 +778,7 @@ button.linkish { border: 0; background: transparent; padding: 0; }
 .logbox .ch-world { color: #8a4b12; }
 .logbox .ch-party { color: #1d5c86; }
 .logbox .ch-guild { color: #7a3060; }
+.logbox .ch-friend { color: #6b3a86; }
 .logbox .ch-rumor { color: #8a6230; }
 .logbox .ch-system { color: #4d5c3a; }
 .logbox {
@@ -934,6 +935,9 @@ button.linkish { border: 0; background: transparent; padding: 0; }
   padding: 6px 10px;
   box-shadow: var(--shadow);
 }
+.mail.fresh { box-shadow: inset 3px 0 0 #c47a2a; }
+.item.on { border-color: #7a3018; }
+.item .row { flex-wrap: wrap; justify-content: flex-end; }
 .item, .mail, .order {
   display: flex;
   justify-content: space-between;
@@ -1788,6 +1792,19 @@ button.item { width: 100%; text-align: left; color: inherit; }
   border: 0;
   box-shadow: none;
 }
+.plate-title,
+.hud-title {
+  display: inline-block;
+  font-size: 11px;
+  line-height: 1.35;
+  font-weight: 700;
+  color: #fff8ea;
+  background: #7a3018;
+  border: 1px solid #e7c56a;
+  padding: 0 6px;
+  white-space: nowrap;
+}
+.hud-title { display: block; width: fit-content; margin-top: 1px; }
 .pin.you .plate-line {
   display: inline-flex;
   align-items: center;

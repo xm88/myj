@@ -56,6 +56,7 @@ const pipText = computed(() => (props.pip ? rankLabel(props.look.rank) : ''))
             <ellipse class="leg-b" cx="37.5" cy="71" rx="5.2" ry="2.6" fill="#3a2418" stroke="#2a1810" stroke-width="0.8" />
             <path d="M22 42 Q18 46 19 60 Q24 68 32 68 Q40 68 45 60 Q46 46 42 42 Q36 48 32 48 Q28 48 22 42 Z" :fill="look.coat" stroke="#2a1810" stroke-width="1.3" />
             <path d="M26 46 H38 L36 52 H28 Z" :fill="look.trim" />
+            <rect v-if="look.sash" x="23" y="51.5" width="18" height="3.4" rx="1.2" :fill="look.sash" stroke="#2a1810" stroke-width="0.7" />
             <rect v-if="!side" x="14" y="46" width="8" height="11" rx="3" :fill="look.coat" stroke="#2a1810" stroke-width="1" />
             <rect x="42" y="46" width="8" height="11" rx="3" :fill="look.coat" stroke="#2a1810" stroke-width="1" />
           </g>

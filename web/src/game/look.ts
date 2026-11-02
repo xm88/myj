@@ -29,6 +29,8 @@ export interface Look {
   fluff: boolean
   snout: 'short' | 'long'
   rank: Rank
+  /** 胸前绦带的颜色。空着就是原来的衣襟。 */
+  sash: string
 }
 
 /** 把六位色往亮或往暗推一截。非法颜色原样返回。 */
@@ -59,6 +61,7 @@ function look(partial: Partial<Look> & Pick<Look, 'body' | 'coat'>): Look {
     fluff: false,
     snout: 'short',
     rank: 'normal',
+    sash: '',
     ...partial,
   }
 }
@@ -83,8 +86,14 @@ export function paletteOf(id: string | undefined | null, rows?: DyeTint[] | null
   return rows.find((row) => row.id === id)
 }
 
+/** 绦带只给一条颜色。素带和空着都不画。 */
+export function sashOf(id: string | undefined | null, rows?: { id?: string; color?: string }[] | null) {
+  if (!id || id === 'plain' || !rows) return ''
+  return rows.find((row) => row.id === id)?.color || ''
+}
+
 /** 自己：暖棕披风和头带，武器剪影跟着身上的武器走。染过色就换这一身的颜色。 */
-export function lookForSelf(weaponType?: string, dye?: DyeTint): Look {
+export function lookForSelf(weaponType?: string, dye?: DyeTint, sash = ''): Look {
   return look({
     body: 'human',
     coat: dye?.coat || '#d08a3c',
@@ -94,11 +103,12 @@ export function lookForSelf(weaponType?: string, dye?: DyeTint): Look {
     hat: 'band',
     cape: true,
     tool: toolOf(weaponType),
+    sash,
   })
 }
 
 /** 别的旅人：没染色时仍是蓝灰短装。染过的人用那套衣色，帽子仍和自己的头带分开。 */
-export function lookForTraveler(seed = '', weaponType?: string, dye?: DyeTint): Look {
+export function lookForTraveler(seed = '', weaponType?: string, dye?: DyeTint, sash = ''): Look {
   if (dye?.coat) {
     return look({
       body: 'human',
@@ -108,6 +118,7 @@ export function lookForTraveler(seed = '', weaponType?: string, dye?: DyeTint): 
       hair: dye.hair || '#241c16',
       hat: 'cap',
       tool: weaponType ? toolOf(weaponType) : 'none',
+      sash,
     })
   }
   const coats = ['#3d6f99', '#356888', '#4a7eaa', '#2c5d86']
@@ -121,6 +132,7 @@ export function lookForTraveler(seed = '', weaponType?: string, dye?: DyeTint): 
     hair: '#241c16',
     hat: 'cap',
     tool: weaponType ? toolOf(weaponType) : 'none',
+    sash,
   })
 }
 

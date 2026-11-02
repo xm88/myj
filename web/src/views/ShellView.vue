@@ -21,6 +21,9 @@ import { useGame } from '../stores/game'
 const game = useGame()
 /** 主界面快捷菜单的展开状态。 */
 const menu = ref(false)
+/** 日程条上的抛竿倒计时。只用来显示，冷却由服务器拒绝。 */
+const clock = ref(Date.now())
+let dayTimer = 0
 /** 操作帮助的显示状态。 */
 const help = ref(false)
 /** 当前待发送的聊天文本。 */
@@ -241,6 +244,9 @@ const panels = [
   ['guild', '公会'],
   ['mount', '坐骑'],
   ['dye', '染色'],
+  ['looks', '衣橱'],
+  ['cast', '抛竿'],
+  ['trail', '引路'],
   ['dungeon', '遗迹'],
   ['party', '队伍'],
   ['social', '好友'],
@@ -486,7 +492,28 @@ watch(mapId, (id) => {
   rosterTab.value = kind === 'town' ? 'people' : 'mobs'
 })
 
+const dayDone = computed(() => (game.profile?.day?.goals ?? []).filter((goal: { done?: boolean }) => goal.done).length)
+const castLabel = computed(() => {
+  const until = Number(game.snap?.self?.castUntil || game.profile?.castUntil || 0)
+  const left = Math.max(0, until - clock.value)
+  if (left <= 0) return '抛竿 可抛'
+  return `抛竿 ${Math.ceil(left / 1000)}秒`
+})
+const trailLabel = computed(() => {
+  const trail = game.profile?.trail
+  if (!trail?.peerName) return trail?.incoming ? '引路 有请' : '引路 未结'
+  if (!trail.said) return `路谊 可传`
+  return `路谊 ${trail.bond}/${trail.bondMax}`
+})
+
+function greet(id: string) {
+  void game.act('/api/emote', { id })
+}
+
 onMounted(() => {
+  dayTimer = window.setInterval(() => {
+    clock.value = Date.now()
+  }, 1000)
   window.addEventListener('keydown', onKey)
   void api<{ news: { t: number; text: string }[] }>('/api/news').then((data) => {
     game.news = data.news
@@ -497,6 +524,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)
   window.clearTimeout(castTimer)
+  window.clearInterval(dayTimer)
 })
 </script>
 
@@ -561,6 +589,11 @@ onBeforeUnmount(() => {
       <BattleBoard v-if="game.view === 'battle'" />
       <SceneBoard v-else />
       <aside class="roster">
+        <div class="day-strip" aria-label="日程">
+          <button type="button" :class="{ on: game.panel === 'slate' }" @click="toggle('slate')">小事 {{ dayDone }}/3</button>
+          <button type="button" :class="{ on: game.panel === 'cast' }" @click="toggle('cast')">{{ castLabel }}</button>
+          <button type="button" :class="{ on: game.panel === 'trail' }" @click="toggle('trail')">{{ trailLabel }}</button>
+        </div>
         <div v-if="tracked.length" class="quest-track">
           <b class="track-title">任务</b>
           <button v-for="row in tracked" :key="row.id" :class="[row.kind === 'main' ? 'main' : 'side', { ready: row.ready }]" @click="followQuest(row.id)">
@@ -684,6 +717,7 @@ onBeforeUnmount(() => {
         <p>战斗时如果想先看地图，点「返回地图」。镜头跟着你走过相邻的地块，走到门外就进下一片，不会被拉回入口。副本仍是单独一张。摆摊和当面交易都要站在旁边，成交扣和拍卖一样的旅税。</p>
         <p>点自己的名字，或下面的「角色」，可以看属性和换技能。技能栏一次放 4 个：先点栏位，再点要换上的技能。</p>
         <p>摆摊可以写一句招牌，货按兵器、丹食、材料和杂货分架，旅税还是原来的。队长可以定跟上、打怪、采集或回镇，队员看见方向，步子不变。艾兰、霍特、米娜和林守会记熟脸，认得你之后能挂「镇上的熟脸」，不加属性。制造窗口里的合剂用背包和仓库的材料，不涨熟练。</p>
+        <p>右边日程条可以看今日小事、抛竿和路谊。星落镇或月光湖可以抛一竿，钓上一条银鳞鱼，不涨采集熟练。衣橱能记下三套样子，换上不改属性。聊天栏可以招手、作揖、喝彩，旁边的人看得见。系统开了「减少动态效果」时，招呼只留字。</p>
         <p>下面一排还有任务、图鉴、道具、灵兽、公会、坐骑和遗迹门槛。图鉴里是旅迹、遇见过的异兽、契约过的灵兽，以及踏过的地方。聊天分当前、世界、队伍、公会，传闻和系统只看不发。点别的旅人「交谈」，会在当前频道叫他。</p>
       </section>
       </Transition>
@@ -754,6 +788,9 @@ onBeforeUnmount(() => {
         <p v-for="(line, index) in game.log.slice(0, 8)" :key="index">{{ line }}</p>
       </div>
       <div class="composer">
+        <button type="button" class="phrase" @click="greet('wave')">招手</button>
+        <button type="button" class="phrase" @click="greet('bow')">作揖</button>
+        <button type="button" class="phrase" @click="greet('cheer')">喝彩</button>
         <button type="button" class="phrase" :disabled="talkQuiet" @click="draft = '古代遗迹求组'">求组</button>
         <button type="button" class="phrase" :disabled="talkQuiet" @click="draft = '收材料，跳市见'">收货</button>
         <button type="button" class="phrase" :disabled="talkQuiet" @click="draft = '这张图怎么走？'">问路</button>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** 助手界面：集中展示离线派遣和轻量业务操作，服务器开启安全模式避免角色挨打。 */
 
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { api } from '../api'
 import { useGame } from '../stores/game'
 
@@ -21,6 +21,8 @@ onMounted(async () => {
 onBeforeUnmount(() => window.clearInterval(timer))
 
 /** 将派遣结束时间转换为剩余分钟，已结束时显示可领取状态。 */
+const castReadyNow = computed(() => clock.value >= Number(game.profile?.castUntil || 0))
+
 function remain(endsAt: number) {
   const left = Math.max(0, endsAt - clock.value)
   const min = Math.floor(left / 60000)
@@ -86,6 +88,18 @@ function remain(endsAt: number) {
         <button class="phone-card" type="button" @click="game.setMode('play'); game.panel = 'guild'">
           <div class="card-top"><b>公会</b><small>{{ game.profile?.guild?.name ?? '未加入' }}</small></div>
           <p>{{ game.profile?.guild ? '点卯、公告和捐献都在堂口。' : '还没有公会。点这里去创建或加入。' }}</p>
+        </button>
+        <button class="phone-card" type="button" @click="game.setMode('play'); game.panel = 'trail'">
+          <div class="card-top"><b>引路</b><small>{{ game.profile?.trail?.peerName ? '路谊 ' + game.profile.trail.bond : '未结' }}</small></div>
+          <p>一天互传一句。不加金币和属性。</p>
+        </button>
+        <button class="phone-card" type="button" @click="game.setMode('play'); game.panel = 'cast'">
+          <div class="card-top"><b>抛竿</b><small>{{ castReadyNow ? '可抛' : '歇着' }}</small></div>
+          <p>星落镇或月光湖钓一条银鳞鱼。不涨熟练。</p>
+        </button>
+        <button class="phone-card" type="button" @click="game.setMode('play'); game.panel = 'looks'">
+          <div class="card-top"><b>衣橱</b><small>{{ game.profile?.looks?.length || 0 }}/3</small></div>
+          <p>记下衣色、绦带和坐骑预览。换上不改步子。</p>
         </button>
         <button class="phone-card" type="button" @click="game.setMode('play'); game.panel = 'dye'">
           <div class="card-top"><b>染色</b><small>{{ game.profile?.dye ? '衣色已换' : '暖茶' }}</small></div>

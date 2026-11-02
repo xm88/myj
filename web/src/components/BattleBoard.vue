@@ -4,7 +4,7 @@
 import { computed, onUnmounted, ref, watch } from 'vue'
 import ActorFigure from './ActorFigure.vue'
 import { mapThumb } from '../game/art'
-import { lookForMonster, lookForPet, lookForSelf, lookForTraveler, paletteOf, type Look } from '../game/look'
+import { lookForMonster, lookForPet, lookForSelf, lookForTraveler, paletteOf, sashOf, type Look } from '../game/look'
 import { companionOrders } from '../game/orders'
 import { useDropFlash } from '../game/motion'
 import { useGame } from '../stores/game'
@@ -187,7 +187,7 @@ function monsterRow(id?: string) {
 
 /** 出手条和战斗立绘用地图上的同一套造型。 */
 function actorLook(actor: { id?: string; kind?: string; mark?: string; templateId?: string; role?: string; tint?: string }): Look {
-  if (actor.id && actor.id === game.profile?.id) return lookForSelf(game.profile?.weaponType, paletteOf(game.profile?.dye, game.config?.dyes ?? game.profile?.dyes))
+  if (actor.id && actor.id === game.profile?.id) return lookForSelf(game.profile?.weaponType, paletteOf(game.profile?.dye, game.config?.dyes ?? game.profile?.dyes), sashOf(game.profile?.sash, game.config?.sashes ?? game.profile?.sashes))
   const templateId = actor.templateId || (actor.mark && actor.mark !== 'hero' ? actor.mark : '') || ''
   if (actor.kind === 'beast') return lookForPet(templateId)
   if (actor.kind === 'monster') {
@@ -197,7 +197,7 @@ function actorLook(actor: { id?: string; kind?: string; mark?: string; templateI
   return lookForTraveler(actor.id || actor.mark || '', templateId || undefined)
 }
 
-const selfLook = computed(() => lookForSelf(game.profile?.weaponType, paletteOf(game.profile?.dye, game.config?.dyes ?? game.profile?.dyes)))
+const selfLook = computed(() => lookForSelf(game.profile?.weaponType, paletteOf(game.profile?.dye, game.config?.dyes ?? game.profile?.dyes), sashOf(game.profile?.sash, game.config?.sashes ?? game.profile?.sashes)))
 const foeId = computed(() => String(foe.value?.templateId || foe.value?.mark || ''))
 const foeLook = computed(() => actorLook({
   id: foe.value?.id,

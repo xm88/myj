@@ -35,6 +35,9 @@ CREATE TABLE IF NOT EXISTS players (
   pledge_to TEXT NOT NULL DEFAULT '',
   bond_with TEXT NOT NULL DEFAULT '',
   daybook TEXT NOT NULL DEFAULT '{}',
+  dye_id TEXT NOT NULL DEFAULT '',
+  marks TEXT NOT NULL DEFAULT '[]',
+  manual TEXT NOT NULL DEFAULT '{}',
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
@@ -54,6 +57,7 @@ CREATE TABLE IF NOT EXISTS player_items (
   count INTEGER NOT NULL,
   location TEXT NOT NULL,
   extra TEXT,
+  bin TEXT NOT NULL DEFAULT '',
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_items_player ON player_items(player_id, location);

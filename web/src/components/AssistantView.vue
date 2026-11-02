@@ -87,6 +87,10 @@ function remain(endsAt: number) {
           <div class="card-top"><b>公会</b><small>{{ game.profile?.guild?.name ?? '未加入' }}</small></div>
           <p>{{ game.profile?.guild ? '点卯、公告和捐献都在堂口。' : '还没有公会。点这里去创建或加入。' }}</p>
         </button>
+        <button class="phone-card" type="button" @click="game.setMode('play'); game.panel = 'dye'">
+          <div class="card-top"><b>染色</b><small>{{ game.profile?.dye ? '衣色已换' : '暖茶' }}</small></div>
+          <p>披风换个颜色。攻击、防御和步子不读它。</p>
+        </button>
         <button class="phone-card" type="button" @click="game.setMode('play'); game.panel = 'mount'">
           <div class="card-top"><b>坐骑</b><small>{{ game.profile?.mount ? '预览亮着' : '还没亮出' }}</small></div>
           <p>四匹都是看着的。亮出来不改步子。</p>

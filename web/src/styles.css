@@ -2426,6 +2426,9 @@ button.item { width: 100%; text-align: left; color: inherit; }
   position: absolute;
   top: 4px;
   right: 4px;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 1px 6px;
   margin: 0;
   padding: 2px 4px;
   list-style: none;
@@ -2444,6 +2447,8 @@ button.item { width: 100%; text-align: left; color: inherit; }
   margin: 0;
 }
 .minimap .dot.goal { background: #2f8f4e; box-shadow: 0 0 0 1px #fff8ea; }
+.minimap .dot.service { background: #2f6d8a; box-shadow: 0 0 0 1px #fff8ea; }
+.minimap .dot.flag { background: #c4513a; box-shadow: 0 0 0 1px #fff8ea; }
 .market-board { font-weight: 800; }
 .item.lot { border-left: 3px solid #e6c56a; }
 .mood { font-style: normal; padding: 0 4px; border: 1px solid currentColor; }
@@ -2604,4 +2609,18 @@ button.item { width: 100%; text-align: left; color: inherit; }
 @media (max-width: 720px) {
   .album-layout { grid-template-columns: 1fr; }
   .album-side { position: static; }
+}
+.shelf-note { margin: 0; }
+.verse-lane { margin-top: 8px; }
+.verse-lane h3 { margin: 0 0 6px; }
+.verse-lane h3 small { font-weight: 600; color: var(--ink-soft); }
+.item.verse { align-items: flex-start; }
+.item.verse.studied { border-color: #c9a15a; }
+.item.verse.open { background: #fff6e0; }
+.dye-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  border: 1px solid #6b4423;
+  box-shadow: inset 0 0 0 2px rgba(255, 248, 234, 0.7);
 }

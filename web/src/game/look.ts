@@ -70,22 +70,46 @@ function toolOf(weaponType?: string): Tool {
   return 'sword'
 }
 
-/** 自己：暖棕披风和头带，武器剪影跟着身上的武器走。 */
-export function lookForSelf(weaponType?: string): Look {
+/** 染色只改衣色、滚边和头发。没染过就用原来的茶色。 */
+export interface DyeTint {
+  id?: string
+  coat?: string
+  trim?: string
+  hair?: string
+}
+
+export function paletteOf(id: string | undefined | null, rows?: DyeTint[] | null) {
+  if (!id || !rows) return undefined
+  return rows.find((row) => row.id === id)
+}
+
+/** 自己：暖棕披风和头带，武器剪影跟着身上的武器走。染过色就换这一身的颜色。 */
+export function lookForSelf(weaponType?: string, dye?: DyeTint): Look {
   return look({
     body: 'human',
-    coat: '#d08a3c',
-    trim: '#f6e2a8',
+    coat: dye?.coat || '#d08a3c',
+    trim: dye?.trim || '#f6e2a8',
     skin: '#f4d2b2',
-    hair: '#3a2414',
+    hair: dye?.hair || '#3a2414',
     hat: 'band',
     cape: true,
     tool: toolOf(weaponType),
   })
 }
 
-/** 别的旅人：蓝灰短装，和自己的披风错开。有武器类型时带上对应剪影。 */
-export function lookForTraveler(seed = '', weaponType?: string): Look {
+/** 别的旅人：没染色时仍是蓝灰短装。染过的人用那套衣色，帽子仍和自己的头带分开。 */
+export function lookForTraveler(seed = '', weaponType?: string, dye?: DyeTint): Look {
+  if (dye?.coat) {
+    return look({
+      body: 'human',
+      coat: dye.coat,
+      trim: dye.trim || '#d7e6f4',
+      skin: '#f0c8a4',
+      hair: dye.hair || '#241c16',
+      hat: 'cap',
+      tool: weaponType ? toolOf(weaponType) : 'none',
+    })
+  }
   const coats = ['#3d6f99', '#356888', '#4a7eaa', '#2c5d86']
   let index = 0
   for (const ch of seed) index = (index + ch.charCodeAt(0)) % coats.length

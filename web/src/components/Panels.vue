@@ -10,7 +10,8 @@ import AlbumBoard from './AlbumBoard.vue'
 import StallBoard from './StallBoard.vue'
 import TradeBoard from './TradeBoard.vue'
 import { itemIcon, portrait, weaponIcon } from '../game/art'
-import { lookForPet, lookForSelf } from '../game/look'
+import { lookForPet, lookForSelf, paletteOf } from '../game/look'
+import { verseLane, verseLanes } from '../game/verse'
 import MountGlyph from './MountGlyph.vue'
 import { npcFocus, portalFocus } from '../game/npc'
 import { companionOrders } from '../game/orders'
@@ -51,6 +52,13 @@ const bagTab = ref<'gear' | 'bag' | 'bank'>('bag')
 const bagFilter = ref<'all' | 'equipment' | 'consumable' | 'material' | 'quest'>('all')
 /** 背包排序。默认保持服务器给的顺序。 */
 const bagSort = ref<'shelf' | 'kind' | 'stack'>('shelf')
+/** 仓库当前打开的一间。三间共用原来的格子，存仓时进这一间。 */
+const bankShelf = ref<'sundry' | 'stock' | 'keeps'>('sundry')
+const shelfRows = [
+  { id: 'sundry' as const, name: '杂物仓' },
+  { id: 'stock' as const, name: '材料仓' },
+  { id: 'keeps' as const, name: '珍藏仓' },
+]
 /** 商店先看货架，也可以直接把背包里能卖的卖掉。 */
 const shopLane = ref<'buy' | 'sell'>('buy')
 /** 货架再按买得起、药品或材料收一收。 */
@@ -94,6 +102,7 @@ const titles: Record<string, string> = {
   market: '跳市',
   guild: '公会',
   mount: '坐骑',
+  dye: '染色',
   dungeon: '遗迹门槛',
   travel: '世界地图',
   social: '好友',
@@ -111,7 +120,7 @@ const title = computed(() => titles[game.panel] ?? '窗口')
 /** 窗口标题下的一行说明，只写和这一扇窗有关的事。 */
 const kicker = computed(() => {
   const lines: Record<string, string> = {
-    bag: '双击就能穿上或喝掉。装备可以拿火砂淬炼',
+    bag: '双击就能穿上或喝掉。仓库分三间，格子还是原来的',
     pets: '召唤兽出战进回合，宠物携带给光环',
     quest: '报酬写在条目上。钉上的任务排到追踪最前',
     shop: '买得出价，也能把背包里收的东西卖给米娜',
@@ -121,6 +130,7 @@ const kicker = computed(() => {
     social: '私聊走原来的频道。驿站短信不带金币和东西',
     slate: '一日三件事和挂在名字上的称谓。不加属性',
     mount: '亮出来给自己和旁边的人看。步子还是原来的',
+    dye: '只改披风的颜色。攻击、防御和步子不读它',
     dungeon: '先看门槛，再决定进不进。线路和等级门没改',
     stall: '买家支付标价，旅税从卖家手里扣',
     trade: '两边锁定之后才能确认',
@@ -243,6 +253,56 @@ function buffText(buff: { stat: string; value: number; until: number }) {
   const left = Math.max(0, Math.ceil((buff.until - Date.now()) / 1000))
   return `${name[buff.stat] ?? buff.stat} +${Math.round(buff.value * 1000) / 10}% · ${left} 秒`
 }
+
+function itemShelf(item: { bin?: string }) {
+  return item.bin === 'stock' || item.bin === 'keeps' ? item.bin : 'sundry'
+}
+function shelfCount(id: string) {
+  return (game.profile?.bank ?? []).filter((item: { bin?: string }) => itemShelf(item) === id).length
+}
+const shelfItems = computed(() => (game.profile?.bank ?? []).filter((item: { bin?: string }) => itemShelf(item) === bankShelf.value))
+const shelfLabel = computed(() => shelfRows.find((row) => row.id === bankShelf.value)?.name ?? '杂物仓')
+const bankCap = computed(() => Number(game.config?.constants?.bankCap ?? 80))
+
+/** 存、取或在三间仓之间挪。数量按整摞走，不另收费。 */
+function storeItem(direction: 'deposit' | 'withdraw' | 'shift', bin?: string) {
+  if (!picked.value) return
+  const body: { itemId: string; direction: string; count: number; bin?: string } = {
+    itemId: picked.value.id,
+    direction,
+    count: picked.value.count,
+  }
+  if (direction === 'deposit') body.bin = bankShelf.value
+  if (direction === 'shift' && bin) body.bin = bin
+  void game.act('/api/storage', body).then(() => {
+    pickedId.value = null
+  })
+}
+
+const dyeRows = computed(() => (game.config?.dyes ?? game.profile?.dyes ?? []) as { id: string; name: string; coat: string; trim: string; hair: string; blurb: string }[])
+const dyePick = ref('')
+const wornDyeId = computed(() => String(game.profile?.dye || 'tea'))
+const shownDye = computed(() => dyeRows.value.find((row) => row.id === (dyePick.value || wornDyeId.value)) ?? dyeRows.value.find((row) => row.id === 'tea'))
+const previewLook = computed(() => lookForSelf(game.profile?.weaponType, shownDye.value))
+
+async function applyDye(id: string) {
+  await game.act('/api/dye', { id: id === 'tea' ? '' : id })
+  dyePick.value = ''
+}
+
+function studied(id: string) {
+  return (game.profile?.manual?.studied ?? []).includes(id)
+}
+async function studySkill(id: string) {
+  await game.act('/api/manual', { id })
+}
+const bookLanes = computed(() => {
+  const grouped: Record<string, any[]> = { root: [], guard: [], edge: [] }
+  for (const skill of weaponSkills.value) grouped[verseLane(skill)]?.push(skill)
+  return verseLanes
+    .map((lane) => ({ ...lane, skills: grouped[lane.id] ?? [] }))
+    .filter((lane) => lane.skills.length)
+})
 
 /** 把技能放入当前选中栏位；已有技能通过互换位置保持四栏不重复。 */
 async function putSkill(skillId: string) {
@@ -521,7 +581,7 @@ const guildPace = computed(() => {
 /** 坐骑图鉴。等级不够的只能看剪影说明，不能亮出。 */
 const mountRows = computed(() => (game.config?.mounts ?? game.profile?.mounts ?? []) as { id: string; name: string; level: number; blurb: string }[])
 const shownMount = computed(() => mountRows.value.find((row) => row.id === (mountPick.value || game.profile?.mount)) ?? mountRows.value[0])
-const selfLook = computed(() => lookForSelf(game.profile?.weaponType))
+const selfLook = computed(() => lookForSelf(game.profile?.weaponType, paletteOf(game.profile?.dye, dyeRows.value)))
 /** 古代遗迹的门槛，怪物名单从地图刷新里收，不另写一份掉落。 */
 const ruins = computed(() => (game.config?.maps ?? []).find((item: { id: string }) => item.id === 'dungeon_ruins') as {
   name?: string
@@ -601,7 +661,10 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
     <div v-if="game.panel === 'bag'" class="seg">
       <button :class="{ on: bagTab === 'gear' }" @click="bagTab = 'gear'; pickedId = null">装备</button>
       <button :class="{ on: bagTab === 'bag' }" @click="bagTab = 'bag'; pickedId = null">背包 {{ game.profile.bag.length }}</button>
-      <button :class="{ on: bagTab === 'bank' }" @click="bagTab = 'bank'; pickedId = null">仓库 {{ game.profile.bank.length }}</button>
+      <button :class="{ on: bagTab === 'bank' }" @click="bagTab = 'bank'; pickedId = null">仓库 {{ game.profile.bank.length }}/{{ bankCap }}</button>
+    </div>
+    <div v-if="game.panel === 'bag' && bagTab === 'bank'" class="seg thin">
+      <button v-for="row in shelfRows" :key="row.id" :class="{ on: bankShelf === row.id }" @click="bankShelf = row.id; pickedId = null">{{ row.name }} {{ shelfCount(row.id) }}</button>
     </div>
     <div v-if="game.panel === 'bag' && bagTab === 'bag'" class="seg thin">
       <button :class="{ on: bagFilter === 'all' }" @click="bagFilter = 'all'">全部</button>
@@ -635,7 +698,7 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
     </div>
     <div v-else-if="game.panel === 'info'" class="seg">
       <button :class="{ on: infoTab === 'sheet' }" @click="infoTab = 'sheet'">资料</button>
-      <button :class="{ on: infoTab === 'skill' }" @click="infoTab = 'skill'">技能</button>
+      <button :class="{ on: infoTab === 'skill' }" @click="infoTab = 'skill'">心法</button>
       <button :class="{ on: infoTab === 'log' }" @click="infoTab = 'log'">消息</button>
     </div>
 
@@ -667,8 +730,9 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
         </div>
 
         <div v-else class="bag-grid">
-          <p v-if="!game.profile.bank.length" class="empty">仓库是空的。在背包里点一件东西，再选择存仓。</p>
-          <button v-for="item in game.profile.bank" :key="item.id" class="slot" :class="{ on: pickedId === item.id }" @click="pick(item.id)">
+          <p class="empty shelf-note">三间加起来仍是 {{ bankCap }} 格。存进来的进「{{ shelfLabel }}」，不另收费。</p>
+          <p v-if="!shelfItems.length" class="empty">这间是空的。在背包里点一件东西，再存进{{ shelfLabel }}。</p>
+          <button v-for="item in shelfItems" :key="item.id" class="slot" :class="{ on: pickedId === item.id }" @click="pick(item.id)">
             <IconMedal :src="itemIcon(item.templateId)" />
             <span class="slot-name">{{ item.name }}</span>
             <b v-if="item.count > 1" class="qty">{{ item.count }}</b>
@@ -867,6 +931,30 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
             <button v-if="!game.profile.guild" class="btn" @click="game.act('/api/guilds/join', { guildId: guild.id }).then(loadSide)">加入</button>
           </div>
         </template>
+      </template>
+
+      <template v-else-if="game.panel === 'dye'">
+        <div class="mount-stage">
+          <div class="ride stage">
+            <ActorFigure :look="previewLook" />
+          </div>
+          <div v-if="shownDye">
+            <h3>{{ shownDye.name }}</h3>
+            <p class="lede">{{ shownDye.blurb }}</p>
+            <p class="lede">旁边的人也能看见。攻击、防御、生命和步子不读这个。</p>
+            <div class="row">
+              <button class="btn lantern" :disabled="wornDyeId === shownDye.id" @click="applyDye(shownDye.id)">染上</button>
+              <button class="btn light" :disabled="!game.profile.dye" @click="applyDye('tea')">染回暖茶</button>
+            </div>
+          </div>
+        </div>
+        <div class="mount-grid">
+          <button v-for="row in dyeRows" :key="row.id" type="button" class="mount-card dye-card" :class="{ on: shownDye?.id === row.id, worn: wornDyeId === row.id }" @click="dyePick = row.id">
+            <i class="dye-swatch" :style="{ background: row.coat }" />
+            <b>{{ row.name }}</b>
+            <small>{{ wornDyeId === row.id ? '现在这身' : '可预览' }}</small>
+          </button>
+        </div>
       </template>
 
       <template v-else-if="game.panel === 'mount'">
@@ -1130,14 +1218,22 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
           </div>
         </template>
         <template v-else-if="infoTab === 'skill'">
-          <p class="lede">现在用的是{{ who.weaponName }}。先点下面的栏位，再点这里的技能。换武器会换成那把武器的默认四招。</p>
-          <button v-for="skill in weaponSkills" :key="skill.id" type="button" class="item" @click="putSkill(skill.id)">
-            <span>
-              <b>{{ skill.name }}<template v-if="who.loadout?.includes(skill.id)"> · 栏位 {{ who.loadout.indexOf(skill.id) + 1 }}</template></b>
-              <small>{{ skill.desc }}</small>
-              <small>{{ skillNote(skill) }}</small>
-            </span>
-          </button>
+          <p class="lede">现在是{{ who.weaponName }}。心法修为就是武器熟练，{{ who.tracks?.weapon?.level ?? 1 }} 级。先温习再记到下面的栏位。温习不改威力，换武器仍换成那把武器的默认四招。</p>
+          <section v-for="lane in bookLanes" :key="lane.id" class="verse-lane">
+            <h3>{{ lane.name }}<small> {{ lane.hint }}</small></h3>
+            <div v-for="skill in lane.skills" :key="skill.id" class="item verse" :class="{ studied: studied(skill.id), open: game.profile.manual?.focus === skill.id }">
+              <div>
+                <b>{{ skill.name }}<template v-if="who.loadout?.includes(skill.id)"> · 栏位 {{ who.loadout.indexOf(skill.id) + 1 }}</template></b>
+                <small v-if="studied(skill.id)">{{ skill.desc }}</small>
+                <small v-else>还没温习。翻开才看得到口诀，栏上的招仍能用。</small>
+                <small>{{ skillNote(skill) }}</small>
+              </div>
+              <div class="row">
+                <button class="btn light" type="button" @click="studySkill(skill.id)">{{ studied(skill.id) ? '再看' : '温习' }}</button>
+                <button class="btn" type="button" @click="putSkill(skill.id)">记到 {{ skillSlot + 1 }}</button>
+              </div>
+            </div>
+          </section>
         </template>
         <template v-else>
           <h3>你的消息</h3>
@@ -1241,8 +1337,9 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
         <button v-if="picked.kind === 'equipment' && picked.location !== 'equipped'" class="btn" @click="game.act('/api/equip', { itemId: picked.id })">装备</button>
         <button v-if="picked.location === 'equipped'" class="btn light" @click="game.act('/api/unequip', { slot: picked.slot }).then(() => pickedId = null)">卸下</button>
         <button v-if="picked.kind === 'consumable' && picked.location === 'bag'" class="btn" @click="game.act('/api/use', { itemId: picked.id })">使用</button>
-        <button v-if="picked.location === 'bag' && !picked.bound" class="btn light" @click="game.act('/api/storage', { itemId: picked.id, direction: 'deposit', count: picked.count }).then(() => pickedId = null)">存仓</button>
-        <button v-if="picked.location === 'bank'" class="btn" @click="game.act('/api/storage', { itemId: picked.id, direction: 'withdraw', count: picked.count }).then(() => pickedId = null)">取出</button>
+        <button v-if="picked.location === 'bag' && !picked.bound" class="btn light" @click="storeItem('deposit')">存进{{ shelfLabel }}</button>
+        <button v-if="picked.location === 'bank'" class="btn" @click="storeItem('withdraw')">取出</button>
+        <button v-for="row in shelfRows.filter((row) => row.id !== itemShelf(picked))" v-show="picked.location === 'bank'" :key="row.id" class="btn light" @click="storeItem('shift', row.id)">挪到{{ row.name }}</button>
         <button v-if="picked.location === 'bag' && !picked.bound && picked.sell > 0" class="btn light" @click="game.act('/api/shop/sell', { itemId: picked.id, count: 1 })">卖 1 个</button>
       </div>
     </div>
@@ -1330,6 +1427,7 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
         <button v-for="(skill, index) in barSkills" :key="index" type="button" :class="{ on: skillSlot === index }" @click="skillSlot = index">
           <small>{{ index + 1 }}</small>
           <b>{{ skill?.name ?? '空' }}</b>
+          <small v-if="skill && studied(skill.id)">已温习</small>
         </button>
       </div>
       <small v-if="barSkills[skillSlot]">{{ barSkills[skillSlot].desc }} · {{ skillNote(barSkills[skillSlot]) }}</small>

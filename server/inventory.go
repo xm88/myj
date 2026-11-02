@@ -141,7 +141,13 @@ func (a *App) addItem(id, tplID string, count float64, ex M, loc string) {
 			a.run("INSERT INTO player_items(id,player_id,template_id,count,location,extra,created_at) VALUES(?,?,?,1,?,?,?)", uid(), id, tplID, loc, js(itemExtra), now())
 		}
 	} else {
-		r := a.one("SELECT * FROM player_items WHERE player_id=? AND template_id=? AND location=? AND extra IS NULL", id, tplID, loc)
+		// 仓库按仓名分摞。没写仓名的旧档算杂物仓，不会和材料仓并到一起。
+		var r M
+		if loc == "bank" {
+			r = a.looseStack(id, tplID, loc, "sundry")
+		} else {
+			r = a.one("SELECT * FROM player_items WHERE player_id=? AND template_id=? AND location=? AND extra IS NULL", id, tplID, loc)
+		}
 		if r != nil {
 			a.run("UPDATE player_items SET count=count+? WHERE id=?", count, r["id"])
 		} else if loc != "equipped" && a.slots(id, loc) >= cap {
@@ -223,8 +229,36 @@ func (a *App) unequip(id, slot string) {
 	a.notify(id)
 }
 
-// storage 在背包与仓库间移动物品，装备保持实例，材料允许部分转移。
-func (a *App) storage(id, item, direction string, count float64) {
+// looseStack 找同一间仓里的可堆叠材料。背包不分仓。空仓名和杂物仓是同一摞。
+func (a *App) looseStack(id, tpl, loc, shelf string) M {
+	if loc != "bank" {
+		return a.one("SELECT * FROM player_items WHERE player_id=? AND template_id=? AND location=? AND extra IS NULL", id, tpl, loc)
+	}
+	if shelf == "sundry" {
+		return a.one("SELECT * FROM player_items WHERE player_id=? AND template_id=? AND location='bank' AND extra IS NULL AND (bin='' OR bin='sundry' OR bin IS NULL)", id, tpl)
+	}
+	return a.one("SELECT * FROM player_items WHERE player_id=? AND template_id=? AND location='bank' AND extra IS NULL AND bin=?", id, tpl, shelf)
+}
+
+// putLoose 把可堆叠材料放进指定位置。仓库写下仓名，背包不写。
+func (a *App) putLoose(id, tpl, loc, shelf string, count float64) {
+	if row := a.looseStack(id, tpl, loc, shelf); row != nil {
+		a.run("UPDATE player_items SET count=count+? WHERE id=?", count, row["id"])
+		return
+	}
+	bin := ""
+	if loc == "bank" {
+		bin = shelf
+	}
+	a.run("INSERT INTO player_items(id,player_id,template_id,count,location,extra,bin,created_at) VALUES(?,?,?,?,?,NULL,?,?)", uid(), id, tpl, count, loc, bin, now())
+}
+
+// storage 在背包与仓库间移动物品。存进仓库可以指定一间，不写就是杂物仓。shift 只在仓库里换间。
+func (a *App) storage(id, item, direction string, count float64, bin string) {
+	if direction == "shift" {
+		a.shiftShelf(id, item, bin, count)
+		return
+	}
 	check(direction == "deposit" || direction == "withdraw", "方向不对")
 	r := a.takeItem(id, item)
 	from, to := "bag", "bank"
@@ -235,6 +269,12 @@ func (a *App) storage(id, item, direction string, count float64) {
 	tpl := a.def("items", str(r["template_id"]))
 	check(tpl != nil, "物品不存在")
 	check(!truth(tpl["bound"]), "这件不能放进仓库")
+	shelf := "sundry"
+	if to == "bank" {
+		var ok bool
+		shelf, ok = shelfOf(bin)
+		check(ok, "没有这间仓")
+	}
 	cap := a.constant("bagCap")
 	if to == "bank" {
 		cap = a.constant("bankCap")
@@ -242,13 +282,49 @@ func (a *App) storage(id, item, direction string, count float64) {
 	check(count > 0, "数量不对")
 	if str(tpl["kind"]) == "equipment" || r["extra"] != nil {
 		check(a.slots(id, to) < cap, "背包或仓库满了")
-		a.run("UPDATE player_items SET location=? WHERE id=?", to, item)
+		if to == "bank" {
+			a.run("UPDATE player_items SET location=?,bin=? WHERE id=?", to, shelf, item)
+		} else {
+			a.run("UPDATE player_items SET location=?,bin='' WHERE id=?", to, item)
+		}
 	} else {
 		n := math.Min(math.Floor(count), num(r["count"]))
-		existing := a.one("SELECT id FROM player_items WHERE player_id=? AND template_id=? AND location=? AND extra IS NULL", id, r["template_id"], to)
+		check(n > 0, "数量不对")
+		existing := a.looseStack(id, str(r["template_id"]), to, shelf)
 		check(existing != nil || a.slots(id, to) < cap, "背包或仓库满了")
 		a.consume(r, n)
-		a.addItem(id, str(r["template_id"]), n, nil, to)
+		if to == "bag" {
+			a.addItem(id, str(r["template_id"]), n, nil, "bag")
+		} else {
+			a.putLoose(id, str(r["template_id"]), "bank", shelf, n)
+		}
+	}
+	a.emit(id, M{"type": "bank"})
+	a.notify(id)
+}
+
+// shiftShelf 在三间仓之间挪东西。整摞换间不占新格；拆出新的一摞才看仓库是不是满了。
+func (a *App) shiftShelf(id, item, bin string, count float64) {
+	shelf, ok := shelfOf(bin)
+	check(ok && strings.TrimSpace(bin) != "", "没有这间仓")
+	r := a.takeItem(id, item)
+	check(str(r["location"]) == "bank", "先存进仓库")
+	check(shownShelf(str(r["bin"])) != shelf, "已经在这间仓")
+	tpl := a.def("items", str(r["template_id"]))
+	check(tpl != nil, "物品不存在")
+	if str(tpl["kind"]) == "equipment" || r["extra"] != nil {
+		a.run("UPDATE player_items SET bin=? WHERE id=?", shelf, item)
+	} else {
+		n := math.Min(math.Floor(count), num(r["count"]))
+		check(n > 0, "数量不对")
+		existing := a.looseStack(id, str(r["template_id"]), "bank", shelf)
+		if existing == nil && n == num(r["count"]) {
+			a.run("UPDATE player_items SET bin=? WHERE id=?", shelf, item)
+		} else {
+			check(existing != nil || a.slots(id, "bank") < a.constant("bankCap"), "背包或仓库满了")
+			a.consume(r, n)
+			a.putLoose(id, str(r["template_id"]), "bank", shelf, n)
+		}
 	}
 	a.emit(id, M{"type": "bank"})
 	a.notify(id)
@@ -490,6 +566,9 @@ func (a *App) viewItem(r M, craft float64) M {
 		aff = objects(ex["affixes"])
 	}
 	view := M{"id": r["id"], "templateId": r["template_id"], "name": fallback(t["name"], str(r["template_id"])), "desc": fallback(t["desc"], ""), "kind": fallback(t["kind"], "material"), "count": r["count"], "location": r["location"], "slot": t["slot"], "weaponType": t["weaponType"], "bound": truth(t["bound"]), "sell": num(t["sell"]), "quality": q, "affixes": aff, "lines": gearLines(t, ex)}
+	if str(r["location"]) == "bank" {
+		view["bin"] = shownShelf(str(r["bin"]))
+	}
 	if str(t["kind"]) == "equipment" {
 		level := temperOf(ex)
 		view["temper"] = level

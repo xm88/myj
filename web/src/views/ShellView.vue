@@ -239,6 +239,7 @@ const panels = [
   ['shop', '商店'],
   ['guild', '公会'],
   ['mount', '坐骑'],
+  ['dye', '染色'],
   ['dungeon', '遗迹'],
   ['party', '队伍'],
   ['social', '好友'],

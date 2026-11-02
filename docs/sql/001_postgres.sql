@@ -38,6 +38,7 @@ CREATE TABLE players (
   dye_id TEXT NOT NULL DEFAULT '',
   marks JSONB NOT NULL DEFAULT '[]',
   manual JSONB NOT NULL DEFAULT '{}',
+  regard JSONB NOT NULL DEFAULT '{}',
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL
 );

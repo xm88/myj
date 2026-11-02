@@ -384,7 +384,12 @@ func (a *App) partyView(id string) any {
 		pid := str(v)
 		members = append(members, M{"id": pid, "name": a.player(pid)["name"]})
 	}
-	return M{"id": p["id"], "leaderId": p["leaderId"], "members": members}
+	aim := str(p["aim"])
+	aimName := ""
+	if row := aimByID(aim); row != nil {
+		aimName = str(row["name"])
+	}
+	return M{"id": p["id"], "leaderId": p["leaderId"], "members": members, "aim": aim, "aimName": aimName, "follow": a.followOf(id)}
 }
 
 // inviteParty 必要时创建队伍，再向在线目标发送限时组队邀请。

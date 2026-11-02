@@ -17,6 +17,7 @@ var titleCatalog = []M{
 	{"id": "hall_hand", "name": "堂口里的人", "need": "加入一个公会", "kind": "guild"},
 	{"id": "sworn_kin", "name": "同行的人", "need": "和一位好友互相同行", "kind": "bond"},
 	{"id": "day_idle", "name": "今日有闲", "need": "做完今天三件小事", "kind": "day"},
+	{"id": "town_face", "name": "镇上的熟脸", "need": "有一位镇民认得你", "kind": "regard"},
 }
 
 func titleByID(id string) M {
@@ -111,6 +112,8 @@ func (a *App) titleOpen(id, tid string) bool {
 	case "day":
 		b := a.bookRow(id)
 		return b != nil && truth(b["kept"])
+	case "regard":
+		return a.anyRegardKnown(id)
 	default:
 		return false
 	}

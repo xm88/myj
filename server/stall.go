@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"strings"
 )
 
 // openStall 在脚下开摊。副本、战斗和交易里不能摆。
@@ -168,12 +169,25 @@ func (a *App) stallsNear(id string) []M {
 		seen[sid] = true
 		goods := a.rows("SELECT template_id FROM stall_goods WHERE stall_id=? ORDER BY created_at", sid)
 		sample := ""
-		if len(goods) > 0 {
-			if tpl := a.def("items", str(goods[0]["template_id"])); tpl != nil {
+		counts := map[string]int{}
+		for i, g := range goods {
+			tpl := a.def("items", str(g["template_id"]))
+			if tpl == nil {
+				continue
+			}
+			if i == 0 {
 				sample = str(tpl["name"])
 			}
+			shelf, _ := stallShelf(str(tpl["kind"]))
+			counts[shelf]++
 		}
-		out = append(out, M{"id": sid, "title": row["title"], "owner": row["owner_name"], "ownerId": row["player_id"], "mapId": row["map_id"], "x": row["x"], "y": row["y"], "mine": str(row["player_id"]) == id, "seam": seam, "distance": math.Round(gap), "listed": len(goods), "sample": sample})
+		parts := []string{}
+		for _, shelf := range stallShelves {
+			if n := counts[str(shelf["id"])]; n > 0 {
+				parts = append(parts, fmt.Sprintf("%s %d", str(shelf["name"]), n))
+			}
+		}
+		out = append(out, M{"id": sid, "title": row["title"], "sign": str(row["sign"]), "owner": row["owner_name"], "ownerId": row["player_id"], "mapId": row["map_id"], "x": row["x"], "y": row["y"], "mine": str(row["player_id"]) == id, "seam": seam, "distance": math.Round(gap), "listed": len(goods), "sample": sample, "shelves": strings.Join(parts, " · ")})
 	}
 	for _, row := range a.rows("SELECT s.*, p.name AS owner_name FROM stalls s JOIN players p ON p.id=s.player_id WHERE s.open=1 AND s.map_id=?", l.State["mapId"]) {
 		add(row, false)
@@ -198,9 +212,10 @@ func (a *App) stallDetail(id, stallID string) M {
 		tpl := a.def("items", str(g["template_id"]))
 		price := num(g["price"])
 		tax := math.Floor(price * a.constant("marketTax"))
-		goods = append(goods, M{"id": g["id"], "templateId": g["template_id"], "name": tpl["name"], "kind": tpl["kind"], "count": g["count"], "price": g["price"], "tax": tax, "net": price - tax, "desc": tpl["desc"]})
+		shelf, shelfName := stallShelf(str(tpl["kind"]))
+		goods = append(goods, M{"id": g["id"], "templateId": g["template_id"], "name": tpl["name"], "kind": tpl["kind"], "shelf": shelf, "shelfName": shelfName, "count": g["count"], "price": g["price"], "tax": tax, "net": price - tax, "desc": tpl["desc"]})
 	}
-	return M{"id": stall["id"], "title": stall["title"], "owner": stall["owner_name"], "ownerId": stall["player_id"], "mine": str(stall["player_id"]) == id, "mapId": stall["map_id"], "x": stall["x"], "y": stall["y"], "goods": goods}
+	return M{"id": stall["id"], "title": stall["title"], "sign": str(stall["sign"]), "owner": stall["owner_name"], "ownerId": stall["player_id"], "mine": str(stall["player_id"]) == id, "mapId": stall["map_id"], "x": stall["x"], "y": stall["y"], "goods": goods}
 }
 
 // myStallView 档案里附带自己的摊，没有就空。

@@ -367,7 +367,7 @@ func (a *App) seamEntities(l *Live) []M {
 				continue
 			}
 			x, y := project(src, dst, stall)
-			out = append(out, M{"id": "stall:" + str(stall["id"]), "kind": "stall", "stallId": stall["id"], "name": stall["title"], "owner": stall["owner_name"], "x": x, "y": y, "seam": true, "mapId": to})
+			out = append(out, M{"id": "stall:" + str(stall["id"]), "kind": "stall", "stallId": stall["id"], "name": stall["title"], "sign": str(stall["sign"]), "owner": stall["owner_name"], "x": x, "y": y, "seam": true, "mapId": to})
 		}
 	}
 	return out
@@ -483,7 +483,7 @@ func (a *App) afarEntities(l *Live) []M {
 			if math.Hypot(wx-px, wy-py) > 1600 {
 				continue
 			}
-			out = append(out, M{"id": "stall:" + str(stall["id"]), "kind": "stall", "stallId": stall["id"], "name": stall["title"], "owner": stall["owner_name"], "x": stall["x"], "y": stall["y"], "mapId": to, "afar": true})
+			out = append(out, M{"id": "stall:" + str(stall["id"]), "kind": "stall", "stallId": stall["id"], "name": stall["title"], "sign": str(stall["sign"]), "owner": stall["owner_name"], "x": stall["x"], "y": stall["y"], "mapId": to, "afar": true})
 		}
 	}
 	return out

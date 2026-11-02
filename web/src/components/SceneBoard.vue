@@ -206,6 +206,7 @@ interface Spot {
   id?: string
   focus?: string
   stallId?: string
+  sign?: string
   count?: number
   npc?: { id: string; name: string; title?: string; panels?: string[] }
   templateId?: string
@@ -272,11 +273,11 @@ const spots = computed<Spot[]>(() => {
   }
   for (const stall of stalls.value) {
     const world = stall.worldX != null ? { x: Number(stall.worldX), y: Number(stall.worldY) } : worldOf(mapId.value, stall.x, stall.y)
-    add({ key: stall.id, kind: 'stall', name: stall.name, badge: '摊', wx: world.x, wy: world.y, x: stall.x, y: stall.y, mapId: mapId.value, stallId: stall.stallId })
+    add({ key: stall.id, kind: 'stall', name: stall.name, badge: '摊', wx: world.x, wy: world.y, x: stall.x, y: stall.y, mapId: mapId.value, stallId: stall.stallId, sign: stall.sign || '' })
   }
   for (const mark of afar.value) {
     const world = mark.worldX != null ? { x: Number(mark.worldX), y: Number(mark.worldY) } : worldOf(mark.mapId, mark.x, mark.y)
-    add({ key: 'afar:' + mark.id, kind: mark.kind, name: mark.name, badge: plateBadge(mark.kind, mark), wx: world.x, wy: world.y, x: mark.x, y: mark.y, mapId: mark.mapId, id: mark.id, stallId: mark.stallId, templateId: mark.templateId, role: mark.role, weapon: mark.kind === 'player' ? mark.templateId : undefined, mount: mark.mount || '', dye: mark.dye || '', title: mark.title || '' })
+    add({ key: 'afar:' + mark.id, kind: mark.kind, name: mark.name, badge: plateBadge(mark.kind, mark), wx: world.x, wy: world.y, x: mark.x, y: mark.y, mapId: mark.mapId, id: mark.id, stallId: mark.stallId, sign: mark.sign || '', templateId: mark.templateId, role: mark.role, weapon: mark.kind === 'player' ? mark.templateId : undefined, mount: mark.mount || '', dye: mark.dye || '', title: mark.title || '' })
   }
   return list
 })
@@ -423,6 +424,15 @@ function openSpot(spot: Spot) {
   }
 }
 
+/** 队员看见队长的方向。朝队长走用原来的点地，不改步速。 */
+const follow = computed(() => game.snap?.follow ?? null)
+
+function walkToLeader() {
+  const hint = follow.value
+  if (!hint || hint.lead || !hint.same || !hint.far) return
+  game.go(Number(hint.x), Number(hint.y))
+}
+
 /** 靠近本图的门时提示下一片。再近一点就改成按键提示。 */
 const gateHint = computed(() => {
   let best: Spot | null = null
@@ -516,6 +526,11 @@ const floats = computed(() => {
       <b>{{ map.name }}</b>
     </div>
     <div class="coords">{{ Math.round(self.x) }} , {{ Math.round(self.y) }}<small>世界 {{ Math.round(selfWorld.x) }} , {{ Math.round(selfWorld.y) }}</small></div>
+    <div v-if="follow" class="gate-banner follow-banner" @click.stop>
+      <em>队</em>
+      <span>{{ follow.text }}</span>
+      <button v-if="!follow.lead && follow.same && follow.far" type="button" @click.stop="walkToLeader">朝队长走</button>
+    </div>
     <div v-if="gateHint" class="gate-banner" :class="{ close: gateHint.close }">
       <em>门</em>
       <span>{{ gateHint.close ? '按 E 进入' : '再走近' }}「{{ gateHint.name }}」</span>
@@ -565,6 +580,7 @@ const floats = computed(() => {
         <span class="plate-name">{{ spot.name }}<template v-if="spot.count && spot.count > 1"> ×{{ spot.count }}</template></span>
         <small v-if="spot.kind === 'player'">交易</small><small v-else-if="spot.kind === 'stall'">摊</small><small v-else-if="spot.kind === 'portal'">{{ spot.mapId === mapId ? '进入' : '邻门' }}</small><small v-else-if="spot.mapId !== mapId">界外</small>
       </span>
+      <small v-if="spot.kind === 'stall' && spot.sign" class="stall-sign">{{ spot.sign }}</small>
       <span v-if="figured(spot.kind)" class="ride" :class="{ on: !!spot.mount }">
         <MountGlyph v-if="spot.mount" :id="spot.mount" />
         <ActorFigure :look="actorLook(spot)" :facing="actorFace(spot)" :step="actorStep(spot)" :pip="spot.role === 'elite' || spot.role === 'boss' || spot.role === 'world'" />

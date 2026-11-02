@@ -180,6 +180,9 @@ func (a *App) route(r *http.Request, b M) any {
 			a.temper(id, s("itemId"))
 		case "/api/party/order":
 			a.setCompanionOrder(id, s("order"))
+		case "/api/party/aim":
+			a.setPartyAim(id, s("aim"))
+			return M{"profile": a.profile(id), "party": a.partyView(id)}
 		case "/api/shop/buy":
 			a.buyShop(id, s("npcId"), s("itemId"), n("count", 1))
 		case "/api/shop/sell":
@@ -241,6 +244,13 @@ func (a *App) route(r *http.Request, b M) any {
 			a.travel(id, s("mapId"))
 		case "/api/stall/open":
 			a.openStall(id, s("title"))
+			if strings.TrimSpace(s("sign")) != "" {
+				a.setStallSign(id, s("sign"))
+			}
+		case "/api/stall/sign":
+			a.setStallSign(id, s("sign"))
+		case "/api/blend":
+			a.blend(id, s("id"))
 		case "/api/stall/list":
 			a.listStall(id, s("itemId"), n("count", 1), n("price", 0))
 		case "/api/stall/unlist":
@@ -279,6 +289,8 @@ func (a *App) route(r *http.Request, b M) any {
 				panel := strings.TrimPrefix(action, "open:")
 				check(contains(a.def("npcs", npc)["panels"], panel), "没有这个功能")
 				return M{"open": panel, "profile": a.profile(id)}
+			} else if action == "gift" {
+				a.giveRegard(id, npc)
 			}
 			d := a.dialog(id, npc)
 			return M{"profile": a.profile(id), "dialog": d}

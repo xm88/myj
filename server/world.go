@@ -730,7 +730,7 @@ func (a *App) snapshot(l *Live, t float64) M {
 			entities = append(entities, M{"id": id, "kind": "player", "templateId": s["weaponType"], "name": s["name"], "level": s["level"], "x": s["x"], "y": s["y"], "hp": s["hp"], "maxHp": p.Stats["maxHp"], "alive": true, "tint": "#f2d48a", "role": "player", "radius": 14, "stalling": str(s["stallId"]) != "", "mount": str(s["mount"]), "dye": str(s["dye"]), "title": a.plateOf(p)})
 		}
 		for _, stall := range a.rows("SELECT s.*, p.name AS owner_name FROM stalls s JOIN players p ON p.id=s.player_id WHERE s.open=1 AND s.map_id=?", i.MapID) {
-			entities = append(entities, M{"id": "stall:" + str(stall["id"]), "kind": "stall", "stallId": stall["id"], "name": stall["title"], "owner": stall["owner_name"], "x": stall["x"], "y": stall["y"], "alive": true})
+			entities = append(entities, M{"id": "stall:" + str(stall["id"]), "kind": "stall", "stallId": stall["id"], "name": stall["title"], "sign": str(stall["sign"]), "owner": stall["owner_name"], "x": stall["x"], "y": stall["y"], "alive": true})
 		}
 	}
 	entities = append(entities, a.afarEntities(l)...)
@@ -780,6 +780,9 @@ func (a *App) snapshot(l *Live, t float64) M {
 		cd[k] = math.Max(0, num(v)-t)
 	}
 	snap := M{"type": "snapshot", "t": t, "mapId": l.State["mapId"], "line": line, "self": self, "entities": entities, "cooldowns": cd, "events": l.Events, "gates": a.gates(str(l.State["mapId"])), "chunks": a.cameraChunks(str(l.State["mapId"])), "camera": cameraSpan}
+	if follow := a.followOf(str(l.State["id"])); follow != nil {
+		snap["follow"] = follow
+	}
 	if b := a.bouts[str(l.State["boutId"])]; b != nil {
 		snap["bout"] = a.boutView(b, str(l.State["id"]))
 	}

@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS players (
   dye_id TEXT NOT NULL DEFAULT '',
   marks TEXT NOT NULL DEFAULT '[]',
   manual TEXT NOT NULL DEFAULT '{}',
+  regard TEXT NOT NULL DEFAULT '{}',
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
@@ -177,6 +178,7 @@ CREATE TABLE IF NOT EXISTS stalls (
   x REAL NOT NULL,
   y REAL NOT NULL,
   title TEXT NOT NULL,
+  sign TEXT NOT NULL DEFAULT '',
   open INTEGER NOT NULL,
   created_at INTEGER NOT NULL
 );

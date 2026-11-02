@@ -289,6 +289,15 @@ func (a *App) dialog(id, npcID string) M {
 	if lines := arr(npc["lines"]); len(lines) > 0 {
 		text = str(lines[0])
 	}
+	a.noteRegard(id, npcID)
+	if face := regardFace(npcID); face != nil {
+		n := a.regardN(id, npcID)
+		if n >= 6 && str(face["known"]) != "" {
+			text = str(face["known"])
+		} else if n >= 3 && str(face["warm"]) != "" {
+			text = str(face["warm"])
+		}
+	}
 	if len(turnins) > 0 {
 		text = "「" + str(turnins[0]["name"]) + "」可以交差了。"
 	} else if len(accepts) == 1 && len(pending) == 0 {
@@ -297,5 +306,13 @@ func (a *App) dialog(id, npcID string) M {
 		text = "「" + str(pending[0]["name"]) + "」" + str(pending[0]["detail"]) + "。"
 	}
 	topics := append(append(turnins, accepts...), pending...)
-	return M{"npcId": npcID, "name": npc["name"], "title": npc["title"], "text": text, "actions": actions, "topics": topics}
+	out := M{"npcId": npcID, "name": npc["name"], "title": npc["title"], "text": text, "actions": actions, "topics": topics}
+	if view := a.regardView(id, npcID); view != nil {
+		if truth(view["canGift"]) {
+			actions = append(actions, M{"id": "gift", "label": "送上" + str(view["likedName"])})
+			out["actions"] = actions
+		}
+		out["regard"] = view
+	}
+	return out
 }

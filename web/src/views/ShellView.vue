@@ -175,10 +175,11 @@ const near = computed(() => {
 const dialogTopics = computed(() => (Array.isArray(game.dialog?.topics) ? game.dialog.topics : []))
 /** NPC 对话中的商店、制造等功能入口。 */
 const dialogServices = computed(() => (game.dialog?.actions ?? []).filter((action: { id: string }) => String(action.id).startsWith('open:')))
+const dialogGifts = computed(() => (game.dialog?.actions ?? []).filter((action: { id: string }) => action.id === 'gift'))
 /** 当前可通过数字键选择的任务和服务操作。 */
 const dialogChoices = computed(() => {
   const quests = dialogTopics.value.filter((topic: { kind: string }) => topic.kind === 'turnin' || topic.kind === 'accept')
-  return [...quests, ...dialogServices.value]
+  return [...quests, ...dialogGifts.value, ...dialogServices.value]
 })
 /** 判断对话是否包含可接取或可交付任务，决定默认按钮提示。 */
 const hasQuestChoice = computed(() => dialogTopics.value.some((topic: { kind: string }) => topic.kind === 'turnin' || topic.kind === 'accept'))
@@ -357,6 +358,12 @@ function sendChat() {
 }
 
 /** 复用 NPC 任务状态规则，生成主界面名册标记。 */
+function regardLine(id: string) {
+  const row = (game.profile?.regards ?? []).find((item: { id: string; n?: number; tierName?: string; cap?: number }) => item.id === id)
+  if (!row?.n) return ''
+  return `${row.tierName} ${row.n}/${row.cap}`
+}
+
 function mark(npc: { id: string; name: string }) {
   return npcMark(npc, game.profile)
 }
@@ -573,7 +580,7 @@ onBeforeUnmount(() => {
             <ActorFigure class="roster-fig" :pip="false" :look="lookForNpc(npc.id, npc.title, npc.panels)" />
             <span>
               <b><i v-if="mark(npc) === 'turnin'" class="qmark">?</i><i v-else-if="mark(npc) === 'offer' || mark(npc) === 'talk'" class="qmark">!</i>{{ npc.name }}</b>
-              <small>{{ npcHint(npc, game.profile) }}</small>
+              <small>{{ npcHint(npc, game.profile) }}<template v-if="regardLine(npc.id)"> · {{ regardLine(npc.id) }}</template></small>
             </span>
             <button @click="game.go(npc.x, npc.y, 'interact', npcFocus(npc.id))">{{ npcAction(mark(npc)) }}</button>
           </div>
@@ -620,6 +627,7 @@ onBeforeUnmount(() => {
           </div>
           <b class="bust-name">{{ game.dialog.name }}</b>
           <small>{{ game.dialog.title }}</small>
+          <small v-if="game.dialog.regard" class="regard">{{ game.dialog.regard.tierName }} {{ game.dialog.regard.n }}/{{ game.dialog.regard.cap }}</small>
         </aside>
         <div class="dialog-col">
           <header>
@@ -628,6 +636,7 @@ onBeforeUnmount(() => {
           </header>
           <div class="dialog-body">
             <p class="say">{{ game.dialog.text }}</p>
+            <p v-if="game.dialog.regard" class="regard">{{ game.dialog.regard.tierName }} {{ game.dialog.regard.n }}/{{ game.dialog.regard.cap }}<template v-if="game.dialog.regard.likedName"> · 爱收{{ game.dialog.regard.likedName }}</template></p>
             <template v-if="Array.isArray(game.dialog.topics)">
               <article v-for="topic in dialogTopics" :key="topic.id" class="topic" :class="topic.kind === 'progress' ? 'pending' : topic.kind">
                 <div>
@@ -644,6 +653,10 @@ onBeforeUnmount(() => {
                 <button v-for="topic in dialogTopics.filter((item) => item.kind !== 'progress')" :key="'c' + topic.id" class="talk-choice" :class="{ lantern: topic.kind === 'turnin' }" type="button" @click="chooseDialog(topic.id)">
                   <em v-if="choiceNo(topic.id)" class="key">{{ choiceNo(topic.id) }}</em>
                   <span>{{ topic.kind === 'turnin' ? '交付' : '接受' }} · {{ topic.name }}</span>
+                </button>
+                <button v-for="action in dialogGifts" :key="action.id" class="talk-choice" type="button" @click="chooseDialog(action.id)">
+                  <em v-if="choiceNo(action.id)" class="key">{{ choiceNo(action.id) }}</em>
+                  <span>{{ action.label }}</span>
                 </button>
                 <button v-for="action in dialogServices" :key="action.id" class="talk-choice" type="button" @click="chooseDialog(action.id)">
                   <em v-if="choiceNo(action.id)" class="key">{{ choiceNo(action.id) }}</em>
@@ -670,6 +683,7 @@ onBeforeUnmount(() => {
         <p>点怪物会走近并开战。开战之后按速度轮流出手。旅人、召唤兽和对手分成三列，出手时有飘字和一条短读条。轮到你时中间会亮出「请出手」。可以攻击、放技能、吃药、防御或逃跑。打到七成血可以野捕，三成血再用契约。召唤兽能刻兽纹帖，两只可以合灵。左下角的三步引导可以跳过。</p>
         <p>战斗时如果想先看地图，点「返回地图」。镜头跟着你走过相邻的地块，走到门外就进下一片，不会被拉回入口。副本仍是单独一张。摆摊和当面交易都要站在旁边，成交扣和拍卖一样的旅税。</p>
         <p>点自己的名字，或下面的「角色」，可以看属性和换技能。技能栏一次放 4 个：先点栏位，再点要换上的技能。</p>
+        <p>摆摊可以写一句招牌，货按兵器、丹食、材料和杂货分架，旅税还是原来的。队长可以定跟上、打怪、采集或回镇，队员看见方向，步子不变。艾兰、霍特、米娜和林守会记熟脸，认得你之后能挂「镇上的熟脸」，不加属性。制造窗口里的合剂用背包和仓库的材料，不涨熟练。</p>
         <p>下面一排还有任务、图鉴、道具、灵兽、公会、坐骑和遗迹门槛。图鉴里是旅迹、遇见过的异兽、契约过的灵兽，以及踏过的地方。聊天分当前、世界、队伍、公会，传闻和系统只看不发。点别的旅人「交谈」，会在当前频道叫他。</p>
       </section>
       </Transition>

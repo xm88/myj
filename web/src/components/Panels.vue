@@ -70,7 +70,7 @@ const craftFlash = ref('')
 /** 当前选中的物品、灵伴或配方 ID；切换面板时清空。 */
 const pickedId = ref<string | null>(null)
 /** 制造列表当前选择全部、制造或料理配方。 */
-const craftTab = ref<'all' | 'craft' | 'cook'>('all')
+const craftTab = ref<'all' | 'craft' | 'cook' | 'blend'>('all')
 /** 社交面板当前选择好友或邮件列表。 */
 const socialTab = ref<'friend' | 'mail'>('friend')
 /** 组队邀请的目标角色名输入。 */
@@ -124,15 +124,15 @@ const kicker = computed(() => {
     pets: '召唤兽出战进回合，宠物携带给光环',
     quest: '报酬写在条目上。钉上的任务排到追踪最前',
     shop: '买得出价，也能把背包里收的东西卖给米娜',
-    craft: '材料够了才能做。做好的装备回背包淬炼',
-    party: '号令决定队友，以及你超时没选时怎么打',
+    craft: '配方仍看背包。合剂可以连仓库一起算，不涨熟练',
+    party: '号令管出手。队长定的目标只告诉队员往哪边走',
     guild: '点卯和捐献只涨公会。战斗和金币收入不跟着变',
     social: '私聊走原来的频道。驿站短信不带金币和东西',
     slate: '一日三件事和挂在名字上的称谓。不加属性',
     mount: '亮出来给自己和旁边的人看。步子还是原来的',
     dye: '只改披风的颜色。攻击、防御和步子不读它',
     dungeon: '先看门槛，再决定进不进。线路和等级门没改',
-    stall: '买家支付标价，旅税从卖家手里扣',
+    stall: '买家支付标价，旅税从卖家手里扣。招牌和架子不改税',
     trade: '两边锁定之后才能确认',
     album: '旅迹、异兽、灵兽，还有踏过的地方',
   }
@@ -152,6 +152,11 @@ const shopGoods = computed(() => {
 /** 背包里某一模板一共有多少个。 */
 function ownedCount(templateId: string) {
   return (game.profile?.bag ?? []).filter((item: { templateId: string }) => item.templateId === templateId).reduce((sum: number, item: { count: number }) => sum + Number(item.count || 0), 0)
+}
+/** 背包和仓库加在一起。合剂先用背包，不够再动仓库。 */
+function heldCount(templateId: string) {
+  const piles = [...(game.profile?.bag ?? []), ...(game.profile?.bank ?? [])]
+  return piles.filter((item: { templateId: string }) => item.templateId === templateId).reduce((sum: number, item: { count: number }) => sum + Number(item.count || 0), 0)
 }
 
 /** 打开拍卖、社交、公会或队伍面板时按需读取列表数据。 */
@@ -538,6 +543,15 @@ function craftReady(recipe: { life: string; skill: number; gold: number; inputs:
   return ''
 }
 
+/** 合剂看背包加仓库，不看生活等级。 */
+function blendReady(blend: { gold: number; inputs: { itemId: string; count: number }[] }) {
+  if (!canAfford(blend.gold)) return '金币不够'
+  for (const input of blend.inputs) {
+    if (heldCount(input.itemId) < input.count) return '材料不够'
+  }
+  return ''
+}
+
 /** 做成之后在这一行上留一下名字，方便看出刚才出了什么。 */
 async function makeRecipe(recipe: { id: string; name: string; life: string; skill: number; gold: number; inputs: { itemId: string; count: number }[] }) {
   const block = craftReady(recipe)
@@ -682,6 +696,7 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
       <button :class="{ on: craftTab === 'all' }" @click="craftTab = 'all'">全部</button>
       <button :class="{ on: craftTab === 'craft' }" @click="craftTab = 'craft'">制造</button>
       <button :class="{ on: craftTab === 'cook' }" @click="craftTab = 'cook'">料理</button>
+      <button :class="{ on: craftTab === 'blend' }" @click="craftTab = 'blend'">合剂</button>
     </div>
     <div v-else-if="game.panel === 'market'" class="seg">
       <button :class="{ on: marketTab === 'browse' }" @click="marketTab = 'browse'; pickedId = null">在售</button>
@@ -836,7 +851,27 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
       </template>
 
       <template v-else-if="game.panel === 'craft'">
-        <div class="list">
+        <div v-if="craftTab === 'blend'" class="list blend-bench">
+          <p class="lede">两味。材料先扣背包，不够再扣仓库。不涨熟练，原来的配方还在。</p>
+          <article v-for="blend in game.config?.blends ?? []" :key="blend.id" class="item">
+            <span class="item-main">
+              <IconMedal :src="itemIcon(blend.output.itemId)" />
+              <span>
+                <b>{{ blend.name }}</b>
+                <small>{{ blend.gold }} 金币 · {{ blendReady(blend) || '可以合' }}</small>
+                <small>{{ blend.blurb }}</small>
+                <span class="ings">
+                  <span v-for="input in blend.inputs" :key="input.itemId" :class="{ short: heldCount(input.itemId) < input.count }">
+                    <IconMedal tiny :src="itemIcon(input.itemId)" />
+                    {{ itemName(input.itemId) }} {{ heldCount(input.itemId) }}/{{ input.count }}
+                  </span>
+                </span>
+              </span>
+            </span>
+            <button class="btn lantern" :disabled="!!blendReady(blend)" @click="game.act('/api/blend', { id: blend.id })">{{ blendReady(blend) || '合' }}</button>
+          </article>
+        </div>
+        <div v-else class="list">
           <button v-for="recipe in recipes" :key="recipe.id" class="item" :class="{ on: pickedId === recipe.id, flash: craftFlash === recipe.id, short: craftReady(recipe) }" @click="pick(recipe.id)">
             <span class="item-main">
               <IconMedal :src="itemIcon(recipe.output.itemId)" />
@@ -1128,7 +1163,21 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
         </div>
         <p class="lede">现在是「{{ game.profile?.companionOrderName || '稳打' }}」。没组队时，你自己超时没选也会听这个。</p>
         <div v-if="game.party">
-          <p class="lede">队长带着队伍。古代遗迹会跟队长进同一条线路。</p>
+          <p class="lede">队长带着队伍。古代遗迹会跟队长进同一条线路。目标不改步子，也不改号令。</p>
+          <p v-if="game.party.follow" class="stall-board">{{ game.party.follow.text }}</p>
+          <div class="order-picks">
+            <button
+              v-for="aim in game.config?.partyAims ?? []"
+              :key="aim.id"
+              type="button"
+              :class="{ on: game.party.aim === aim.id }"
+              :disabled="game.party.leaderId !== game.profile.id"
+              @click="game.act('/api/party/aim', { aim: aim.id }).then((result) => { game.party = result?.party ?? game.party })"
+            >
+              <b>{{ aim.name }}</b>
+              <small>{{ aim.hint }}</small>
+            </button>
+          </div>
           <div v-for="member in game.party.members" :key="member.id" class="item">
             <span>{{ member.name }}<small v-if="member.id === game.party.leaderId"> · 队长</small></span>
           </div>
@@ -1161,6 +1210,7 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
                   <span>{{ mapName || '路上' }}</span>
                   <span>{{ who.gold }} 金币</span>
                   <span v-if="who.guild">{{ who.guild.name }}</span>
+                  <span v-for="face in (who.regards ?? []).filter((row) => row.n > 0)" :key="face.id">{{ face.name }} {{ face.tierName }}</span>
                   <span v-if="activePet">灵伴 {{ activePet.name }}</span>
                 </div>
                 <div class="mh-bar">

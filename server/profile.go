@@ -165,6 +165,7 @@ func (a *App) profile(id string) M {
 	}
 	s["attributeRows"] = rows
 	s["stall"] = a.myStallView(id)
+	s["regards"] = a.regardList(id)
 	a.fillNamecard(s, id)
 	return s
 }
@@ -191,7 +192,7 @@ func (a *App) rewardBrief(q M) string {
 
 // publicConfig 输出客户端显示与操作需要的配置，怪物列表省略服务器战斗结算细节。
 func (a *App) publicConfig() M {
-	out := M{"version": gameVersion, "mounts": mountCatalog, "dyes": dyeCatalog, "shelves": shelfCatalog}
+	out := M{"version": gameVersion, "mounts": mountCatalog, "dyes": dyeCatalog, "shelves": shelfCatalog, "stallShelves": stallShelves, "partyAims": partyAims, "blends": blendCatalog}
 	for _, k := range []string{"maps", "npcs", "items", "skills", "pets", "recipes", "durations", "dispatchNodes", "weathers", "constants"} {
 		out[k] = a.data[k]
 	}

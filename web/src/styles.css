@@ -1225,6 +1225,46 @@ button.item { width: 100%; text-align: left; color: inherit; }
   text-align: center;
 }
 .gate-banner.close { border-color: #ffe08a; box-shadow: 0 0 0 2px rgba(231, 180, 35, 0.35), 0 6px 16px rgba(40, 22, 8, 0.28); }
+.follow-banner { pointer-events: auto; bottom: 78px; }
+.follow-banner button {
+  border: 0;
+  background: #e7b423;
+  color: #2a2112;
+  font-weight: 700;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.stall-sign {
+  display: block;
+  margin-top: 3px;
+  padding: 1px 6px;
+  max-width: 9em;
+  background: #6b3a1e;
+  color: #f6e2a8;
+  border: 1px solid #e2c27a;
+  font-size: 11px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stall-board {
+  display: inline-block;
+  margin: 4px 0;
+  padding: 2px 8px;
+  background: #6b3a1e;
+  color: #f6e2a8;
+  border: 1px solid #e2c27a;
+}
+.shelf-name {
+  display: inline-block;
+  margin: 8px 0 4px;
+  padding: 2px 8px;
+  background: #6b3a1e;
+  color: #f6e2a8;
+  font-size: 12px;
+}
+.regard { color: #8a5a2a; font-weight: 700; }
 .quote {
   display: flex;
   flex-wrap: wrap;

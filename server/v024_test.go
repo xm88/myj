@@ -203,7 +203,7 @@ func TestVerseStudyLeavesFormulas(t *testing.T) {
 		t.Fatal("study changed the player")
 	}
 	cfg := okRequest(t, a, "/api/config", token, nil)
-	if len(objects(cfg["dyes"])) != 6 || len(objects(cfg["shelves"])) != 3 || str(cfg["version"]) != "0.2.4" {
+	if len(objects(cfg["dyes"])) != 6 || len(objects(cfg["shelves"])) != 3 || str(cfg["version"]) != "0.2.5" {
 		t.Fatalf("config %v %v %v", len(objects(cfg["dyes"])), len(objects(cfg["shelves"])), cfg["version"])
 	}
 }

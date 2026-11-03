@@ -298,16 +298,16 @@ const sashRows = computed(() => (game.config?.sashes ?? game.profile?.sashes ?? 
 const sashPick = ref('')
 const wornSashId = computed(() => String(game.profile?.sash || 'plain'))
 const shownSash = computed(() => sashRows.value.find((row) => row.id === (sashPick.value || wornSashId.value)) ?? sashRows.value.find((row) => row.id === 'plain'))
-const previewLook = computed(() => lookForSelf(game.profile?.weaponType, shownDye.value, sashOf(game.profile?.sash, sashRows.value)))
+const previewLook = computed(() => lookForSelf(game.profile?.weaponType, shownDye.value, sashOf(shownSash.value?.id, sashRows.value)))
 const trailName = ref('')
 const lookName = ref('')
 const lookPick = ref('')
 const savedLooks = computed(() => (game.profile?.looks ?? []) as { id: string; name: string; dye?: string; mount?: string; sash?: string; label?: string }[])
-const shownSaved = computed(() => savedLooks.value.find((row) => row.id === lookPick.value) ?? savedLooks.value[0])
+const shownSaved = computed(() => savedLooks.value.find((row) => row.id === lookPick.value))
 const wardrobeLook = computed(() => {
   const row = shownSaved.value
   const dyeId = row ? (row.dye || 'tea') : wornDyeId.value
-  const sashId = row ? row.sash : game.profile?.sash
+  const sashId = sashPick.value || (row ? row.sash : game.profile?.sash)
   return lookForSelf(game.profile?.weaponType, dyeRows.value.find((item) => item.id === dyeId), sashOf(sashId, sashRows.value))
 })
 const wardrobeMount = computed(() => (shownSaved.value ? shownSaved.value.mount || '' : String(game.profile?.mount || '')))
@@ -1053,7 +1053,7 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
           </button>
         </div>
         <div class="row">
-          <button class="btn lantern" :disabled="!shownSash || wornSashId === shownSash.id" @click="game.act('/api/sash', { id: shownSash?.id || 'plain' }).then(() => { sashPick = '' })">系上</button>
+          <button class="btn lantern" :disabled="!shownSash || wornSashId === shownSash.id" @click="game.act('/api/sash', { id: shownSash?.id || 'plain' }).then(() => { sashPick = ''; lookPick = '' })">系上</button>
         </div>
         <h3>已记下</h3>
         <p v-if="!savedLooks.length" class="empty">还没有记下的样子。先染色或系绦，再起个名。</p>
@@ -1086,7 +1086,7 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
           你是{{ game.profile.trail.roleName }}，对方是 {{ game.profile.trail.peerName }}。
           路谊 {{ game.profile.trail.bond }}/{{ game.profile.trail.bondMax }}。
           {{ game.profile.trail.said ? '今天这句已经传了。' : '今天还可以传一句。' }}
-          {{ game.profile.trail.peerSaid ? '对方也传过了。' : '还在等对方。' }}
+          {{ game.profile.trail.peerLine ? '对方今天说：' + game.profile.trail.peerLine : (game.profile.trail.peerSaid ? '对方也传过了。' : '还在等对方。') }}
         </p>
         <div v-else class="row">
           <input v-model="trailName" placeholder="对方名字" />

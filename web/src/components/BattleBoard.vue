@@ -185,19 +185,22 @@ function monsterRow(id?: string) {
   return game.config?.monsters?.find((item: { id: string; role?: string; tint?: string }) => item.id === id)
 }
 
-/** 出手条和战斗立绘用地图上的同一套造型。 */
+const dyeRows = computed(() => (game.config?.dyes ?? game.profile?.dyes ?? []) as { id?: string; coat?: string; trim?: string; hair?: string }[])
+const sashRows = computed(() => (game.config?.sashes ?? game.profile?.sashes ?? []) as { id?: string; color?: string }[])
+/** 出手条和战斗立绘用地图上的同一套造型。别的旅人绦带跟场景名册一样，从快照上取。 */
 function actorLook(actor: { id?: string; kind?: string; mark?: string; templateId?: string; role?: string; tint?: string }): Look {
-  if (actor.id && actor.id === game.profile?.id) return lookForSelf(game.profile?.weaponType, paletteOf(game.profile?.dye, game.config?.dyes ?? game.profile?.dyes), sashOf(game.profile?.sash, game.config?.sashes ?? game.profile?.sashes))
+  if (actor.id && actor.id === game.profile?.id) return lookForSelf(game.profile?.weaponType, paletteOf(game.profile?.dye, dyeRows.value), sashOf(game.profile?.sash, sashRows.value))
   const templateId = actor.templateId || (actor.mark && actor.mark !== 'hero' ? actor.mark : '') || ''
   if (actor.kind === 'beast') return lookForPet(templateId)
   if (actor.kind === 'monster') {
     const row = monsterRow(templateId)
     return lookForMonster(templateId, actor.role || row?.role, actor.tint || row?.tint)
   }
-  return lookForTraveler(actor.id || actor.mark || '', templateId || undefined)
+  const person = (game.snap?.entities ?? []).find((entity: { id?: string }) => entity.id === actor.id) as { templateId?: string; dye?: string; sash?: string } | undefined
+  return lookForTraveler(actor.id || actor.mark || '', person?.templateId || templateId || undefined, paletteOf(person?.dye, dyeRows.value), sashOf(person?.sash, sashRows.value))
 }
 
-const selfLook = computed(() => lookForSelf(game.profile?.weaponType, paletteOf(game.profile?.dye, game.config?.dyes ?? game.profile?.dyes), sashOf(game.profile?.sash, game.config?.sashes ?? game.profile?.sashes)))
+const selfLook = computed(() => lookForSelf(game.profile?.weaponType, paletteOf(game.profile?.dye, dyeRows.value), sashOf(game.profile?.sash, sashRows.value)))
 const foeId = computed(() => String(foe.value?.templateId || foe.value?.mark || ''))
 const foeLook = computed(() => actorLook({
   id: foe.value?.id,

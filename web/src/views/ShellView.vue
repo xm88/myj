@@ -4,7 +4,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from '../api'
 import ActorFigure from '../components/ActorFigure.vue'
-import { lookForMonster, lookForNpc, lookForTraveler } from '../game/look'
+import { lookForMonster, lookForNpc, lookForTraveler, paletteOf, sashOf } from '../game/look'
 import { nearestPacks } from '../game/crowd'
 import { syncAmbience } from '../game/ambience'
 import { describeQuest, questTracks } from '../game/guide'
@@ -98,6 +98,11 @@ const monsters = computed(() => (game.snap?.entities ?? []).filter((entity: { ki
 const packs = computed(() => nearestPacks(monsters.value, who.value))
 /** 当前分线快照中其他玩家的显示列表。 */
 const players = computed(() => (game.snap?.entities ?? []).filter((entity: { kind: string; seam?: boolean; mapId?: string }) => entity.kind === 'player' && !entity.seam && (!entity.mapId || entity.mapId === mapId.value)))
+const dyeRows = computed(() => (game.config?.dyes ?? game.profile?.dyes ?? []) as { id?: string; coat?: string; trim?: string; hair?: string }[])
+const sashRows = computed(() => (game.config?.sashes ?? game.profile?.sashes ?? []) as { id?: string; color?: string }[])
+function travelerLook(player: { id?: string; templateId?: string; dye?: string; sash?: string }) {
+  return lookForTraveler(player.id || '', player.templateId, paletteOf(player.dye, dyeRows.value), sashOf(player.sash, sashRows.value))
+}
 /** 主界面显示的当前任务进度摘要。 */
 const questLine = computed(() => describeQuest(game.profile?.quests ?? []))
 /** 右侧追踪的几条任务。点一条就按那一条走。 */
@@ -641,7 +646,7 @@ onBeforeUnmount(() => {
         <template v-else>
           <p v-if="!players.length" class="hint">旁边没有别的旅人。</p>
           <div v-for="player in players" :key="player.id" class="who">
-            <ActorFigure class="roster-fig" :pip="false" :look="lookForTraveler(player.id, player.templateId)" />
+            <ActorFigure class="roster-fig" :pip="false" :look="travelerLook(player)" />
             <span><b>{{ player.name }}</b><small v-if="player.title">{{ player.title }}</small></span>
             <button @click="call(player.name)">交谈</button>
             <button @click="game.act('/api/party/invite', { name: player.name })">组队</button>

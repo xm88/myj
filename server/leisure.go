@@ -20,6 +20,9 @@ const castWait = 90000.0
 const emoteMs = 2600.0
 const emoteGap = 1200.0
 
+// trailGap 邀请和收回要隔一会儿，免得来回刷对方的提示。
+const trailGap = 1200.0
+
 // lookCap 衣橱最多留三套。换上只改衣色、绦带和坐骑预览。
 const lookCap = 3
 
@@ -154,11 +157,13 @@ func (a *App) askTrail(id, name, role string) {
 	} else {
 		check(theirs > mine, "引路的人得先走一步")
 	}
+	check(now() >= num(me["askAt"]), "路谊的邀请太密了")
 	theirRole := "walk"
 	if role == "walk" {
 		theirRole = "lead"
 	}
 	me["out"], me["outAs"] = oid, role
+	me["askAt"] = now() + trailGap
 	them["in"], them["inAs"] = id, theirRole
 	a.writeTrail(id, me)
 	a.writeTrail(oid, them)
@@ -211,7 +216,9 @@ func (a *App) cancelTrail(id string) {
 	me := a.trailRow(id)
 	oid := str(me["out"])
 	check(oid != "", "没有要收回的邀请")
+	check(now() >= num(me["askAt"]), "路谊的邀请太密了")
 	them := a.trailRow(oid)
+	me["askAt"] = now() + trailGap
 	me["out"], me["outAs"] = "", ""
 	if str(them["in"]) == id {
 		them["in"], them["inAs"] = "", ""
@@ -255,6 +262,8 @@ func (a *App) sayTrail(id, lineID string) {
 	day := guildDay(now())
 	me["said"] = true
 	me["day"] = day
+	// line 留下今天这句的 id。对方不在线时，打开引路面板仍能读到原文。
+	me["line"] = str(line["id"])
 	if truth(them["said"]) {
 		next := num(me["bond"]) + 1
 		if next > trailBondMax {
@@ -280,9 +289,9 @@ func (a *App) sayTrail(id, lineID string) {
 	} else {
 		a.writeTrail(id, me)
 		a.toast(id, "送到了。等对方也传一句，路谊才会往前")
-		a.toast(peer, str(a.player(id)["name"])+" 传了一句："+str(line["text"]))
 		a.notify(peer)
 	}
+	a.toast(peer, str(a.player(id)["name"])+" 传了一句："+str(line["text"]))
 	a.notify(id)
 }
 
@@ -306,9 +315,15 @@ func (a *App) trailView(id string) M {
 		outgoing = M{"name": a.trailPeerName(to), "role": str(me["outAs"]), "roleName": trailRoleName(str(me["outAs"]))}
 	}
 	themSaid := false
+	peerLine := ""
 	if peer != "" {
 		them := a.trailRow(peer)
-		themSaid = str(them["peer"]) == id && truth(them["said"])
+		if str(them["peer"]) == id && truth(them["said"]) {
+			themSaid = true
+			if row := trailLine(str(them["role"]), str(them["line"])); row != nil {
+				peerLine = str(row["text"])
+			}
+		}
 	}
 	bond := 0.
 	if peer != "" {
@@ -317,12 +332,12 @@ func (a *App) trailView(id string) M {
 	return M{
 		"role": role, "roleName": trailRoleName(role), "peerName": a.trailPeerName(peer),
 		"bond": bond, "bondMax": trailBondMax, "titleAt": trailTitleAt,
-		"said": peer != "" && truth(me["said"]), "peerSaid": themSaid,
+		"said": peer != "" && truth(me["said"]), "peerSaid": themSaid, "peerLine": peerLine,
 		"incoming": incoming, "outgoing": outgoing, "lines": lines,
 	}
 }
 
-// castLine 在星落镇或月光湖抛一次竿，进背包一条银鳞鱼。不涨采集熟练，也不动鱼点。
+// castLine 在星落镇或月光湖抛一次竿。背包能放下就进背包，满了就寄到邮箱。不涨采集熟练，也不动鱼点。
 func (a *App) castLine(id string) {
 	l := a.mustLive(id)
 	check(!truth(l.State["safe"]), "切回冒险才能抛竿")
@@ -335,11 +350,17 @@ func (a *App) castLine(id string) {
 		until = num(a.player(id)["cast_at"])
 	}
 	check(t >= until, "竿还没歇过来")
+	stacked := a.one("SELECT id FROM player_items WHERE player_id=? AND template_id=? AND location='bag' AND extra IS NULL", id, "fish_silver") != nil
+	mailed := !stacked && a.slots(id, "bag") >= a.constant("bagCap")
 	a.addItem(id, "fish_silver", 1, nil, "bag")
 	next := t + castWait
 	a.run("UPDATE players SET cast_at=?,updated_at=? WHERE id=?", next, now(), id)
 	l.State["castUntil"] = next
-	a.toast(id, "抛竿钓上银鳞鱼 ×1。采集熟练没涨")
+	if mailed {
+		a.toast(id, "背包满了，银鳞鱼寄到邮箱了。采集熟练没涨")
+	} else {
+		a.toast(id, "抛竿钓上银鳞鱼 ×1。采集熟练没涨")
+	}
 	a.notify(id)
 }
 

@@ -3,6 +3,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -43,8 +44,10 @@ func TestTrailBondIsCosmetic(t *testing.T) {
 	if str(obj(a.profile(id2)["trail"])["incoming"].(M)["role"]) != "lead" {
 		t.Fatalf("incoming %+v", a.profile(id2)["trail"])
 	}
+	relaxTrail(a, id)
 	okRequest(t, a, "/api/trail/cancel", token, M{})
 	expectFailure(t, func() { a.acceptTrail(id2) })
+	relaxTrail(a, id)
 	a.askTrail(id, name2, "walk")
 	okRequest(t, a, "/api/trail/accept", token2, M{})
 	view := obj(a.profile(id)["trail"])
@@ -215,4 +218,229 @@ func TestEmoteIsAWave(t *testing.T) {
 	if num(a.live[id].Stats["speed"]) != speed || num(a.live[id].State["x"]) != x || num(a.live[id].State["y"]) != y {
 		t.Fatal("emote changed pace or place")
 	}
+}
+
+func TestTrailLastLineStays(t *testing.T) {
+	a := testApp(t)
+	_, id, _, id2 := bondTrail(t, a)
+	speed := num(a.live[id].Stats["speed"])
+	gold := num(a.player(id)["gold"])
+	exp := num(a.player(id)["exp"])
+	ear := listen(a, id2)
+	a.sayTrail(id, "heard")
+	if !hasToast(ear, "记下了，我先去试试。") {
+		t.Fatal("partner missed the first line")
+	}
+	if str(obj(a.profile(id2)["trail"])["peerLine"]) != "记下了，我先去试试。" || num(obj(a.profile(id)["trail"])["bond"]) != 0 {
+		t.Fatalf("first line id=%+v id2=%+v", a.profile(id)["trail"], a.profile(id2)["trail"])
+	}
+	if str(obj(parse(str(a.player(id)["trail"])))["line"]) != "heard" {
+		t.Fatal("first line id was not stored")
+	}
+	a.live[id].Peer = nil
+	a.sayTrail(id2, "kit")
+	view := obj(a.profile(id)["trail"])
+	if str(view["peerLine"]) != "先把伤药放在顺手的格子。" || num(view["bond"]) != 1 || num(obj(a.profile(id2)["trail"])["bond"]) != 1 {
+		t.Fatalf("completing line %+v", view)
+	}
+	if str(obj(parse(str(a.player(id2)["trail"])))["line"]) != "kit" {
+		t.Fatal("completing line id was not stored")
+	}
+	for n := 0; n < 8 && num(obj(a.profile(id)["trail"])["bond"]) < trailBondMax; n++ {
+		ageTrail(a, id)
+		ageTrail(a, id2)
+		a.sayTrail(id, "thanks")
+		a.sayTrail(id2, "feed")
+	}
+	if num(obj(a.profile(id)["trail"])["bond"]) != trailBondMax || num(obj(a.profile(id2)["trail"])["bond"]) != trailBondMax {
+		t.Fatalf("cap %+v", a.profile(id)["trail"])
+	}
+	ageTrail(a, id)
+	ageTrail(a, id2)
+	a.sayTrail(id, "heard")
+	if num(obj(a.profile(id)["trail"])["bond"]) != trailBondMax {
+		t.Fatal("one side moved a full bond")
+	}
+	ageTrail(a, id)
+	ageTrail(a, id2)
+	ear = listen(a, id2)
+	a.sayTrail(id2, "feed")
+	a.sayTrail(id, "thanks")
+	if num(obj(a.profile(id)["trail"])["bond"]) != trailBondMax {
+		t.Fatal("bond grew past the cap")
+	}
+	if str(obj(a.profile(id2)["trail"])["peerLine"]) != "今天跟着走了一段。" || str(obj(a.profile(id)["trail"])["peerLine"]) != "灵兽饿了，喂一口就肯跟着。" {
+		t.Fatalf("capped lines id=%+v id2=%+v", a.profile(id)["trail"], a.profile(id2)["trail"])
+	}
+	if !hasToast(ear, "今天跟着走了一段。") {
+		t.Fatal("capped line was not delivered")
+	}
+	if num(a.live[id].Stats["speed"]) != speed || num(a.player(id)["gold"]) != gold || num(a.player(id)["exp"]) != exp || a.constant("marketTax") != 0.05 {
+		t.Fatal("trail lines changed pace, gold, exp, or tax")
+	}
+}
+
+func TestTrailInvitePace(t *testing.T) {
+	a := testApp(t)
+	token, id := newGuest(t, a)
+	_, id2 := newGuest(t, a)
+	a.attach(id, nil)
+	a.attach(id2, nil)
+	a.live[id2].State["level"] = 4
+	a.run("UPDATE players SET level=4 WHERE id=?", id2)
+	name2 := str(a.player(id2)["name"])
+	ear := listen(a, id2)
+	okRequest(t, a, "/api/trail/ask", token, M{"name": name2, "role": "walk"})
+	left := num(obj(parse(str(a.player(id)["trail"])))["askAt"]) - now()
+	if left < trailGap-500 || left > trailGap+500 {
+		t.Fatalf("invite gap %v", left)
+	}
+	if !hasToast(ear, "想和你结一段路谊") {
+		t.Fatal("invite did not reach the partner")
+	}
+	expectMessage(t, "路谊的邀请太密了", func() { a.cancelTrail(id) })
+	if str(obj(a.profile(id)["trail"])["outgoing"].(M)["name"]) != name2 {
+		t.Fatal("paced cancel dropped the invite")
+	}
+	if len(toastTexts(ear)) != 0 {
+		t.Fatal("paced cancel still toasted the partner")
+	}
+	relaxTrail(a, id)
+	okRequest(t, a, "/api/trail/cancel", token, M{})
+	if !hasToast(ear, "收回了路谊邀请") {
+		t.Fatal("cancel did not reach the partner")
+	}
+	expectMessage(t, "路谊的邀请太密了", func() { a.askTrail(id, name2, "walk") })
+	if obj(a.profile(id)["trail"])["outgoing"] != nil || len(toastTexts(ear)) != 0 {
+		t.Fatal("paced invite went out again")
+	}
+	relaxTrail(a, id)
+	okRequest(t, a, "/api/trail/ask", token, M{"name": name2, "role": "walk"})
+	if str(obj(a.profile(id2)["trail"])["incoming"].(M)["name"]) == "" || !hasToast(ear, "想和你结一段路谊") {
+		t.Fatal("invite did not resume after the gap")
+	}
+}
+
+func TestCastMailsWhenBagIsFull(t *testing.T) {
+	a := testApp(t)
+	token, id := newGuest(t, a)
+	a.attach(id, nil)
+	ear := listen(a, id)
+	speed := num(a.live[id].Stats["speed"])
+	atk := num(a.live[id].Stats["atk"])
+	gold := num(a.player(id)["gold"])
+	x, y := num(a.live[id].State["x"]), num(a.live[id].State["y"])
+	a.live[id].State["mapId"] = "town_starfall"
+	for a.slots(id, "bag") < a.constant("bagCap") {
+		a.run("INSERT INTO player_items(id,player_id,template_id,count,location,created_at) VALUES(?,?,?,1,'bag',?)", uid(), id, "pad_"+uid(), now())
+	}
+	before := a.countItem(id, "fish_silver")
+	mails := len(a.listMail(id))
+	okRequest(t, a, "/api/cast", token, M{})
+	if a.countItem(id, "fish_silver") != before || a.slots(id, "bag") != a.constant("bagCap") {
+		t.Fatalf("bag fish=%v slots=%v", a.countItem(id, "fish_silver"), a.slots(id, "bag"))
+	}
+	if len(a.listMail(id)) != mails+1 || mailedFish(a, id) != 1 {
+		t.Fatalf("mail count=%d fish=%d", len(a.listMail(id)), mailedFish(a, id))
+	}
+	text := strings.Join(toastTexts(ear), "\n")
+	if !strings.Contains(text, "邮箱") || strings.Contains(text, "钓上") {
+		t.Fatalf("toast %q", text)
+	}
+	expectFailure(t, func() { a.castLine(id) })
+	if a.countItem(id, "fish_silver") != before || mailedFish(a, id) != 1 {
+		t.Fatal("cooldown cast duplicated the fish")
+	}
+	pad := a.one("SELECT id FROM player_items WHERE player_id=? AND template_id LIKE 'pad_%' LIMIT 1", id)
+	a.run("DELETE FROM player_items WHERE id=?", pad["id"])
+	a.run("INSERT INTO player_items(id,player_id,template_id,count,location,created_at) VALUES(?,?,?,1,'bag',?)", uid(), id, "fish_silver", now())
+	a.live[id].State["castUntil"] = 0
+	a.run("UPDATE players SET cast_at=0 WHERE id=?", id)
+	okRequest(t, a, "/api/cast", token, M{})
+	text = strings.Join(toastTexts(ear), "\n")
+	if a.countItem(id, "fish_silver") != before+2 || mailedFish(a, id) != 1 || !strings.Contains(text, "钓上") || strings.Contains(text, "邮箱") {
+		t.Fatalf("stack fish=%v mail=%d toast=%q", a.countItem(id, "fish_silver"), mailedFish(a, id), text)
+	}
+	if num(a.live[id].Stats["speed"]) != speed || num(a.live[id].Stats["atk"]) != atk || num(a.player(id)["gold"]) != gold || num(a.live[id].State["x"]) != x || num(a.live[id].State["y"]) != y || a.constant("marketTax") != 0.05 {
+		t.Fatal("full bag cast changed pace, gold, place, or tax")
+	}
+}
+
+func bondTrail(t *testing.T, a *App) (string, string, string, string) {
+	t.Helper()
+	token, id := newGuest(t, a)
+	token2, id2 := newGuest(t, a)
+	a.attach(id, nil)
+	a.attach(id2, nil)
+	a.live[id2].State["level"] = 4
+	a.run("UPDATE players SET level=4 WHERE id=?", id2)
+	a.askTrail(id, str(a.player(id2)["name"]), "walk")
+	a.acceptTrail(id2)
+	return token, id, token2, id2
+}
+
+func relaxTrail(a *App, id string) {
+	row := a.trailRow(id)
+	row["askAt"] = 0
+	a.writeTrail(id, row)
+}
+
+func listen(a *App, id string) *Peer {
+	p := &Peer{out: make(chan []byte, 64), done: make(chan struct{})}
+	a.live[id].Peer = p
+	return p
+}
+
+func toastTexts(p *Peer) []string {
+	out := []string{}
+	for {
+		select {
+		case b := <-p.out:
+			msg := obj(parse(string(b)))
+			if str(msg["type"]) == "toast" {
+				out = append(out, str(msg["text"]))
+			}
+		default:
+			return out
+		}
+	}
+}
+
+func hasToast(p *Peer, part string) bool {
+	for _, text := range toastTexts(p) {
+		if strings.Contains(text, part) {
+			return true
+		}
+	}
+	return false
+}
+
+func expectMessage(t *testing.T, want string, fn func()) {
+	t.Helper()
+	defer func() {
+		e := recover()
+		if e == nil {
+			t.Fatal("expected failure")
+		}
+		ge, ok := e.(GameError)
+		if !ok {
+			panic(e)
+		}
+		if ge.Message != want {
+			t.Fatalf("got %q want %q", ge.Message, want)
+		}
+	}()
+	fn()
+}
+
+func mailedFish(a *App, id string) int {
+	n := 0
+	for _, row := range a.listMail(id) {
+		for _, item := range objects(obj(row["attachments"])["items"]) {
+			if str(item["templateId"]) == "fish_silver" {
+				n += int(num(item["count"]))
+			}
+		}
+	}
+	return n
 }

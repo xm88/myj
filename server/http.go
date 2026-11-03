@@ -251,6 +251,30 @@ func (a *App) route(r *http.Request, b M) any {
 			a.setStallSign(id, s("sign"))
 		case "/api/blend":
 			a.blend(id, s("id"))
+		case "/api/trail/ask":
+			a.askTrail(id, s("name"), s("role"))
+		case "/api/trail/accept":
+			a.acceptTrail(id)
+		case "/api/trail/decline":
+			a.declineTrail(id)
+		case "/api/trail/cancel":
+			a.cancelTrail(id)
+		case "/api/trail/line":
+			a.sayTrail(id, s("id"))
+		case "/api/trail/leave":
+			a.leaveTrail(id)
+		case "/api/cast":
+			a.castLine(id)
+		case "/api/sash":
+			a.setSash(id, s("id"))
+		case "/api/look/save":
+			a.saveLook(id, s("name"))
+		case "/api/look/wear":
+			a.wearLook(id, s("id"))
+		case "/api/look/drop":
+			a.dropLook(id, s("id"))
+		case "/api/emote":
+			a.playEmote(id, s("id"))
 		case "/api/stall/list":
 			a.listStall(id, s("itemId"), n("count", 1), n("price", 0))
 		case "/api/stall/unlist":

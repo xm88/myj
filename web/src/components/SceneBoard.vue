@@ -7,7 +7,7 @@ import MountGlyph from './MountGlyph.vue'
 import { nearestPacks } from '../game/crowd'
 import { questGuide } from '../game/guide'
 import { mapThumb } from '../game/art'
-import { lookForMonster, lookForNpc, lookForPet, lookForSelf, lookForTraveler, paletteOf, type Face } from '../game/look'
+import { lookForMonster, lookForNpc, lookForPet, lookForSelf, lookForTraveler, paletteOf, sashOf, type Face } from '../game/look'
 import { useDropFlash, useGait } from '../game/motion'
 import { chunkAt, frameOf, screenToWorld, worldToScreen, type Chunk } from '../game/camera'
 import { nodeFocus, npcFocus, npcMark, portalFocus } from '../game/npc'
@@ -160,7 +160,15 @@ const packs = computed(() => nearestPacks(monsters.value, self.value))
 const guide = computed(() => questGuide(game.profile?.quests ?? [], game.config, mapId.value, packs.value))
 const guideKey = computed(() => guide.value?.key ?? '')
 const dyeRows = computed(() => (game.config?.dyes ?? game.profile?.dyes ?? []) as { id?: string; coat?: string; trim?: string; hair?: string }[])
-const selfLook = computed(() => lookForSelf(game.profile?.weaponType, paletteOf(String(game.snap?.self?.dye || game.profile?.dye || ''), dyeRows.value)))
+const sashRows = computed(() => (game.config?.sashes ?? game.profile?.sashes ?? []) as { id?: string; color?: string }[])
+const selfSash = computed(() => sashOf(String(game.snap?.self?.sash || game.profile?.sash || ''), sashRows.value))
+const selfLook = computed(() => lookForSelf(game.profile?.weaponType, paletteOf(String(game.snap?.self?.dye || game.profile?.dye || ''), dyeRows.value), selfSash.value))
+const selfEmote = computed(() => String(game.snap?.self?.emote || ''))
+const selfTrail = computed(() => String(game.snap?.self?.trail || ''))
+const emoteLabel = (id: string) => {
+  const row = (game.config?.emotes ?? game.profile?.emotes ?? []).find((item: { id: string; name: string }) => item.id === id)
+  return row?.name || ''
+}
 const mountId = computed(() => String(game.snap?.self?.mount || game.profile?.mount || ''))
 const wornTitle = computed(() => String(game.snap?.self?.title || game.profile?.titleName || ''))
 /** 怪物和旁边的旅人走路时换朝向。自己仍看点击后的位移。 */
@@ -176,7 +184,7 @@ function tintOf(id?: string) {
 }
 function actorLook(spot: Spot) {
   if (spot.kind === 'npc' && spot.npc) return lookForNpc(spot.npc.id, spot.npc.title, spot.npc.panels)
-  if (spot.kind === 'player') return lookForTraveler(spot.id || spot.name, spot.weapon, paletteOf(spot.dye, dyeRows.value))
+  if (spot.kind === 'player') return lookForTraveler(spot.id || spot.name, spot.weapon, paletteOf(spot.dye, dyeRows.value), sashOf(spot.sash, sashRows.value))
   return lookForMonster(spot.templateId || '', spot.role, tintOf(spot.templateId))
 }
 function actorFace(spot: Spot): Face {
@@ -215,6 +223,9 @@ interface Spot {
   mount?: string
   title?: string
   dye?: string
+  sash?: string
+  emote?: string
+  trail?: string
 }
 
 /** 名字牌左侧的小标：等级、职责或类型，不另占一行。 */
@@ -269,7 +280,7 @@ const spots = computed<Spot[]>(() => {
   }
   for (const person of people.value) {
     const world = person.worldX != null ? { x: Number(person.worldX), y: Number(person.worldY) } : worldOf(mapId.value, person.x, person.y)
-    add({ key: 'who:' + person.id, kind: 'player', name: person.name, badge: person.level ? String(person.level) : '旅', wx: world.x, wy: world.y, x: person.x, y: person.y, mapId: mapId.value, id: person.id, weapon: person.templateId, mount: person.mount || '', dye: person.dye || '', title: person.title || '' })
+    add({ key: 'who:' + person.id, kind: 'player', name: person.name, badge: person.level ? String(person.level) : '旅', wx: world.x, wy: world.y, x: person.x, y: person.y, mapId: mapId.value, id: person.id, weapon: person.templateId, mount: person.mount || '', dye: person.dye || '', sash: person.sash || '', emote: person.emote || '', trail: person.trail || '', title: person.title || '' })
   }
   for (const stall of stalls.value) {
     const world = stall.worldX != null ? { x: Number(stall.worldX), y: Number(stall.worldY) } : worldOf(mapId.value, stall.x, stall.y)
@@ -277,7 +288,7 @@ const spots = computed<Spot[]>(() => {
   }
   for (const mark of afar.value) {
     const world = mark.worldX != null ? { x: Number(mark.worldX), y: Number(mark.worldY) } : worldOf(mark.mapId, mark.x, mark.y)
-    add({ key: 'afar:' + mark.id, kind: mark.kind, name: mark.name, badge: plateBadge(mark.kind, mark), wx: world.x, wy: world.y, x: mark.x, y: mark.y, mapId: mark.mapId, id: mark.id, stallId: mark.stallId, sign: mark.sign || '', templateId: mark.templateId, role: mark.role, weapon: mark.kind === 'player' ? mark.templateId : undefined, mount: mark.mount || '', dye: mark.dye || '', title: mark.title || '' })
+    add({ key: 'afar:' + mark.id, kind: mark.kind, name: mark.name, badge: plateBadge(mark.kind, mark), wx: world.x, wy: world.y, x: mark.x, y: mark.y, mapId: mark.mapId, id: mark.id, stallId: mark.stallId, sign: mark.sign || '', templateId: mark.templateId, role: mark.role, weapon: mark.kind === 'player' ? mark.templateId : undefined, mount: mark.mount || '', dye: mark.dye || '', sash: mark.sash || '', emote: mark.emote || '', trail: mark.trail || '', title: mark.title || '' })
   }
   return list
 })
@@ -538,9 +549,10 @@ const floats = computed(() => {
     <span v-if="clickFx" :key="clickFx.id" class="click-fx" :style="{ left: clickFx.x + 'px', top: clickFx.y + 'px' }" />
     <div v-if="veilKey" :key="veilKey" class="map-veil" />
     <div class="pin you" :class="{ step: walking, cast: casting, mounted: !!mountId }" :style="pinWorld(selfWorld.x, selfWorld.y)">
+      <span v-if="selfEmote && emoteLabel(selfEmote)" class="emote-bubble">{{ emoteLabel(selfEmote) }}</span>
       <span v-if="wornTitle" class="plate-title">{{ wornTitle }}</span>
-      <span class="plate-line"><em class="badge">{{ game.profile?.level }}</em><span>你</span></span>
-      <span class="ride" :class="{ on: !!mountId }">
+      <span class="plate-line"><em class="badge">{{ game.profile?.level }}</em><span>你</span><small v-if="selfTrail" class="trail-pip">{{ selfTrail }}</small></span>
+      <span class="ride" :class="{ on: !!mountId, ['emote-' + selfEmote]: !!selfEmote }">
         <MountGlyph v-if="mountId" :id="mountId" />
         <ActorFigure :look="selfLook" :facing="facing" :step="walking" />
       </span>
@@ -578,10 +590,12 @@ const floats = computed(() => {
         <i v-else-if="spot.npc && (markOf(spot.npc) === 'offer' || markOf(spot.npc) === 'talk')" class="qmark">!</i>
         <em v-if="spot.badge" class="badge">{{ spot.badge }}</em>
         <span class="plate-name">{{ spot.name }}<template v-if="spot.count && spot.count > 1"> ×{{ spot.count }}</template></span>
+        <small v-if="spot.trail" class="trail-pip">{{ spot.trail }}</small>
         <small v-if="spot.kind === 'player'">交易</small><small v-else-if="spot.kind === 'stall'">摊</small><small v-else-if="spot.kind === 'portal'">{{ spot.mapId === mapId ? '进入' : '邻门' }}</small><small v-else-if="spot.mapId !== mapId">界外</small>
       </span>
       <small v-if="spot.kind === 'stall' && spot.sign" class="stall-sign">{{ spot.sign }}</small>
-      <span v-if="figured(spot.kind)" class="ride" :class="{ on: !!spot.mount }">
+      <span v-if="spot.emote && emoteLabel(spot.emote)" class="emote-bubble">{{ emoteLabel(spot.emote) }}</span>
+      <span v-if="figured(spot.kind)" class="ride" :class="{ on: !!spot.mount, ['emote-' + spot.emote]: !!spot.emote }">
         <MountGlyph v-if="spot.mount" :id="spot.mount" />
         <ActorFigure :look="actorLook(spot)" :facing="actorFace(spot)" :step="actorStep(spot)" :pip="spot.role === 'elite' || spot.role === 'boss' || spot.role === 'world'" />
       </span>

@@ -2664,3 +2664,48 @@ button.item { width: 100%; text-align: left; color: inherit; }
   border: 1px solid #6b4423;
   box-shadow: inset 0 0 0 2px rgba(255, 248, 234, 0.7);
 }
+.day-strip { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 6px; }
+.day-strip button {
+  border: 1px solid rgba(230, 197, 106, 0.75);
+  background: rgba(58, 28, 12, 0.55);
+  color: #fff6e4;
+  border-radius: 99px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+.day-strip button.on { background: #e6c56a; color: #3a1c0c; }
+.trail-pip {
+  margin-left: 3px;
+  padding: 0 4px;
+  border-radius: 99px;
+  background: #7a3018;
+  color: #fff6e0;
+  border: 1px solid #e7c56a;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.emote-bubble {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: calc(100% + 2px);
+  transform: translateX(-50%);
+  padding: 0 7px;
+  background: #fff6e0;
+  color: #3a2412;
+  border: 1px solid #e6c56a;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.ride.emote-wave { animation: emote-wave 700ms ease-in-out 2; transform-origin: 50% 100%; }
+.ride.emote-bow { animation: emote-bow 800ms ease-in-out 1; transform-origin: 50% 100%; }
+.ride.emote-cheer { animation: emote-cheer 520ms ease-in-out 2; transform-origin: 50% 100%; }
+@keyframes emote-wave { 50% { transform: rotate(-8deg); } }
+@keyframes emote-bow { 50% { transform: translateY(6px) scale(1, 0.92); } }
+@keyframes emote-cheer { 40% { transform: translateY(-8px); } }
+.cast-board { display: flex; gap: 14px; align-items: center; }
+.cast-board .rod { width: 112px; height: 64px; flex: none; }

@@ -39,6 +39,10 @@ CREATE TABLE IF NOT EXISTS players (
   marks TEXT NOT NULL DEFAULT '[]',
   manual TEXT NOT NULL DEFAULT '{}',
   regard TEXT NOT NULL DEFAULT '{}',
+  trail TEXT NOT NULL DEFAULT '{}',
+  cast_at INTEGER NOT NULL DEFAULT 0,
+  sash_id TEXT NOT NULL DEFAULT '',
+  looks TEXT NOT NULL DEFAULT '[]',
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );

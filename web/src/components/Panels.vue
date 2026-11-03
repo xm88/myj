@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** 功能弹窗：统一角色、装备、派遣、制造、拍卖、公会、社交、任务和队伍操作。 */
 
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from '../api'
 import ActorFigure from './ActorFigure.vue'
 import IconMedal from './IconMedal.vue'
@@ -10,7 +10,7 @@ import AlbumBoard from './AlbumBoard.vue'
 import StallBoard from './StallBoard.vue'
 import TradeBoard from './TradeBoard.vue'
 import { itemIcon, portrait, weaponIcon } from '../game/art'
-import { lookForPet, lookForSelf, paletteOf } from '../game/look'
+import { lookForPet, lookForSelf, paletteOf, sashOf } from '../game/look'
 import { verseLane, verseLanes } from '../game/verse'
 import MountGlyph from './MountGlyph.vue'
 import { npcFocus, portalFocus } from '../game/npc'
@@ -103,6 +103,9 @@ const titles: Record<string, string> = {
   guild: '公会',
   mount: '坐骑',
   dye: '染色',
+  looks: '衣橱',
+  cast: '抛竿',
+  trail: '引路',
   dungeon: '遗迹门槛',
   travel: '世界地图',
   social: '好友',
@@ -131,6 +134,9 @@ const kicker = computed(() => {
     slate: '一日三件事和挂在名字上的称谓。不加属性',
     mount: '亮出来给自己和旁边的人看。步子还是原来的',
     dye: '只改披风的颜色。攻击、防御和步子不读它',
+    looks: '记下三套样子。换上只改衣色、绦带和坐骑预览',
+    cast: '星落镇或月光湖抛一次竿。不涨采集熟练',
+    trail: '一天互传一句。路谊不加金币、经验和属性',
     dungeon: '先看门槛，再决定进不进。线路和等级门没改',
     stall: '买家支付标价，旅税从卖家手里扣。招牌和架子不改税',
     trade: '两边锁定之后才能确认',
@@ -288,7 +294,34 @@ const dyeRows = computed(() => (game.config?.dyes ?? game.profile?.dyes ?? []) a
 const dyePick = ref('')
 const wornDyeId = computed(() => String(game.profile?.dye || 'tea'))
 const shownDye = computed(() => dyeRows.value.find((row) => row.id === (dyePick.value || wornDyeId.value)) ?? dyeRows.value.find((row) => row.id === 'tea'))
-const previewLook = computed(() => lookForSelf(game.profile?.weaponType, shownDye.value))
+const sashRows = computed(() => (game.config?.sashes ?? game.profile?.sashes ?? []) as { id: string; name: string; color: string; blurb: string }[])
+const sashPick = ref('')
+const wornSashId = computed(() => String(game.profile?.sash || 'plain'))
+const shownSash = computed(() => sashRows.value.find((row) => row.id === (sashPick.value || wornSashId.value)) ?? sashRows.value.find((row) => row.id === 'plain'))
+const previewLook = computed(() => lookForSelf(game.profile?.weaponType, shownDye.value, sashOf(game.profile?.sash, sashRows.value)))
+const trailName = ref('')
+const lookName = ref('')
+const lookPick = ref('')
+const savedLooks = computed(() => (game.profile?.looks ?? []) as { id: string; name: string; dye?: string; mount?: string; sash?: string; label?: string }[])
+const shownSaved = computed(() => savedLooks.value.find((row) => row.id === lookPick.value) ?? savedLooks.value[0])
+const wardrobeLook = computed(() => {
+  const row = shownSaved.value
+  const dyeId = row ? (row.dye || 'tea') : wornDyeId.value
+  const sashId = row ? row.sash : game.profile?.sash
+  return lookForSelf(game.profile?.weaponType, dyeRows.value.find((item) => item.id === dyeId), sashOf(sashId, sashRows.value))
+})
+const wardrobeMount = computed(() => (shownSaved.value ? shownSaved.value.mount || '' : String(game.profile?.mount || '')))
+const clock = ref(Date.now())
+let castClock = 0
+onMounted(() => {
+  castClock = window.setInterval(() => {
+    clock.value = Date.now()
+  }, 1000)
+})
+onBeforeUnmount(() => window.clearInterval(castClock))
+const castUntil = computed(() => Number(game.snap?.self?.castUntil || game.profile?.castUntil || 0))
+const castLeft = computed(() => Math.max(0, castUntil.value - clock.value))
+const castReadyNow = computed(() => castLeft.value <= 0)
 
 async function applyDye(id: string) {
   await game.act('/api/dye', { id: id === 'tea' ? '' : id })
@@ -595,7 +628,7 @@ const guildPace = computed(() => {
 /** 坐骑图鉴。等级不够的只能看剪影说明，不能亮出。 */
 const mountRows = computed(() => (game.config?.mounts ?? game.profile?.mounts ?? []) as { id: string; name: string; level: number; blurb: string }[])
 const shownMount = computed(() => mountRows.value.find((row) => row.id === (mountPick.value || game.profile?.mount)) ?? mountRows.value[0])
-const selfLook = computed(() => lookForSelf(game.profile?.weaponType, paletteOf(game.profile?.dye, dyeRows.value)))
+const selfLook = computed(() => lookForSelf(game.profile?.weaponType, paletteOf(game.profile?.dye, dyeRows.value), sashOf(game.profile?.sash, sashRows.value)))
 /** 古代遗迹的门槛，怪物名单从地图刷新里收，不另写一份掉落。 */
 const ruins = computed(() => (game.config?.maps ?? []).find((item: { id: string }) => item.id === 'dungeon_ruins') as {
   name?: string
@@ -990,6 +1023,95 @@ function shownLanes<T extends { kind?: string }>(list: T[] | undefined) {
             <small>{{ wornDyeId === row.id ? '现在这身' : '可预览' }}</small>
           </button>
         </div>
+      </template>
+
+      <template v-else-if="game.panel === 'looks'">
+        <div class="mount-stage">
+          <div class="ride stage" :class="{ on: !!wardrobeMount }">
+            <MountGlyph v-if="wardrobeMount" :id="wardrobeMount" />
+            <ActorFigure :look="wardrobeLook" />
+          </div>
+          <div>
+            <h3>{{ shownSaved?.name || '现在这身' }}</h3>
+            <p class="lede">{{ shownSaved?.label || '衣色、绦带和坐骑预览可以收成一套。最多三套。' }}</p>
+            <p class="lede">换上不加攻击、防御、生命，步子也不变。坐骑等级不够时，只换衣色和绦带。</p>
+            <div class="row">
+              <input v-model="lookName" maxlength="6" placeholder="给这身起个名" @keydown.enter="game.act('/api/look/save', { name: lookName }).then(() => { lookName = '' })" />
+              <button class="btn lantern" @click="game.act('/api/look/save', { name: lookName }).then(() => { lookName = '' })">记下</button>
+              <button v-if="shownSaved" class="btn" @click="game.act('/api/look/wear', { id: shownSaved.id })">换上</button>
+              <button v-if="shownSaved" class="btn light" @click="game.act('/api/look/drop', { id: shownSaved.id }).then(() => { lookPick = '' })">拿掉</button>
+            </div>
+          </div>
+        </div>
+        <h3>绦带</h3>
+        <p v-if="shownSash" class="lede">{{ shownSash.blurb }}</p>
+        <div class="mount-grid">
+          <button v-for="row in sashRows" :key="row.id" type="button" class="mount-card dye-card" :class="{ on: shownSash?.id === row.id, worn: wornSashId === row.id }" @click="sashPick = row.id">
+            <i class="dye-swatch" :style="{ background: row.color || '#d08a3c' }" />
+            <b>{{ row.name }}</b>
+            <small>{{ wornSashId === row.id ? '系着' : '可系' }}</small>
+          </button>
+        </div>
+        <div class="row">
+          <button class="btn lantern" :disabled="!shownSash || wornSashId === shownSash.id" @click="game.act('/api/sash', { id: shownSash?.id || 'plain' }).then(() => { sashPick = '' })">系上</button>
+        </div>
+        <h3>已记下</h3>
+        <p v-if="!savedLooks.length" class="empty">还没有记下的样子。先染色或系绦，再起个名。</p>
+        <div v-for="row in savedLooks" :key="row.id" class="item" :class="{ on: shownSaved?.id === row.id }">
+          <span>{{ row.name }}<small>{{ row.label }}</small></span>
+          <button class="btn light" @click="lookPick = row.id">看</button>
+        </div>
+      </template>
+
+      <template v-else-if="game.panel === 'cast'">
+        <div class="cast-board">
+          <svg class="rod" viewBox="0 0 88 48" aria-hidden="true">
+            <path d="M10 36 Q36 10 78 8" fill="none" stroke="#6b3a1e" stroke-width="3" stroke-linecap="round" />
+            <path d="M78 8 Q66 22 48 34" fill="none" stroke="#d5eef2" stroke-width="1.4" />
+            <circle cx="48" cy="34" r="3.2" fill="#7eb8c9" stroke="#2a1810" stroke-width="1" />
+          </svg>
+          <div>
+            <h3>抛一竿</h3>
+            <p class="lede">站在星落镇或月光湖边上。钓上一条银鳞鱼，竿要歇一会儿。</p>
+            <p class="lede">不涨采集熟练，也不动地图上的鱼点。战斗里不能抛。</p>
+            <p class="lede">{{ castReadyNow ? '竿歇好了。' : '竿还要歇 ' + Math.ceil(castLeft / 1000) + ' 秒。' }}</p>
+            <button class="btn lantern" :disabled="!castReadyNow" @click="game.act('/api/cast')">抛竿</button>
+          </div>
+        </div>
+      </template>
+
+      <template v-else-if="game.panel === 'trail'">
+        <p class="lede">和一位旅人结路谊。等级高的当引路人，另一位跟着学。一天各传一句，两句都到了路谊才往前，最高 {{ game.profile?.trail?.bondMax || 6 }}。不加金币、经验和属性。</p>
+        <p v-if="game.profile?.trail?.peerName" class="lede">
+          你是{{ game.profile.trail.roleName }}，对方是 {{ game.profile.trail.peerName }}。
+          路谊 {{ game.profile.trail.bond }}/{{ game.profile.trail.bondMax }}。
+          {{ game.profile.trail.said ? '今天这句已经传了。' : '今天还可以传一句。' }}
+          {{ game.profile.trail.peerSaid ? '对方也传过了。' : '还在等对方。' }}
+        </p>
+        <div v-else class="row">
+          <input v-model="trailName" placeholder="对方名字" />
+          <button class="btn" @click="game.act('/api/trail/ask', { name: trailName, role: 'lead' })">我来引路</button>
+          <button class="btn light" @click="game.act('/api/trail/ask', { name: trailName, role: 'walk' })">请你引路</button>
+        </div>
+        <div v-if="game.profile?.trail?.incoming" class="item">
+          <span>{{ game.profile.trail.incoming.name }} 请你当{{ game.profile.trail.incoming.roleName }}</span>
+          <span class="row">
+            <button class="btn" @click="game.act('/api/trail/accept')">答应</button>
+            <button class="btn light" @click="game.act('/api/trail/decline')">回绝</button>
+          </span>
+        </div>
+        <div v-if="game.profile?.trail?.outgoing" class="item">
+          <span>已请 {{ game.profile.trail.outgoing.name }}，你想当{{ game.profile.trail.outgoing.roleName }}</span>
+          <button class="btn light" @click="game.act('/api/trail/cancel')">收回</button>
+        </div>
+        <div v-for="line in game.profile?.trail?.lines ?? []" :key="line.id" class="item">
+          <span>{{ line.text }}</span>
+          <button class="btn" :disabled="game.profile?.trail?.said" @click="game.act('/api/trail/line', { id: line.id })">传这句</button>
+        </div>
+        <div v-if="game.profile?.trail?.peerName" class="row">
+          <button class="btn light" @click="game.act('/api/trail/leave')">散了路谊</button>
+        </div>
+        <p class="lede">路谊到 {{ game.profile?.trail?.titleAt || 3 }} 可以在名帖挂「认得路的人」。</p>
       </template>
 
       <template v-else-if="game.panel === 'mount'">

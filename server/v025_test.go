@@ -13,7 +13,7 @@ func TestStreetConstantsStay(t *testing.T) {
 		t.Fatalf("caps bag=%v bank=%v gold=%v tax=%v guild=%v orbs=%v", a.constant("bagCap"), a.constant("bankCap"), a.constant("starterGold"), a.constant("marketTax"), a.constant("guildCost"), a.constant("starterOrbs"))
 	}
 	cfg := a.publicConfig()
-	if str(cfg["version"]) != "0.2.5" || len(objects(cfg["blends"])) != 2 || len(objects(cfg["partyAims"])) != 4 || len(objects(cfg["stallShelves"])) != 4 {
+	if str(cfg["version"]) != "0.2.6" || len(objects(cfg["blends"])) != 2 || len(objects(cfg["partyAims"])) != 4 || len(objects(cfg["stallShelves"])) != 4 {
 		t.Fatalf("config version=%v blends=%v aims=%v shelves=%v", cfg["version"], len(objects(cfg["blends"])), len(objects(cfg["partyAims"])), len(objects(cfg["stallShelves"])))
 	}
 	// 合剂不写进原来的配方表。
